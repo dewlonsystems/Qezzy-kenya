@@ -1,3 +1,4 @@
+# activation/views.py
 import logging
 from django.db import transaction
 from django.http import HttpResponse
@@ -5,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny  # ← Added AllowAny
 from .models import ActivationPayment
 from .daraja import generate_stk_push, normalize_phone
 from users.models import User
@@ -13,6 +14,7 @@ from referrals.models import ReferralTransaction
 from wallets.utils import create_transaction
 
 logger = logging.getLogger(__name__)
+
 
 class InitiateActivationView(APIView):
     permission_classes = [IsAuthenticated]
@@ -42,9 +44,7 @@ class InitiateActivationView(APIView):
             if existing_payment.status == 'completed':
                 return Response({'error': 'Activation already paid'}, status=400)
             if existing_payment.status == 'pending':
-                # Optionally allow retry, but warn
                 logger.info(f"Retrying STK for user {user.email} with existing pending payment")
-                # We’ll proceed to re-initiate (Daraja allows this)
 
         # Create or update
         payment, created = ActivationPayment.objects.get_or_create(
@@ -56,9 +56,8 @@ class InitiateActivationView(APIView):
             }
         )
         if not created:
-            # Update phone if changed
             payment.phone_number = phone
-            payment.status = 'pending'  # Reset status to allow retry
+            payment.status = 'pending'
             payment.save()
 
         # Trigger STK push
@@ -87,8 +86,11 @@ class InitiateActivationView(APIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class DarajaCallbackView(APIView):
     """
-    Receives async callback from Safaricom Daraja (must be publicly accessible via HTTPS)
+    Receives async callback from Safaricom Daraja.
+    Must be publicly accessible (no auth) and CSRF-exempt.
     """
+    permission_classes = [AllowAny]  # ✅ CRITICAL: Allow unauthenticated POST
+
     def post(self, request):
         data = request.data
         logger.info(f"Daraja callback received: {data}")
@@ -163,7 +165,7 @@ class DarajaCallbackView(APIView):
                         except ReferralTransaction.DoesNotExist:
                             pass  # No pending bonus
 
-                return HttpResponse('OK')
+                return HttpResponse('OK')  # Safaricom expects 'OK' (200)
 
             else:
                 # Payment failed
@@ -171,11 +173,11 @@ class DarajaCallbackView(APIView):
                 logger.warning(f"STK failed for {checkout_id}: {result_desc}")
                 payment.status = 'failed'
                 payment.save()
-                return HttpResponse('OK')
+                return HttpResponse('OK')  # Still return OK to avoid retries
 
         except ActivationPayment.DoesNotExist:
             logger.error(f"Callback for unknown CheckoutRequestID: {checkout_id}")
-            return HttpResponse('OK')  # Safaricom requires 200 OK even for unknown IDs
+            return HttpResponse('OK')  # Safaricom requires 200 even for unknown
         except Exception as e:
             logger.error(f"Unexpected error in Daraja callback: {str(e)}", exc_info=True)
             return HttpResponse('ERROR', status=500)
