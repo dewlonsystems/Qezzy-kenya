@@ -13,7 +13,7 @@ const SupportPage = () => {
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false); // Now used in render!
 
   // Form state for new ticket
   const [formData, setFormData] = useState({
@@ -156,22 +156,31 @@ const SupportPage = () => {
 
             {/* Messages */}
             <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`p-3 rounded-lg ${
-                    msg.sender === 'user' 
-                      ? 'bg-amber-50 ml-8 border-l-4 border-amber-500' 
-                      : 'bg-gray-50 mr-8 border-l-4 border-gray-500'
-                  }`}
-                >
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>{msg.sender === 'user' ? 'You' : 'Support Team'}</span>
-                    <span>{new Date(msg.created_at).toLocaleString()}</span>
-                  </div>
-                  <p className="text-gray-800">{msg.message}</p>
+              {loadingMessages ? (
+                <div className="flex justify-center items-center py-6 text-gray-500">
+                  <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Loading messages...
                 </div>
-              ))}
+              ) : messages.length > 0 ? (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`p-3 rounded-lg ${
+                      msg.sender === 'user'
+                        ? 'bg-amber-50 ml-8 border-l-4 border-amber-500'
+                        : 'bg-gray-50 mr-8 border-l-4 border-gray-500'
+                    }`}
+                  >
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>{msg.sender === 'user' ? 'You' : 'Support Team'}</span>
+                      <span>{new Date(msg.created_at).toLocaleString()}</span>
+                    </div>
+                    <p className="text-gray-800">{msg.message}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No messages yet.</p>
+              )}
             </div>
 
             {/* Reply Form */}

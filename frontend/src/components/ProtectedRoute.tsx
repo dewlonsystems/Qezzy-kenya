@@ -1,7 +1,6 @@
 // src/components/ProtectedRoute.tsx
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect } from 'react';
 
 const ProtectedRoute = () => {
   const { currentUser, loading } = useAuth();

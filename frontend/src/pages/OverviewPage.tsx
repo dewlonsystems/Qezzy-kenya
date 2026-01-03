@@ -35,7 +35,7 @@ const getGreeting = () => {
 const formatKES = (amount: number) => `KES ${amount.toFixed(2)}`;
 
 const OverviewPage = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
@@ -349,7 +349,7 @@ const OverviewPage = () => {
             <h2 className="text-xl font-bold text-gray-800 mb-4">Earnings (Last 30 Days)</h2>
             <div className="overflow-x-auto">
               <div className="min-w-full h-48 flex items-end gap-1 px-2">
-                {earningsTimeline.map((day, idx) => {
+                {earningsTimeline.map((day) => {
                   const total = day.main + day.referral;
                   const maxTotal = Math.max(...earningsTimeline.map(d => d.main + d.referral));
                   const height = total > 0 ? (total / maxTotal) * 100 : 4;
