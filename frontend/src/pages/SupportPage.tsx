@@ -1,5 +1,5 @@
 // src/pages/SupportPage.tsx
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import type { SupportTicket, SupportMessage } from '../types';
@@ -250,7 +250,7 @@ const SupportPage = () => {
                   Loading messages...
                 </div>
               ) : messages.length > 0 ? (
-                messages.map((msg, index) => (
+                messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex gap-3 ${
@@ -484,7 +484,7 @@ const SupportPage = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {tickets.map((ticket, index) => {
+                {tickets.map((ticket) => {
                   const statusConfig = getStatusConfig(ticket.status);
                   return (
                     <button
