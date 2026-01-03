@@ -189,15 +189,9 @@ const OverviewPage = () => {
     fetchData();
   }, []);
 
-  const handleActivate = async () => {
-    try {
-      await api.post('/activation/initiate/');
-      navigate('/activation');
-    } catch (error) {
-      console.error('Activation failed:', error);
-      alert('Failed to start activation. Please try again.');
-    }
-  };
+  const handleActivate = () => {
+  navigate('/activation');
+};
 
   if (loading) {
     return (

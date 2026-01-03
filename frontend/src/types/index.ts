@@ -41,6 +41,7 @@ export interface Job {
   status: 'open' | 'submitted' | 'completed' | 'cancelled' | 'declined';
   created_at: string;
   updated_at: string;
+  reward?: number;
 }
 
 export interface WithdrawalRequest {
