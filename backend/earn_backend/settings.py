@@ -15,7 +15,7 @@ if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
-        'your-backend.onrender.com',  # Render auto-assigned URL
+        'https://qezzy-kenya.onrender.com',  # Render auto-assigned URL
         'api.yourdomain.com',         # Optional: custom domain
         # Add more if needed
     ]
@@ -133,7 +133,7 @@ if DEBUG:
     CORS_ALLOW_CREDENTIALS = True
 else:
     CORS_ALLOWED_ORIGINS = [
-        "https://your-frontend.vercel.app",   # ← REPLACE with your Vercel URL
+        "https://qezzy-surveys.vercel.app",   # ← REPLACE with your Vercel URL
         "https://www.yourdomain.com",         # ← Optional: custom domain
         "https://yourdomain.com",
     ]
