@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import ActivationPayment
-from .daraja import generate_stk_push
+from .daraja import generate_stk_push, normalize_phone
 from users.models import User
 from referrals.models import ReferralTransaction
 from wallets.utils import create_transaction
@@ -26,31 +26,51 @@ class InitiateActivationView(APIView):
         if not user.is_onboarded:
             return Response({'error': 'Complete onboarding first'}, status=400)
 
-        phone = request.data.get('phone_number', '').strip()
-        if not phone:
+        raw_phone = request.data.get('phone_number', '').strip()
+        if not raw_phone:
             return Response({'error': 'Phone number required'}, status=400)
 
-        # Create or get pending activation record
+        # Normalize phone
+        try:
+            phone = normalize_phone(raw_phone)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+
+        # Prevent duplicate pending/completed payments
+        existing_payment = ActivationPayment.objects.filter(user=user).first()
+        if existing_payment:
+            if existing_payment.status == 'completed':
+                return Response({'error': 'Activation already paid'}, status=400)
+            if existing_payment.status == 'pending':
+                # Optionally allow retry, but warn
+                logger.info(f"Retrying STK for user {user.email} with existing pending payment")
+                # We’ll proceed to re-initiate (Daraja allows this)
+
+        # Create or update
         payment, created = ActivationPayment.objects.get_or_create(
             user=user,
-            defaults={'phone_number': phone, 'status': 'pending'}
+            defaults={
+                'phone_number': phone,
+                'status': 'pending',
+                'amount': 300.00
+            }
         )
         if not created:
-            if payment.status == 'completed':
-                return Response({'error': 'Already paid'}, status=400)
-            # Allow retry if failed or still pending
-
-        # Generate unique account reference (e.g., user email)
-        account_ref = user.email
+            # Update phone if changed
+            payment.phone_number = phone
+            payment.status = 'pending'  # Reset status to allow retry
+            payment.save()
 
         # Trigger STK push
         daraja_response = generate_stk_push(
             phone_number=phone,
             amount=300,
-            account_reference=account_ref
+            account_reference=user.email
         )
 
-        if not daraja_response or 'CheckoutRequestID' not in daraja_response:
+        if 'error' in daraja_response or 'CheckoutRequestID' not in daraja_response:
+            error_msg = daraja_response.get('error', 'Unknown Daraja error')
+            logger.error(f"STK Push failed for {user.email}: {error_msg}")
             return Response({'error': 'Failed to initiate payment'}, status=500)
 
         # Save Daraja IDs
@@ -59,7 +79,7 @@ class InitiateActivationView(APIView):
         payment.save()
 
         return Response({
-            'message': 'STK Push sent',
+            'message': 'STK Push sent successfully',
             'checkout_request_id': payment.checkout_request_id
         })
 
@@ -67,30 +87,36 @@ class InitiateActivationView(APIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class DarajaCallbackView(APIView):
     """
-    Receives async callback from Safaricom Daraja
+    Receives async callback from Safaricom Daraja (must be publicly accessible via HTTPS)
     """
     def post(self, request):
         data = request.data
         logger.info(f"Daraja callback received: {data}")
 
-        # Extract result
         try:
-            result = data['Body']['stkCallback']
-            checkout_id = result['CheckoutRequestID']
-            result_code = result['ResultCode']
+            result = data.get('Body', {}).get('stkCallback', {})
+            checkout_id = result.get('CheckoutRequestID')
+            result_code = result.get('ResultCode')
+
+            if not checkout_id:
+                logger.error("Missing CheckoutRequestID in callback")
+                return HttpResponse('ERROR', status=400)
+
+            payment = ActivationPayment.objects.get(checkout_request_id=checkout_id)
 
             if result_code == 0:
                 # Success
-                payment = ActivationPayment.objects.get(checkout_request_id=checkout_id)
-                callback_metadata = result['CallbackMetadata']['Item']
+                callback_metadata = result.get('CallbackMetadata', {}).get('Item', [])
                 receipt = None
                 trans_date = None
 
                 for item in callback_metadata:
-                    if item['Name'] == 'MpesaReceiptNumber':
-                        receipt = item['Value']
-                    elif item['Name'] == 'TransactionDate':
-                        trans_date = item['Value']
+                    name = item.get('Name')
+                    value = item.get('Value')
+                    if name == 'MpesaReceiptNumber':
+                        receipt = str(value)
+                    elif name == 'TransactionDate':
+                        trans_date = str(value)
 
                 with transaction.atomic():
                     # Activate user
@@ -98,24 +124,24 @@ class DarajaCallbackView(APIView):
                     user.is_active = True
                     user.save()
 
-                    # Mark payment as completed
+                    # Update payment
                     payment.status = 'completed'
                     payment.mpesa_receipt_number = receipt
                     if trans_date:
                         from datetime import datetime
-                        payment.transaction_date = datetime.strptime(str(trans_date), '%Y%m%d%H%M%S')
+                        payment.transaction_date = datetime.strptime(trans_date, '%Y%m%d%H%M%S')
                     payment.save()
 
-                    # Record activation payment as debit in main wallet
+                    # Debit main wallet
                     create_transaction(
                         user=user,
                         wallet_type='main',
                         transaction_type='activation_payment',
-                        amount=-300.00,  # Debit
+                        amount=-300.00,
                         description=f"Account activation payment (Receipt: {receipt})"
                     )
 
-                    # Trigger referral reward if applicable
+                    # Handle referral bonus
                     if user.referred_by:
                         try:
                             ref_trans = ReferralTransaction.objects.get(
@@ -127,7 +153,6 @@ class DarajaCallbackView(APIView):
                             ref_trans.completed_at = payment.transaction_date or payment.updated_at
                             ref_trans.save()
 
-                            # Credit referrer's referral wallet
                             create_transaction(
                                 user=user.referred_by,
                                 wallet_type='referral',
@@ -136,18 +161,23 @@ class DarajaCallbackView(APIView):
                                 description=f"Referral bonus for {user.email}"
                             )
                         except ReferralTransaction.DoesNotExist:
-                            pass  # No pending reward
+                            pass  # No pending bonus
 
                 return HttpResponse('OK')
+
             else:
-                # Failure
-                payment = ActivationPayment.objects.get(checkout_request_id=checkout_id)
+                # Payment failed
+                result_desc = result.get('ResultDesc', 'Unknown error')
+                logger.warning(f"STK failed for {checkout_id}: {result_desc}")
                 payment.status = 'failed'
                 payment.save()
                 return HttpResponse('OK')
 
+        except ActivationPayment.DoesNotExist:
+            logger.error(f"Callback for unknown CheckoutRequestID: {checkout_id}")
+            return HttpResponse('OK')  # Safaricom requires 200 OK even for unknown IDs
         except Exception as e:
-            logger.error(f"Daraja callback error: {str(e)}")
+            logger.error(f"Unexpected error in Daraja callback: {str(e)}", exc_info=True)
             return HttpResponse('ERROR', status=500)
 
 
@@ -162,7 +192,8 @@ class ActivationStatusView(APIView):
                 'is_active': user.is_active,
                 'payment_status': payment.status,
                 'created_at': payment.created_at.isoformat(),
-                'completed_at': payment.transaction_date.isoformat() if payment.transaction_date else None
+                'completed_at': payment.transaction_date.isoformat() if payment.transaction_date else None,
+                'receipt': payment.mpesa_receipt_number or None
             }
         except ActivationPayment.DoesNotExist:
             data = {
@@ -179,5 +210,4 @@ class SkipActivationView(APIView):
         user = request.user
         if user.is_active:
             return Response({'error': 'Already active'}, status=400)
-        # Allow skip – no action needed; frontend handles redirect
         return Response({'message': 'Activation skipped'})
