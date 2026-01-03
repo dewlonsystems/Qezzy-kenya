@@ -1,22 +1,243 @@
 // src/pages/ActivationPage.tsx
+import React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/client';
-import type { ActivationStatus } from '../types';
 
-const POLL_INTERVAL = 3000; // 3 seconds
-const MAX_POLL_ATTEMPTS = 30; // Stop after ~90 seconds
+// Google Fonts: Inter
+const InterFontLink = () => (
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+);
+
+// Properly typed SVG Icon Components
+const ZapIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+  </svg>
+);
+
+const SmartphoneIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+    <line x1="12" y1="18" x2="12" y2="18" />
+  </svg>
+);
+
+const ShieldIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
+const CheckCircleIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
+const ArrowRightIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
+const ClockIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const BriefcaseIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+  </svg>
+);
+
+const WalletIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M19 7V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1" />
+    <polyline points="15 3 15 5 17 5 17 3 15 3" />
+  </svg>
+);
+
+const GiftIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <polyline points="20 12 20 22 4 22 4 12" />
+    <rect x="2" y="7" width="20" height="5" />
+    <line x1="12" y1="22" x2="12" y2="7" />
+    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+  </svg>
+);
+
+const XIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+type ActivationState = 'intro' | 'payment' | 'processing' | 'success';
+
+const benefits = [
+  {
+    icon: BriefcaseIcon,
+    title: 'Access Paid Tasks',
+    description: 'Unlock hundreds of earning opportunities daily',
+  },
+  {
+    icon: WalletIcon,
+    title: 'Withdraw Earnings',
+    description: 'Transfer your earnings directly to M-Pesa or bank',
+  },
+  {
+    icon: GiftIcon,
+    title: 'Referral Rewards',
+    description: 'Earn KES 100 for every friend you refer',
+  },
+  {
+    icon: ShieldIcon,
+    title: 'Priority Support',
+    description: 'Get faster responses from our support team',
+  },
+];
 
 const ActivationPage = () => {
-  const { currentUser, refreshUser } = useAuth(); 
+  const { currentUser, refreshUser } = useAuth();
   const navigate = useNavigate();
-  
-  const [activationStatus, setActivationStatus] = useState<ActivationStatus | null>(null);
+
+  const [state, setState] = useState<ActivationState>('intro');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [isPolling, setIsPolling] = useState(false);
 
   const pollCountRef = useRef(0);
@@ -29,7 +250,7 @@ const ActivationPage = () => {
     }
   }, [currentUser, navigate]);
 
-  // Cleanup polling on unmount
+  // Cleanup polling
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) {
@@ -38,7 +259,7 @@ const ActivationPage = () => {
     };
   }, []);
 
-  const fetchActivationStatus = async (): Promise<ActivationStatus | null> => {
+  const fetchActivationStatus = async () => {
     try {
       const res = await api.get('/activation/status/');
       return res.data;
@@ -56,11 +277,8 @@ const ActivationPage = () => {
 
     const poll = async () => {
       const status = await fetchActivationStatus();
-      setActivationStatus(status);
 
-      // Stop conditions
       if (!status) {
-        // Backend error – stop polling
         setIsPolling(false);
         setError('Unable to verify payment status. Please contact support.');
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -68,15 +286,10 @@ const ActivationPage = () => {
       }
 
       if (status.payment_status === 'completed') {
-        // Success!
         setIsPolling(false);
-        setSuccess('Payment confirmed! Account activated.');
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-        
-        // Optional: refresh auth context to update currentUser.is_active
         await refreshUser?.();
-        
-        // Redirect after a short delay for UX
+        setState('success');
         setTimeout(() => navigate('/', { replace: true }), 1500);
         return;
       }
@@ -88,38 +301,40 @@ const ActivationPage = () => {
         return;
       }
 
-      // Continue polling
       pollCountRef.current += 1;
-      if (pollCountRef.current >= MAX_POLL_ATTEMPTS) {
+      if (pollCountRef.current >= 30) {
         setIsPolling(false);
         setError('Payment confirmation timed out. Check your M-Pesa statement and try again.');
-        if ( pollIntervalRef.current ) clearInterval(pollIntervalRef.current);
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       }
     };
 
-    // Initial poll immediately
     poll();
-    // Then poll every X ms
-    pollIntervalRef.current = setInterval(poll, POLL_INTERVAL);
+    pollIntervalRef.current = setInterval(poll, 3000) as unknown as number;
   };
 
-  // Trigger polling when activation is initiated
-  const handleActivate = async () => {
-    if (!phoneNumber) {
-      setError('Please enter your mobile number');
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+  };
+
+  const validatePhoneNumber = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, '');
+    return /^(07|01)\d{8}$/.test(cleaned) || /^254(7|1)\d{8}$/.test(cleaned);
+  };
+
+  const handleInitiatePayment = async () => {
+    if (!validatePhoneNumber(phoneNumber)) {
+      setError('Please enter a valid Safaricom number (e.g. 0712345678)');
       return;
     }
 
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
       const res = await api.post('/activation/initiate/', { phone_number: phoneNumber });
-      setSuccess('STK Push sent! Check your phone to complete payment.');
       console.log('Checkout Request ID:', res.data.checkout_request_id);
-      
-      // Start polling for payment confirmation
+      setState('processing');
       startPolling();
     } catch (err: any) {
       console.error('Activation error:', err);
@@ -138,95 +353,252 @@ const ActivationPage = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-app p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="card">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Activate Your Account</h1>
-          <p className="text-gray-600 mb-6">
-            Pay a one-time activation fee of <span className="font-semibold">KES 300</span> to unlock full access.
-            You’ll earn from tasks and referrals once activated.
-          </p>
+  const goBack = () => {
+    setState('intro');
+    setError('');
+  };
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+  // ========== RENDER STATES ==========
 
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm">
-              {success}
+  if (state === 'success') {
+    return (
+      <>
+        <InterFontLink />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+          <div className="w-full max-w-md text-center">
+            <div className="w-20 h-20 rounded-full bg-amber-100 mx-auto flex items-center justify-center shadow-lg mb-6">
+              <CheckCircleIcon className="w-10 h-10 text-amber-600" />
             </div>
-          )}
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">You're All Set!</h1>
+            <p className="text-gray-600 mb-8">
+              Your account is now active. Start earning by completing tasks.
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
+            >
+              Go to Dashboard
+              <ArrowRightIcon className="w-5 h-5 ml-2 inline" />
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
-          {activationStatus?.payment_status === 'completed' ? (
-            <div className="text-center py-6">
-              <div className="text-green-500 text-5xl mb-4">✓</div>
-              <h2 className="text-xl font-semibold text-gray-800">Activation Successful!</h2>
-              <p className="text-gray-600 mt-2">Your account is now active.</p>
-              <button
-                onClick={() => navigate('/')}
-                className="btn-primary mt-4"
-              >
-                Go to Dashboard
-              </button>
+  if (state === 'processing') {
+    return (
+      <>
+        <InterFontLink />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+          <div className="w-full max-w-md text-center">
+            <div className="w-20 h-20 rounded-full bg-amber-50 mx-auto flex items-center justify-center mb-6 animate-pulse">
+              <SmartphoneIcon className="w-10 h-10 text-amber-600" />
             </div>
-          ) : isPolling ? (
-            <div className="text-center py-6">
-              <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-500 mb-4"></div>
-              <p className="text-gray-700">Waiting for payment confirmation...</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Please check your phone and complete the STK prompt.
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Check Your Phone</h1>
+            <p className="text-gray-600 mb-4">We've sent an M-Pesa payment request to</p>
+            <p className="text-lg font-semibold mb-8">{phoneNumber}</p>
+
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                <span className="font-medium text-gray-700">Waiting for payment confirmation...</span>
+              </div>
+              <ol className="text-sm text-gray-600 text-left space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                  <span>Check your phone for the M-Pesa prompt</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                  <span>Enter your M-Pesa PIN to confirm payment</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                  <span>Wait for confirmation (usually instant)</span>
+                </li>
+              </ol>
+            </div>
+
+            {error && <div className="text-red-600 text-sm mb-4">{error}</div>}
+
+            <button
+              onClick={() => setState('payment')}
+              className="text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1 mx-auto"
+            >
+              <XIcon className="w-4 h-4" />
+              Cancel
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (state === 'payment') {
+    return (
+      <>
+        <InterFontLink />
+        <div className="min-h-screen bg-gray-50 p-4 font-sans">
+          <div className="w-full max-w-md mx-auto pt-8">
+            <button
+              onClick={goBack}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors mb-8"
+            >
+              <ArrowRightIcon className="w-4 h-4 rotate-180" />
+              Back
+            </button>
+
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 rounded-2xl bg-amber-100 mx-auto flex items-center justify-center mb-4">
+                <SmartphoneIcon className="w-8 h-8 text-amber-600" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">Pay with M-Pesa</h1>
+              <p className="text-gray-600">
+                Enter your Safaricom number to receive the payment request
               </p>
             </div>
-          ) : (
-            <>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mobile Number for STK Push *
-                </label>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                  placeholder="e.g., 0712345678"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  You’ll receive an STK prompt from Safaricom to complete payment.
-                </p>
+
+            {error && <div className="text-red-600 text-sm mb-4 text-center">{error}</div>}
+
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                <span className="text-gray-600">Activation Fee</span>
+                <span className="text-2xl font-bold text-gray-800">KES 300</span>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="phone" className="text-sm font-medium text-gray-700 block mb-1">
+                    M-Pesa Phone Number
+                  </label>
+                  <div className="relative mt-1">
+                    <input
+                      id="phone"
+                      type="tel"
+                      placeholder="07XX XXX XXX"
+                      value={phoneNumber}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                    />
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      +254
+                    </span>
+                  </div>
+                  {phoneNumber && !validatePhoneNumber(phoneNumber) && (
+                    <p className="text-xs text-red-600 mt-1.5">
+                      Please enter a valid Safaricom number
+                    </p>
+                  )}
+                </div>
+
                 <button
-                  onClick={handleActivate}
-                  disabled={loading}
-                  className={`btn-primary flex-1 ${loading ? 'opacity-75' : ''}`}
+                  onClick={handleInitiatePayment}
+                  disabled={!validatePhoneNumber(phoneNumber) || loading}
+                  className={`w-full py-3 px-4 font-semibold rounded-xl shadow-sm transition-all ${
+                    validatePhoneNumber(phoneNumber)
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
-                  {loading ? 'Processing...' : 'Pay KES 300'}
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <ZapIcon className="w-5 h-5 mr-2 inline" />
+                      Pay KES 300
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 justify-center text-xs text-gray-500">
+              <ShieldIcon className="w-4 h-4" />
+              <span>Secured by Safaricom Daraja API</span>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Intro state
+  return (
+    <>
+      <InterFontLink />
+      <div className="min-h-screen bg-gray-50 font-sans">
+        <section className="bg-gradient-to-br from-amber-500 to-amber-600 text-white px-4 pt-12 pb-16">
+          <div className="max-w-md mx-auto text-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 mx-auto flex items-center justify-center mb-6">
+              <ZapIcon className="w-8 h-8" />
+            </div>
+            <h1 className="text-3xl font-bold mb-3">Activate Your Account</h1>
+            <p className="text-white/90">
+              Unlock all features and start earning money by completing simple tasks
+            </p>
+          </div>
+        </section>
+
+        <div className="px-4 -mt-8">
+          <div className="max-w-md mx-auto">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+              <div className="p-6 text-center border-b border-gray-200">
+                <p className="text-sm text-gray-600 mb-1">One-time activation fee</p>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-4xl font-bold text-gray-800">KES 300</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Pay once, earn forever</p>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                  What you'll unlock
+                </p>
+                {benefits.map((benefit, index) => (
+                  <div key={benefit.title} className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                      <benefit.icon className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">{benefit.title}</p>
+                      <p className="text-sm text-gray-600">{benefit.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {error && <div className="px-6 pb-2 text-red-600 text-sm text-center">{error}</div>}
+
+              <div className="p-6 pt-2 space-y-3">
+                <button
+                  onClick={() => setState('payment')}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
+                >
+                  Activate Now
+                  <ArrowRightIcon className="w-5 h-5 ml-2 inline" />
                 </button>
                 <button
                   onClick={handleSkip}
-                  className="btn-outline flex-1"
+                  className="w-full py-3 px-4 text-gray-700 font-medium rounded-xl border border-gray-300 hover:bg-gray-50 transition-colors"
                 >
-                  Skip for Now
+                  <ClockIcon className="w-4 h-4 mr-2 inline" />
+                  Skip for now
                 </button>
               </div>
+            </div>
 
-              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <h3 className="font-medium text-yellow-800">Note</h3>
-                <p className="text-yellow-700 text-sm mt-1">
-                  Skipping activation means you can’t access jobs or earnings. 
-                  You can activate later from your profile.
-                </p>
-              </div>
-            </>
-          )}
+            <p className="text-center text-xs text-gray-500 mt-4 px-4">
+              You can activate later from the dashboard, but you won't be able to
+              access tasks or withdraw earnings until then.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
