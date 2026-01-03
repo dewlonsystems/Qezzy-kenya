@@ -77,7 +77,7 @@ const DashboardLayout = () => {
         {/* Logo */}
         <div className="p-6 border-b border-gray-200 shrink-0">
           <h1 className="text-xl font-bold text-primary-600">Earn</h1>
-          <p className="text-sm text-gray-600 mt-1">Task Earning Platform</p>
+          <p className="text-sm text-gray-600 mt-1">Qezzy Kenya</p>
         </div>
 
         {/* Navigation */}
