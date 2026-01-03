@@ -1,0 +1,58 @@
+==========================================
+TASK-EARNING PLATFORM - API ENDPOINTS
+==========================================
+
+🔐 AUTHENTICATION
+- All requests must include header:
+  Authorization: Bearer <Firebase-ID-Token>
+
+🟢 USERS
+GET  /api/users/me/                 → Get current user profile
+PATCH /api/users/profile/           → Update profile (phone, address, skills)
+POST /api/users/close/              → Close account (soft delete)
+
+🟢 ONBOARDING
+POST /api/onboarding/profile/       → Submit profile (first/last name, address, skills, referral code)
+POST /api/onboarding/payment/       → Submit payout method (mobile/bank)
+GET  /api/onboarding/status/        → Check onboarding progress
+
+🟢 ACTIVATION
+POST /api/activation/initiate/      → Start KES 300 activation (STK Push)
+POST /api/activation/skip/          → Skip activation (account remains inactive)
+GET  /api/activation/status/        → Check activation status
+POST /api/activation/daraja/callback/ → Daraja payment confirmation (internal)
+
+🟢 REFERRALS
+GET  /api/referrals/transactions/   → List referral transactions (pending/completed)
+
+🟢 JOBS (active users only)
+GET  /api/jobs/                     → List user's jobs (open, submitted, etc.)
+GET  /api/jobs/<id>/                → Get job details
+
+🟢 WALLETS
+GET  /api/wallets/overview/         → Get main + referral wallet balances
+GET  /api/wallets/transactions/?wallet=main|referral → Transaction history
+
+🟢 WITHDRAWALS
+POST /api/withdrawals/request/      → Request withdrawal (enforces timing rules)
+GET  /api/withdrawals/history/      → List withdrawal requests
+
+🟢 SUPPORT
+POST /api/support/tickets/          → Create new support ticket
+GET  /api/support/tickets/<id>/     → View ticket conversation
+POST /api/support/tickets/<id>/     → Reply to ticket
+
+==========================================
+ADMIN-ONLY (via Django Admin UI)
+==========================================
+- /admin/ → Full control:
+  • Activate/suspend/close accounts
+  • Create/assign jobs
+  • Approve bank withdrawals
+  • Reply to support tickets
+  • View all transactions & users
+
+✅ NOTES:
+- Inactive accounts are blocked from /jobs/, /wallets/, /withdrawals/
+- Closed accounts are blocked from everything except /users/close/
+- All business logic enforced server-side
