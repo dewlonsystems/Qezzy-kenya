@@ -13,6 +13,7 @@ DARAJA_CONSUMER_SECRET = config('DARAJA_CONSUMER_SECRET')
 DARAJA_SHORTCODE = config('DARAJA_SHORTCODE', default='174379')
 DARAJA_PASSKEY = config('DARAJA_PASSKEY')
 DARAJA_CALLBACK_URL = config('DARAJA_CALLBACK_URL')
+DARAJA_TILL_NUMBER = config('DARAJA_TILL_NUMBER')
 
 def get_access_token():
     """Fetch Daraja OAuth2 access token."""
