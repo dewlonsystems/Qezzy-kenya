@@ -1,12 +1,15 @@
 // src/pages/ActivationPage.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/client';
 import type { ActivationStatus } from '../types';
 
+const POLL_INTERVAL = 3000; // 3 seconds
+const MAX_POLL_ATTEMPTS = 30; // Stop after ~90 seconds
+
 const ActivationPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUser } = useAuth(); 
   const navigate = useNavigate();
   
   const [activationStatus, setActivationStatus] = useState<ActivationStatus | null>(null);
@@ -14,27 +17,93 @@ const ActivationPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isPolling, setIsPolling] = useState(false);
+
+  const pollCountRef = useRef(0);
+  const pollIntervalRef = useRef<number | null>(null);
 
   // Redirect if already active
   useEffect(() => {
     if (currentUser?.is_active) {
-      navigate('/');
+      navigate('/', { replace: true });
     }
   }, [currentUser, navigate]);
 
-  // Fetch activation status on mount
+  // Cleanup polling on unmount
   useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await api.get('/activation/status/');
-        setActivationStatus(res.data);
-      } catch (err) {
-        console.error('Failed to fetch activation status:', err);
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
     };
-    fetchStatus();
   }, []);
 
+  const fetchActivationStatus = async (): Promise<ActivationStatus | null> => {
+    try {
+      const res = await api.get('/activation/status/');
+      return res.data;
+    } catch (err) {
+      console.error('Failed to fetch activation status:', err);
+      return null;
+    }
+  };
+
+  const startPolling = () => {
+    if (isPolling) return;
+
+    setIsPolling(true);
+    pollCountRef.current = 0;
+
+    const poll = async () => {
+      const status = await fetchActivationStatus();
+      setActivationStatus(status);
+
+      // Stop conditions
+      if (!status) {
+        // Backend error – stop polling
+        setIsPolling(false);
+        setError('Unable to verify payment status. Please contact support.');
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        return;
+      }
+
+      if (status.payment_status === 'completed') {
+        // Success!
+        setIsPolling(false);
+        setSuccess('Payment confirmed! Account activated.');
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        
+        // Optional: refresh auth context to update currentUser.is_active
+        await refreshUser?.();
+        
+        // Redirect after a short delay for UX
+        setTimeout(() => navigate('/', { replace: true }), 1500);
+        return;
+      }
+
+      if (status.payment_status === 'failed' || status.payment_status === 'cancelled') {
+        setIsPolling(false);
+        setError('Payment failed or was cancelled. Please try again.');
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        return;
+      }
+
+      // Continue polling
+      pollCountRef.current += 1;
+      if (pollCountRef.current >= MAX_POLL_ATTEMPTS) {
+        setIsPolling(false);
+        setError('Payment confirmation timed out. Check your M-Pesa statement and try again.');
+        if ( pollIntervalRef.current ) clearInterval(pollIntervalRef.current);
+      }
+    };
+
+    // Initial poll immediately
+    poll();
+    // Then poll every X ms
+    pollIntervalRef.current = setInterval(poll, POLL_INTERVAL);
+  };
+
+  // Trigger polling when activation is initiated
   const handleActivate = async () => {
     if (!phoneNumber) {
       setError('Please enter your mobile number');
@@ -49,6 +118,9 @@ const ActivationPage = () => {
       const res = await api.post('/activation/initiate/', { phone_number: phoneNumber });
       setSuccess('STK Push sent! Check your phone to complete payment.');
       console.log('Checkout Request ID:', res.data.checkout_request_id);
+      
+      // Start polling for payment confirmation
+      startPolling();
     } catch (err: any) {
       console.error('Activation error:', err);
       setError(err.response?.data?.error || 'Failed to initiate payment. Please try again.');
@@ -60,16 +132,11 @@ const ActivationPage = () => {
   const handleSkip = async () => {
     try {
       await api.post('/activation/skip/');
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err) {
       setError('Failed to skip activation. Please try again.');
     }
   };
-
-  // If already paid, redirect
-  if (activationStatus?.is_active) {
-    navigate('/');
-  }
 
   return (
     <div className="min-h-screen bg-app p-4">
@@ -104,6 +171,14 @@ const ActivationPage = () => {
               >
                 Go to Dashboard
               </button>
+            </div>
+          ) : isPolling ? (
+            <div className="text-center py-6">
+              <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-500 mb-4"></div>
+              <p className="text-gray-700">Waiting for payment confirmation...</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Please check your phone and complete the STK prompt.
+              </p>
             </div>
           ) : (
             <>
