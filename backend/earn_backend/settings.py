@@ -15,7 +15,7 @@ if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
-        'https://qezzy-kenya.onrender.com',  # Render auto-assigned URL
+        'qezzy-kenya.onrender.com',  # Render auto-assigned URL
         'api.yourdomain.com',         # Optional: custom domain
         # Add more if needed
     ]
