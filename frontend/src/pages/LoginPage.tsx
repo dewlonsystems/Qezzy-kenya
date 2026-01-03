@@ -40,7 +40,7 @@ const LoginPage = () => {
       } else if (!currentUser.is_active) {
         navigate('/activation');
       } else {
-        navigate('/');
+        navigate('/overview');
       }
     }
   }, [currentUser, navigate]);

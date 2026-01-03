@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/App.tsx (updated)
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import ProfileCompletionPage from './pages/onboarding/ProfileCompletionPage';
@@ -13,21 +13,29 @@ import JobsPage from './pages/JobsPage';
 import SupportPage from './pages/SupportPage';
 import BasicProtectedRoute from './components/BasicProtectedRoute';
 import JobsProtectedRoute from './components/JobsProtectedRoute';
+import LandingPage from './pages/LandingPage'; // ✅ new import
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import CookiesPage from './pages/CookiesPage';
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
+        {/* Public routes — fully accessible */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/cookies" element={<CookiesPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
         <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
         <Route path="/activation" element={<ActivationPage />} />
 
-        {/* Basic protected routes (only require onboarded) */}
+        {/* Protected routes — require onboarding */}
         <Route element={<BasicProtectedRoute />}>
           <Route element={<DashboardLayout />}>
-            <Route path="/" element={<OverviewPage />} />
+            <Route path="/overview" element={<OverviewPage />} />
             <Route path="/wallet" element={<WalletPage />} />
             <Route path="/withdraw" element={<WithdrawalPage />} />
             <Route path="/profile" element={<ProfilePage />} />
@@ -35,14 +43,15 @@ function App() {
           </Route>
         </Route>
 
-        {/* Jobs route (requires activation) */}
+        {/* Jobs — require activation */}
         <Route element={<JobsProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/jobs" element={<JobsPage />} />
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch-all: send unknown routes to landing */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

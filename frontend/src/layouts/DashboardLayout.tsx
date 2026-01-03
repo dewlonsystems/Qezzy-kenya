@@ -12,7 +12,7 @@ const DashboardLayout = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navItems = [
-    { name: 'Overview', path: '/', icon: '📊' },
+    { name: 'Overview', path: '/overview', icon: '📊' },
     { name: 'Jobs', path: '/jobs', icon: '💼' },
     { name: 'Wallet', path: '/wallet', icon: '💰' },
     { name: 'Profile', path: '/profile', icon: '👤' },

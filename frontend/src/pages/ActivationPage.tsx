@@ -374,7 +374,7 @@ const ActivationPage = () => {
               Your account is now active. Start earning by completing tasks.
             </p>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/overview')}
               className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
             >
               Go to Dashboard
