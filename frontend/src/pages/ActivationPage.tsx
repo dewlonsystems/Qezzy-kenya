@@ -558,7 +558,7 @@ const ActivationPage = () => {
                 <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
                   What you'll unlock
                 </p>
-                {benefits.map((benefit, index) => (
+                {benefits.map((benefit) => (
                   <div key={benefit.title} className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
                       <benefit.icon className="w-5 h-5 text-amber-600" />
