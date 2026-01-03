@@ -1,6 +1,7 @@
 /* src/index.css */
 
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
   /* Your custom tokens (these extend the default theme) */
@@ -43,4 +44,8 @@
   .card {
     @apply bg-card rounded-xl shadow-sm p-6 border border-gray-100;
   }
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
