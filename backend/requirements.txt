@@ -8,7 +8,9 @@ Django==6.0
 django-cors-headers==4.9.0
 djangorestframework==3.16.1
 ecdsa==0.19.1
+gunicorn==23.0.0
 idna==3.11
+packaging==25.0
 psycopg2-binary==2.9.11
 pyasn1==0.6.1
 pycparser==2.23
