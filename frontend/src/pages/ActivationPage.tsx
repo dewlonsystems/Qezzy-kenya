@@ -347,7 +347,7 @@ const ActivationPage = () => {
   const handleSkip = async () => {
     try {
       await api.post('/activation/skip/');
-      navigate('/', { replace: true });
+      navigate('/overview', { replace: true });
     } catch (err) {
       setError('Failed to skip activation. Please try again.');
     }
