@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import type { WalletOverview, Job } from '../types';
+import LoadingSpinner from '../components/LoadingSpinner'; // ✅ NEW IMPORT
 
 // ====== TYPED SVG ICONS ======
 const WalletIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
@@ -17,7 +18,7 @@ const WalletIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
 const TaskIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M9 11l3 3L22 4" />
-    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    <path d="M21 12v7a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2V5a2 2 0 0 0 2-2h11" />
   </svg>
 );
 
@@ -73,7 +74,6 @@ const LogOutIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
     <line x1="21" y1="12" x2="9" y2="12" />
   </svg>
 );
-
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -227,11 +227,7 @@ const OverviewPage = () => {
 
   // ====== LOADING ======
   if (loading) {
-    return (
-      <div className="min-h-screen bg-landing-cream font-inter flex items-center justify-center p-4">
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading your dashboard..." />;
   }
 
   // ====== RENDER ======
