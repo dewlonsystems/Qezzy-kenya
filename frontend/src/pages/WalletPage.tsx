@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import type { WalletOverview, Transaction, PaymentDetails } from '../types';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 // ====== TYPED SVG ICONS ======
 const WalletIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
@@ -214,12 +215,8 @@ const WalletPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-landing-cream font-inter flex items-center justify-center p-4">
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+    return <LoadingSpinner message="Loading your wallet..." />;
+    }
 
   return (
     <div className="min-h-screen bg-landing-cream font-inter p-4">
