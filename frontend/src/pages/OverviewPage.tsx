@@ -74,6 +74,15 @@ const LogOutIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'Good Morning';
+  if (hour >= 12 && hour < 17) return 'Good Afternoon';
+  if (hour >= 17 && hour < 21) return 'Good Evening';
+  return 'Good Night';
+};
+
 // ====== HELPERS ======
 const formatKES = (amount: number) => `KES ${amount.toFixed(2)}`;
 
@@ -232,7 +241,7 @@ const OverviewPage = () => {
         {/* Welcome Section */}
         <div className="mb-8 animate-fade-in-up">
           <h1 className="text-3xl font-bold text-landing-heading mb-2">
-            Welcome back, {currentUser?.first_name || 'User'}! 👋
+            {getGreeting()}, {currentUser?.first_name || 'User'}!
           </h1>
           <p className="text-landing-muted">
             Here's what's happening with your account today.
