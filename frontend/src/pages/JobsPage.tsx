@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import type { Job } from '../types';
+import LoadingSpinner from '../components/LoadingSpinner'; // ✅ NEW IMPORT
 
 // Google Fonts: Inter
 const InterFontLink = () => (
@@ -12,7 +13,7 @@ const InterFontLink = () => (
   />
 );
 
-// Lucide-style SVG Icons
+// Lucide-style SVG Icons (unchanged — kept for completeness)
 const SearchIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <circle cx="11" cy="11" r="8" />
@@ -72,7 +73,7 @@ const ClockIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
 const JobsPage = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // controls spinner visibility
   const [activeTab, setActiveTab] = useState('open');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -90,22 +91,19 @@ const JobsPage = () => {
           alert('Failed to load jobs. Please try again.');
         }
       } finally {
-        setLoading(false);
+        setLoading(false); // ✅ Hide spinner — even on error
       }
     };
     fetchJobs();
   }, [navigate]);
 
-  // Group jobs by status
+  // Rest of logic remains unchanged...
   const openJobs = jobs.filter(job => job.status === 'open');
   const submittedJobs = jobs.filter(job => job.status === 'submitted');
   const completedJobs = jobs.filter(job => job.status === 'completed');
   const declinedJobs = jobs.filter(job => job.status === 'declined' || job.status === 'cancelled');
-
-  // Compute total earned
   const totalEarned = completedJobs.reduce((sum, job) => sum + (job.reward || 0), 0);
 
-  // Get jobs for current tab
   const getCurrentJobs = () => {
     switch (activeTab) {
       case 'open': return openJobs;
@@ -116,7 +114,6 @@ const JobsPage = () => {
     }
   };
 
-  // Filter by search query
   const filteredJobs = getCurrentJobs().filter(job =>
     job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     job.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -140,12 +137,9 @@ const JobsPage = () => {
     { value: 'declined', label: 'Declined', icon: XCircleIcon, count: declinedJobs.length },
   ];
 
+  // ✅ Show branded spinner during initial load
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <LoadingSpinner message="Fetching available jobs..." />;
   }
 
   return (
