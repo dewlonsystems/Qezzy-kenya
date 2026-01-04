@@ -140,19 +140,19 @@ const LandingPage = () => {
 
   const testimonials = [
     {
-      name: "Faith Wanjiku",
+      name: "Sarah Njeri",
       location: "Nairobi",
       text: "Qezzy Kenya has changed my life! I earn extra income from home while taking care of my children. The M-Pesa withdrawals are so convenient.",
       avatar: "FW"
     },
     {
-      name: "Brian Momanyi",
+      name: "Richard Kenagwa",
       location: "Kisii",
       text: "I was skeptical at first, but after my first withdrawal, I knew this was legit. The referral program alone has earned me over KES 5,000!",
       avatar: "BM"
     },
     {
-      name: "Grace Muthoni",
+      name: "Grace Chebet",
       location: "Mombasa",
       text: "As a university student, Qezzy helps me pay for my expenses. The tasks are easy and the platform is very user-friendly.",
       avatar: "GM"
