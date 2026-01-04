@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
-  /* Your custom tokens (these extend the default theme) */
+  /* Your custom color and font tokens */
   --color-app: #f8fafc;
   --color-card: #ffffff;
 
@@ -24,6 +24,45 @@
   --color-danger-500: #ef4444;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ✅ Custom animation tokens — generates `animate-*` utilities */
+  --animate-spin-slow: spin 4s linear infinite;
+  --animate-spin-reverse: spin 4s linear infinite reverse;
+  --animate-morph: spin 6s ease-in-out infinite;
+  --animate-pulse-glow: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-orbit: orbit 6s linear infinite;
+  --animate-orbit-reverse: orbit 5s linear infinite reverse;
+  --animate-orbit-large: orbit 8s linear infinite;
+  --animate-ripple: ripple 3s ease-out infinite;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-fade-in-up: fadeInUp 0.6s ease-out forwards;
+  --animate-shimmer: shimmer 2s infinite;
+}
+
+/* Custom keyframes for advanced animations */
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(80px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(80px) rotate(-360deg); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 @layer base {
