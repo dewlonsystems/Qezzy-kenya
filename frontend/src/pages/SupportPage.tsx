@@ -583,7 +583,7 @@ const SupportPage = () => {
             {[
               { q: 'How do I withdraw?', a: 'Go to Wallet > Withdraw. M-Pesa is instant.' },
               { q: 'Task rejected?', a: 'Check instructions and resubmit with corrections.' },
-              { q: 'Referral bonus?', a: 'Earn KES 100 when a friend activates their account.' },
+              { q: 'Referral bonus?', a: 'Earn KES 50 when a friend activates their account.' },
               { q: 'Main wallet withdrawal?', a: 'Available on the 5th of each month.' },
             ].map((faq, i) => (
               <div key={i} className="bg-white rounded-xl p-4 border border-gray-200">
