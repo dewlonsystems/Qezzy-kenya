@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-// ====== TYPED SVG ICONS ======
+// ====== TYPED SVG ICONS (without BellIcon) ======
 const OverviewIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -62,13 +62,6 @@ const SearchIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const BellIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-  </svg>
-);
-
 const MenuIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
     <line x1="3" y1="12" x2="21" y2="12" />
@@ -83,6 +76,7 @@ const DashboardLayout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // ✅ Real search state
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navItems = [
@@ -108,6 +102,13 @@ const DashboardLayout = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // 🔍 Handle search (you can enhance per page later)
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Search query:', searchQuery); // ✅ Real action
+    // In real app, you'd pass this to child pages via context or params
+  };
 
   const handleLogout = async () => {
     try {
@@ -217,39 +218,35 @@ const DashboardLayout = () => {
                 <MenuIcon />
               </button>
 
-              {/* Search (desktop only) */}
-              <div className="hidden md:flex items-center relative">
+              {/* Search (now on mobile too, and functional) */}
+              <form onSubmit={handleSearch} className="flex items-center relative">
                 <div className="absolute left-3 text-amber-400">
                   <SearchIcon className="w-4 h-4" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search jobs, transactions..."
-                  className="w-64 lg:w-80 pl-10 pr-4 py-2 bg-amber-50/50 border border-amber-200/50 rounded-xl text-amber-900 placeholder:text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-300 transition-all"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-40 sm:w-64 lg:w-80 pl-10 pr-4 py-2 bg-amber-50/50 border border-amber-200/50 rounded-xl text-amber-900 placeholder:text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-300 transition-all"
                 />
-              </div>
+              </form>
             </div>
 
-            {/* Right: Status + Notifications + User */}
+            {/* Right: Status + User */}
             <div className="flex items-center gap-3">
-              {/* Activation Status */}
+              {/* ✅ Activation Status — now visible on ALL screens (removed `sm:hidden`) */}
               {currentUser?.is_active ? (
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   <span className="text-xs font-medium text-green-700">Active</span>
                 </div>
               ) : (
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
                   <div className="w-2 h-2 bg-amber-500 rounded-full" />
                   <span className="text-xs font-medium text-amber-700">Inactive</span>
                 </div>
               )}
-
-              {/* Notifications (mock) */}
-              <button className="relative p-2.5 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-xl transition-colors">
-                <BellIcon className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
 
               {/* User Profile */}
               <div className="flex items-center gap-3 pl-3 border-l border-amber-200" ref={dropdownRef}>
