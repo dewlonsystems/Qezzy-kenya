@@ -117,7 +117,7 @@ const LandingPage = () => {
     {
       icon: <UsersIcon />,
       title: "Referral Program",
-      description: "Earn KES 100 for every friend you refer who activates their account. Unlimited referrals!"
+      description: "Earn KES 50 for every friend you refer who activates their account. Unlimited referrals!"
     },
     {
       icon: <ShieldIcon />,
@@ -146,10 +146,10 @@ const LandingPage = () => {
       avatar: "FW"
     },
     {
-      name: "Brian Ochieng",
-      location: "Kisumu",
+      name: "Brian Momanyi",
+      location: "Kisii",
       text: "I was skeptical at first, but after my first withdrawal, I knew this was legit. The referral program alone has earned me over KES 5,000!",
-      avatar: "BO"
+      avatar: "BM"
     },
     {
       name: "Grace Muthoni",
@@ -482,13 +482,13 @@ const LandingPage = () => {
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-landing-heading mb-6">
                 Earn{' '}
                 <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                  KES 100
+                  KES 50
                 </span>{' '}
                 For Every Friend
               </h2>
               <p className="text-lg text-landing-muted mb-8 leading-relaxed">
                 Share your unique referral code with friends and family. When they activate their account, 
-                you receive KES 100 directly in your referral wallet. There's no limit to how many people you can refer!
+                you receive KES 50 directly in your referral wallet. There's no limit to how many people you can refer!
               </p>
               <ul className="space-y-4 mb-8">
                 {[
@@ -521,7 +521,7 @@ const LandingPage = () => {
                       <UsersIcon />
                     </div>
                     <div className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mb-2">
-                      KES 100
+                      KES 50
                     </div>
                     <div className="text-landing-muted font-medium mb-6">Per Successful Referral</div>
                     <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
@@ -623,7 +623,7 @@ const LandingPage = () => {
               <ul className="space-y-2">
                 {["Home", "Features", "How It Works", "Reviews"].map((link) => (
                   <li key={link}>
-                    <a href="#" className="text-gray-400 hover:text-amber-400 transition-colors">{link}</a>
+                    <a href="#features" className="text-gray-400 hover:text-amber-400 transition-colors">{link}</a>
                   </li>
                 ))}
               </ul>
@@ -651,8 +651,8 @@ const LandingPage = () => {
             <div>
               <h4 className="text-white font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>support@qezzy.co.ke</li>
-                <li>+254 700 000 000</li>
+                <li>dewlonsystems@gmail.com</li>
+                <li>+254 728 722 746</li>
                 <li>Nairobi, Kenya</li>
               </ul>
             </div>

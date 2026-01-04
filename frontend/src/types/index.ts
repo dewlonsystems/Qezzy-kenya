@@ -42,6 +42,8 @@ export interface Job {
   created_at: string;
   updated_at: string;
   reward?: number;
+  category?: string;
+  deadline_hours?: number;
 }
 
 export interface WithdrawalRequest {

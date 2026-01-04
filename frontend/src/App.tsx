@@ -1,5 +1,5 @@
 // src/App.tsx (updated)
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import ProfileCompletionPage from './pages/onboarding/ProfileCompletionPage';
 import PaymentDetailsPage from './pages/onboarding/PaymentDetailsPage';
@@ -13,10 +13,11 @@ import JobsPage from './pages/JobsPage';
 import SupportPage from './pages/SupportPage';
 import BasicProtectedRoute from './components/BasicProtectedRoute';
 import JobsProtectedRoute from './components/JobsProtectedRoute';
-import LandingPage from './pages/LandingPage'; // ✅ new import
+import LandingPage from './pages/LandingPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import CookiesPage from './pages/CookiesPage';
+import NotFound from './pages/NotFoundPage';
 
 function App() {
   return (
@@ -50,8 +51,8 @@ function App() {
           </Route>
         </Route>
 
-        {/* Catch-all: send unknown routes to landing */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* ✅ Catch-all: show 404 page for any unmatched route */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );

@@ -5,61 +5,150 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import type { WalletOverview, Job } from '../types';
 
-// Types for derived data
-type Transaction = {
-  id: string;
-  amount: number;
-  type: 'main' | 'referral';
-  created_at: string;
-  description: string;
-};
+// ====== SVG ICONS ======
+const WalletIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+  </svg>
+);
 
-type ActivityItem = {
-  id: string;
-  type: 'job' | 'referral' | 'withdrawal';
-  title: string;
-  amount?: number;
-  date: string;
-  status?: string;
-  relatedId: string;
-};
+const TaskIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M9 11l3 3L22 4" />
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+  </svg>
+);
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return 'Good Morning';
-  if (hour >= 12 && hour < 17) return 'Good Afternoon';
-  if (hour >= 17 && hour < 21) return 'Good Evening';
-  return 'Good Night';
-};
+const UsersIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
 
+const TrendUpIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
+const AlertCircleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+const ArrowRightIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
+const BellIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+);
+
+const MenuIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </svg>
+);
+
+const HomeIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
+
+const BriefcaseIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const HelpCircleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const LogOutIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
+// ====== HELPER FUNCTIONS ======
 const formatKES = (amount: number) => `KES ${amount.toFixed(2)}`;
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-KE', { month: 'short', day: 'numeric' });
+};
+
 const OverviewPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [referralTransactions, setReferralTransactions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [mainTransactions, setMainTransactions] = useState<Transaction[]>([]);
-  const [referralWalletTransactions, setReferralWalletTransactions] = useState<Transaction[]>([]);
+  const [mainTransactions, setMainTransactions] = useState<any[]>([]);
+  const [referralWalletTransactions, setReferralWalletTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ TOGGLE STATE FOR PRIVACY
   const [showMainBalance, setShowMainBalance] = useState(false);
   const [showReferralBalance, setShowReferralBalance] = useState(false);
 
-  // === DERIVED DATA ===
-  const jobStatusCounts = useMemo(() => {
-    const counts = { open: 0, submitted: 0, completed: 0, cancelled: 0, declined: 0 };
-    jobs.forEach(job => {
-      if (counts.hasOwnProperty(job.status)) {
-        counts[job.status as keyof typeof counts] += 1;
-      }
-    });
-    return counts;
-  }, [jobs]);
-
+  // ====== DERIVED DATA ======
   const jobsCompletedThisMonth = useMemo(() => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -69,81 +158,68 @@ const OverviewPage = () => {
     ).length;
   }, [jobs]);
 
-  // Combine all activity sources
-  const recentActivity = useMemo<ActivityItem[]>(() => {
-    const all: ActivityItem[] = [];
+  const totalReferrals = useMemo(() => referralTransactions.length, [referralTransactions]);
 
-    // Add jobs
-    jobs.slice(0, 5).forEach(job => {
+  const recentTransactions = useMemo(() => {
+    const all: any[] = [];
+
+    mainTransactions.slice(0, 3).forEach(tx => {
       all.push({
-        id: `job-${job.id}`,
-        type: 'job',
-        title: job.title,
-        date: job.created_at,
-        status: job.status,
-        relatedId: String(job.id),
+        id: `main-${tx.id}`,
+        type: 'Task Earning',
+        amount: `+${formatKES(tx.amount)}`,
+        date: formatDate(tx.created_at),
+        status: 'completed',
       });
     });
 
-    // Add referrals
-    referralTransactions.slice(0, 3).forEach(tx => {
+    referralWalletTransactions.slice(0, 3).forEach(tx => {
       all.push({
         id: `ref-${tx.id}`,
-        type: 'referral',
-        title: 'Referral Reward',
-        amount: tx.amount,
-        date: tx.created_at,
-        relatedId: tx.id,
+        type: 'Referral Bonus',
+        amount: `+${formatKES(tx.amount)}`,
+        date: formatDate(tx.created_at),
+        status: 'completed',
       });
     });
 
-    // Add withdrawals
     withdrawals.slice(0, 2).forEach(wd => {
       all.push({
         id: `wd-${wd.id}`,
-        type: 'withdrawal',
-        title: 'Withdrawal Request',
-        amount: wd.amount,
-        date: wd.created_at,
-        status: wd.status,
-        relatedId: wd.id,
+        type: 'Withdrawal',
+        amount: `-${formatKES(wd.amount)}`,
+        date: formatDate(wd.created_at),
+        status: wd.status === 'approved' ? 'completed' : 'processing',
       });
     });
 
-    // Sort by date (newest first)
     return all
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 8);
-  }, [jobs, referralTransactions, withdrawals]);
+      .slice(0, 5);
+  }, [mainTransactions, referralWalletTransactions, withdrawals]);
 
-  // Earnings timeline (last 30 days)
-  const earningsTimeline = useMemo(() => {
-    const combined = [...mainTransactions, ...referralWalletTransactions]
-      .map(tx => ({
-        date: new Date(tx.created_at).toISOString().split('T')[0], // YYYY-MM-DD
-        amount: tx.amount,
-        type: tx.type,
-      }))
-      .filter(item => {
-        const txDate = new Date(item.date);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        return txDate >= thirtyDaysAgo;
-      });
+  const availableTasks = useMemo(() => {
+    return jobs
+      .filter(job => job.status === 'open')
+      .slice(0, 3)
+      .map(job => ({
+        id: job.id,
+        title: job.title,
+        reward: formatKES(job.reward ?? 0),
+        category: job.category || 'Task',
+        deadline: job.deadline_hours ? `${job.deadline_hours} hours` : '3 days',
+      }));
+  }, [jobs]);
 
-    // Group by date
-    const grouped: Record<string, { main: number; referral: number }> = {};
-    combined.forEach(({ date, amount, type }) => {
-      if (!grouped[date]) grouped[date] = { main: 0, referral: 0 };
-      grouped[date][type] += amount;
-    });
+  const navItems = [
+    { icon: HomeIcon, label: 'Overview', href: '/overview', active: true },
+    { icon: BriefcaseIcon, label: 'Jobs', href: '/jobs', active: false },
+    { icon: WalletIcon, label: 'Wallet', href: '/wallet', active: false },
+    { icon: UserIcon, label: 'Profile', href: '/profile', active: false },
+    { icon: HelpCircleIcon, label: 'Support', href: '/support', active: false },
+  ];
 
-    return Object.entries(grouped)
-      .map(([date, { main, referral }]) => ({ date, main, referral }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [mainTransactions, referralWalletTransactions]);
-
-  // === FETCH ALL DATA ===
+  // ====== FETCH DATA ======
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -166,19 +242,9 @@ const OverviewPage = () => {
         setWallets(walletRes.data);
         setJobs(jobsRes.data);
         setReferralTransactions(referralRes.data);
-        setWithdrawals(withdrawalsRes.data.results || withdrawalsRes.data); // handle pagination
-        setMainTransactions(
-          (mainTxRes.data.results || mainTxRes.data).map((tx: any) => ({
-            ...tx,
-            type: 'main' as const,
-          }))
-        );
-        setReferralWalletTransactions(
-          (refTxRes.data.results || refTxRes.data).map((tx: any) => ({
-            ...tx,
-            type: 'referral' as const,
-          }))
-        );
+        setWithdrawals(withdrawalsRes.data.results || withdrawalsRes.data);
+        setMainTransactions(mainTxRes.data.results || mainTxRes.data);
+        setReferralWalletTransactions(refTxRes.data.results || refTxRes.data);
       } catch (error) {
         console.error('Failed to load overview:', error);
       } finally {
@@ -189,253 +255,384 @@ const OverviewPage = () => {
     fetchData();
   }, []);
 
-  const handleActivate = () => {
-  navigate('/activation');
-};
+  // ====== HANDLERS ======
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
 
+  const handleActivate = () => {
+    navigate('/activation');
+  };
+
+  // ====== LOADING ======
   if (loading) {
     return (
-      <div className="relative min-h-[400px]">
-        <div className="absolute inset-0 bg-amber-50 rounded-tl-xl opacity-80"></div>
-        <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
+      <div className="min-h-screen bg-landing-cream font-inter flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
+  // ====== RENDER ======
   return (
-    <div className="min-h-screen bg-app p-4">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* ===== 1. Greeting Banner ===== */}
-        <div
-          className={`rounded-xl p-6 text-white font-bold text-xl ${
-            currentUser?.is_active ? 'bg-green-500' : 'bg-yellow-500'
-          }`}
-        >
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <span>
-              {getGreeting()}, {currentUser?.first_name || 'User'}!
-            </span>
-            {!currentUser?.is_active && (
-              <button
-                onClick={handleActivate}
-                className="mt-3 md:mt-0 px-4 py-2 bg-white text-yellow-700 font-semibold rounded-lg hover:bg-gray-100 transition shadow"
-              >
-                Activate Now
-              </button>
-            )}
-          </div>
+    <div className="min-h-screen bg-landing-cream font-inter">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-amber-100 hidden lg:flex flex-col z-40">
+        {/* Logo */}
+        <div className="p-6 border-b border-amber-100">
+          <a href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">Q</span>
+            </div>
+            <span className="text-xl font-bold text-landing-heading">Qezzy Kenya</span>
+          </a>
         </div>
 
-        {/* ===== 2. Wallet Summary Cards ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div
-            onClick={() => navigate('/wallet')}
-            className="bg-white rounded-xl p-6 shadow hover:shadow-md transition cursor-pointer"
+        {/* Navigation */}
+        <nav className="flex-1 p-4">
+          <ul className="space-y-2">
+            {navItems.map((item, index) => (
+              <li key={index}>
+                <a
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                    item.active
+                      ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-200'
+                      : 'text-landing-text hover:bg-amber-50 hover:text-amber-600'
+                  }`}
+                >
+                  <item.icon />
+                  <span className="font-medium">{item.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* Logout */}
+        <div className="p-4 border-t border-amber-100">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full text-left px-4 py-3 rounded-xl text-landing-muted hover:bg-red-50 hover:text-red-500 transition-all duration-300"
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-700">Main Wallet</h2>
-                <p className="text-3xl font-bold text-primary-600 mt-2">
-                  {showMainBalance
-                    ? formatKES(wallets?.main_wallet_balance || 0)
-                    : '••••••'}
-                </p>
+            <LogOutIcon />
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="lg:ml-64">
+        {/* Top Header */}
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-amber-100">
+          <div className="flex items-center justify-between px-6 py-4">
+            {/* Mobile Menu */}
+            <button className="lg:hidden p-2 rounded-xl hover:bg-amber-50 transition-colors">
+              <MenuIcon />
+            </button>
+
+            {/* Search Bar */}
+            <div className="hidden md:flex flex-1 max-w-md mx-4">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Search tasks, transactions..."
+                  className="w-full pl-12 pr-4 py-3 bg-amber-50/50 border border-amber-100 rounded-xl text-landing-text placeholder:text-landing-muted focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all"
+                />
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-landing-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
               </div>
+            </div>
+
+            {/* Right Actions */}
+            <div className="flex items-center gap-4">
+              {/* Notifications */}
+              <button className="relative p-2 rounded-xl hover:bg-amber-50 transition-colors text-landing-text">
+                <BellIcon />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full"></span>
+              </button>
+
+              {/* Profile */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                  <span className="text-white font-bold">
+                    {currentUser?.first_name?.charAt(0) || 'U'}
+                    {currentUser?.last_name?.charAt(0) || 's'}
+                  </span>
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-sm font-semibold text-landing-heading">
+                    {currentUser?.first_name || 'User'}
+                  </p>
+                  <p className="text-xs text-landing-muted">
+                    {currentUser?.is_active ? 'Active Member' : 'Not Activated'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="p-6">
+          {/* Welcome Section */}
+          <div className="mb-8 animate-fade-in-up">
+            <h1 className="text-3xl font-bold text-landing-heading mb-2">
+              Welcome back, {currentUser?.first_name || 'User'}! 👋
+            </h1>
+            <p className="text-landing-muted">
+              Here's what's happening with your account today.
+            </p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            {/* Main Wallet Card */}
+            <div
+              onClick={() => navigate('/wallet')}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer relative"
+            >
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowMainBalance(!showMainBalance);
                 }}
-                className="text-gray-500 hover:text-gray-700 text-xl"
+                className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                 aria-label={showMainBalance ? 'Hide balance' : 'Show balance'}
               >
-                {showMainBalance ? '👁️' : '🔒'}
+                <span className="text-lg">{showMainBalance ? '👁️' : '🔒'}</span>
               </button>
-            </div>
-          </div>
-
-          <div
-            onClick={() => navigate('/wallet?tab=referral')}
-            className="bg-white rounded-xl p-6 shadow hover:shadow-md transition cursor-pointer"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-700">Referral Wallet</h2>
-                <p className="text-3xl font-bold text-success-600 mt-2">
-                  {showReferralBalance
-                    ? formatKES(wallets?.referral_wallet_balance || 0)
-                    : '••••••'}
-                </p>
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white">
+                  <WalletIcon />
+                </div>
+                <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                  <TrendUpIcon />
+                  +12%
+                </span>
               </div>
+              <h3 className="text-2xl font-bold text-landing-heading mb-1">
+                {showMainBalance ? formatKES(wallets?.main_wallet_balance || 0) : '••••••'}
+              </h3>
+              <p className="text-sm text-landing-muted">Main Wallet</p>
+              <p className="text-xs text-landing-muted mt-1">Available for withdrawal</p>
+            </div>
+
+            {/* Referral Wallet Card */}
+            <div
+              onClick={() => navigate('/wallet?tab=referral')}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer relative"
+            >
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowReferralBalance(!showReferralBalance);
                 }}
-                className="text-gray-500 hover:text-gray-700 text-xl"
+                className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                 aria-label={showReferralBalance ? 'Hide balance' : 'Show balance'}
               >
-                {showReferralBalance ? '👁️' : '🔒'}
+                <span className="text-lg">{showReferralBalance ? '👁️' : '🔒'}</span>
               </button>
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 text-white">
+                  <UsersIcon />
+                </div>
+                <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                  <TrendUpIcon />
+                  +8%
+                </span>
+              </div>
+              <h3 className="text-2xl font-bold text-landing-heading mb-1">
+                {showReferralBalance ? formatKES(wallets?.referral_wallet_balance || 0) : '••••••'}
+              </h3>
+              <p className="text-sm text-landing-muted">Referral Wallet</p>
+              <p className="text-xs text-landing-muted mt-1">From referral bonuses</p>
+            </div>
+
+            {/* Tasks Completed */}
+            <div
+              onClick={() => navigate('/jobs?status=completed')}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white">
+                  <TaskIcon />
+                </div>
+                <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                  <TrendUpIcon />
+                  {jobsCompletedThisMonth} this month
+                </span>
+              </div>
+              <h3 className="text-2xl font-bold text-landing-heading mb-1">{jobsCompletedThisMonth}</h3>
+              <p className="text-sm text-landing-muted">Tasks Completed</p>
+              <p className="text-xs text-landing-muted mt-1">Total completed tasks</p>
+            </div>
+
+            {/* Referrals */}
+            <div
+              onClick={() => navigate('/wallet?tab=referral')}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                  <UsersIcon />
+                </div>
+                <span className="flex items-center gap-1 text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                  {referralTransactions.filter(t => t.status === 'activated').length} active
+                </span>
+              </div>
+              <h3 className="text-2xl font-bold text-landing-heading mb-1">{totalReferrals}</h3>
+              <p className="text-sm text-landing-muted">Referrals</p>
+              <p className="text-xs text-landing-muted mt-1">Active referrals</p>
             </div>
           </div>
-        </div>
 
-        {/* ===== 3. Insight Panels ===== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <p className="text-sm text-blue-700">Jobs Completed</p>
-            <p className="text-2xl font-bold text-blue-900">{jobsCompletedThisMonth} this month</p>
-          </div>
-          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-            <p className="text-sm text-green-700">Total Earnings</p>
-            <p className="text-2xl font-bold text-green-900">
-              {formatKES((wallets?.main_wallet_balance || 0) + (wallets?.referral_wallet_balance || 0))}
-            </p>
-          </div>
-          <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
-            <p className="text-sm text-purple-700">Total Jobs</p>
-            <p className="text-2xl font-bold text-purple-900">{jobs.length}</p>
-          </div>
-          <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
-            <p className="text-sm text-amber-700">Referral Rewards</p>
-            <p className="text-2xl font-bold text-amber-900">{referralTransactions.length}</p>
-          </div>
-        </div>
-
-        {/* ===== 4. Job Status Distribution ===== */}
-        <div className="bg-white rounded-xl p-6 shadow">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Job Status Overview</h2>
-          <div className="flex items-end justify-between h-32 gap-2">
-            {Object.entries(jobStatusCounts).map(([status, count]) => {
-              const percentage = jobs.length ? (count / jobs.length) * 100 : 0;
-              const colors: Record<string, string> = {
-                open: 'bg-blue-500',
-                submitted: 'bg-yellow-500',
-                completed: 'bg-green-500',
-                cancelled: 'bg-gray-500',
-                declined: 'bg-red-500',
-              };
-              const label = status.charAt(0).toUpperCase() + status.slice(1);
-              return (
-                <div
-                  key={status}
-                  className="flex flex-col items-center flex-1 group cursor-pointer"
-                  onClick={() => navigate(`/jobs?status=${status}`)}
-                >
-                  <div
-                    className={`${colors[status] || 'bg-gray-400'} w-full rounded-t group-hover:opacity-90 transition`}
-                    style={{ height: `${Math.max(percentage, 4)}%` }}
-                  />
-                  <span className="text-xs text-gray-600 mt-2 group-hover:underline">{label}</span>
-                  <span className="text-xs font-medium">{count}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ===== 5. Earnings Timeline (Last 30 Days) ===== */}
-        {earningsTimeline.length > 0 && (
-          <div className="bg-white rounded-xl p-6 shadow">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Earnings (Last 30 Days)</h2>
-            <div className="overflow-x-auto">
-              <div className="min-w-full h-48 flex items-end gap-1 px-2">
-                {earningsTimeline.map((day) => {
-                  const total = day.main + day.referral;
-                  const maxTotal = Math.max(...earningsTimeline.map(d => d.main + d.referral));
-                  const height = total > 0 ? (total / maxTotal) * 100 : 4;
-                  return (
-                    <div
-                      key={day.date}
-                      className="flex flex-col items-center flex-1 group cursor-pointer"
-                      onClick={() => {
-                        // Could navigate to /wallet with date filter
-                        alert(`View earnings on ${day.date}`);
-                      }}
-                    >
-                      <div className="relative w-full flex flex-col items-center">
-                        <div
-                          className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap"
-                        >
-                          Main: {formatKES(day.main)}<br/>
-                          Ref: {formatKES(day.referral)}
+          {/* Main Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Recent Transactions */}
+            <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden animate-fade-in-up animation-delay-400">
+              <div className="p-6 border-b border-amber-100 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-landing-heading">Recent Transactions</h2>
+                <a href="/wallet" className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors">
+                  View All <ArrowRightIcon />
+                </a>
+              </div>
+              <div className="divide-y divide-amber-50">
+                {recentTransactions.length > 0 ? (
+                  recentTransactions.map((tx) => (
+                    <div key={tx.id} className="p-4 hover:bg-amber-50/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2 rounded-xl ${
+                            tx.amount.startsWith('+') 
+                              ? 'bg-emerald-100 text-emerald-600' 
+                              : 'bg-amber-100 text-amber-600'
+                          }`}>
+                            {tx.status === 'processing' ? <ClockIcon /> : <CheckCircleIcon />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-landing-heading">{tx.type}</p>
+                            <p className="text-sm text-landing-muted">{tx.date}</p>
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-t flex flex-col">
-                          <div
-                            className="bg-gradient-to-t from-primary-500 to-primary-300 rounded-t transition"
-                            style={{ height: `${height}%` }}
-                          />
-                          {day.referral > 0 && (
-                            <div
-                              className="bg-gradient-to-t from-success-500 to-success-300 rounded-t"
-                              style={{ height: `${(day.referral / total) * height}%` }}
-                            />
-                          )}
+                        <div className="text-right">
+                          <p className={`font-bold ${
+                            tx.amount.startsWith('+') ? 'text-emerald-600' : 'text-landing-heading'
+                          }`}>
+                            {tx.amount}
+                          </p>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            tx.status === 'completed' 
+                              ? 'bg-emerald-100 text-emerald-700' 
+                              : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {tx.status}
+                          </span>
                         </div>
                       </div>
-                      <span className="text-xs text-gray-500 mt-2">{new Date(day.date).getDate()}</span>
                     </div>
-                  );
-                })}
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-landing-muted">
+                    No transactions yet.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Available Tasks */}
+            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden animate-fade-in-up animation-delay-600">
+              <div className="p-6 border-b border-amber-100 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-landing-heading">Available Tasks</h2>
+                <a href="/jobs" className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors">
+                  View All <ArrowRightIcon />
+                </a>
+              </div>
+              <div className="p-4 space-y-4">
+                {availableTasks.length > 0 ? (
+                  availableTasks.map((task) => (
+                    <div key={task.id} className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-xs font-medium px-2 py-1 bg-amber-200 text-amber-800 rounded-lg">
+                          {task.category}
+                        </span>
+                        <span className="text-sm font-bold text-amber-600">{task.reward}</span>
+                      </div>
+                      <h3 className="font-semibold text-landing-heading mb-2">{task.title}</h3>
+                      <div className="flex items-center gap-2 text-sm text-landing-muted">
+                        <ClockIcon />
+                        <span>Expires in {task.deadline}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-landing-muted">
+                    No tasks available right now.
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        )}
 
-        {/* ===== 6. Recent Activity ===== */}
-        <div className="bg-white rounded-xl p-6 shadow">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
-          {recentActivity.length === 0 ? (
-            <p className="text-gray-600">No recent activity.</p>
-          ) : (
-            <div className="space-y-3">
-              {recentActivity.map((item) => (
-                <div
-                  key={item.id}
-                  className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition"
-                  onClick={() => {
-                    if (item.type === 'job') navigate(`/jobs/${item.relatedId}`);
-                    else if (item.type === 'referral') navigate('/wallet?tab=referral');
-                    else if (item.type === 'withdrawal') navigate('/wallet');
-                  }}
-                >
-                  <div className="flex justify-between">
-                    <span className="font-medium">{item.title}</span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(item.date).toLocaleDateString()}
-                    </span>
+          {/* Quick Actions */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in-up animation-delay-800">
+            <a href="/jobs" className="group p-6 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl text-white hover:shadow-xl hover:shadow-amber-200 transition-all duration-300">
+              <TaskIcon />
+              <h3 className="text-lg font-bold mt-4 mb-2">Find Tasks</h3>
+              <p className="text-amber-100 text-sm">Browse available tasks and start earning</p>
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                Explore <ArrowRightIcon />
+              </div>
+            </a>
+            <a href="/wallet" className="group p-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl text-white hover:shadow-xl hover:shadow-emerald-200 transition-all duration-300">
+              <WalletIcon />
+              <h3 className="text-lg font-bold mt-4 mb-2">Withdraw Funds</h3>
+              <p className="text-emerald-100 text-sm">Transfer your earnings to M-Pesa or bank</p>
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                Withdraw <ArrowRightIcon />
+              </div>
+            </a>
+            <a href="/profile" className="group p-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl text-white hover:shadow-xl hover:shadow-blue-200 transition-all duration-300">
+              <UsersIcon />
+              <h3 className="text-lg font-bold mt-4 mb-2">Invite Friends</h3>
+              <p className="text-blue-100 text-sm">Earn KES 100 for every activated referral</p>
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                Share <ArrowRightIcon />
+              </div>
+            </a>
+          </div>
+
+          {/* Activation Banner */}
+          {!currentUser?.is_active && (
+            <div className="mt-8 p-6 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl text-white relative overflow-hidden animate-fade-in-up">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxjaXJjbGUgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjExKSIgY3g9IjIwIiBjeT0iMjAiIHI9IjIiLz48L2c+PC9zdmc+')] opacity-30"></div>
+              <div className="relative flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/20 rounded-xl">
+                    <AlertCircleIcon />
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    {item.amount && (
-                      <span className="text-sm font-medium">
-                        {formatKES(item.amount)}
-                      </span>
-                    )}
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      item.type === 'job' ? 'bg-blue-100 text-blue-800' :
-                      item.type === 'referral' ? 'bg-green-100 text-green-800' :
-                      'bg-purple-100 text-purple-800'
-                    }`}>
-                      {item.type}
-                    </span>
-                    {item.status && (
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        item.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {item.status}
-                      </span>
-                    )}
+                  <div>
+                    <h3 className="text-lg font-bold">Activate Your Account</h3>
+                    <p className="text-amber-100">Pay KES 300 once to unlock unlimited earning potential</p>
                   </div>
                 </div>
-              ))}
+                <button
+                  onClick={handleActivate}
+                  className="px-6 py-3 bg-white text-amber-600 font-bold rounded-xl hover:bg-amber-50 transition-colors shadow-lg"
+                >
+                  Activate Now
+                </button>
+              </div>
             </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
