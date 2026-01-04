@@ -2,7 +2,47 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api/client';
-import type { WalletOverview } from '../types';
+import type { WalletOverview, PaymentDetails } from '../types';
+
+// ====== TYPED SVG ICONS ======
+const PhoneIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
+  </svg>
+);
+
+const BuildingIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+    <path d="M9 22v-4h6v4" />
+    <path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01" />
+  </svg>
+);
+
+const ArrowLeftIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+);
+
+const WalletIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+  </svg>
+);
+
+const UsersIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
 
 const WithdrawalPage = () => {
   const navigate = useNavigate();
@@ -13,18 +53,36 @@ const WithdrawalPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
+  const [withdrawMethod, setWithdrawMethod] = useState<'mobile' | 'bank'>('mobile');
 
+  // Fetch wallets and payment details
   useEffect(() => {
-    const fetchWallets = async () => {
+    const loadData = async () => {
       try {
-        const res = await api.get('/wallets/overview/');
-        setWallets(res.data);
+        const [walletRes, userRes] = await Promise.all([
+          api.get('/wallets/overview/'),
+          api.get('/users/me/'),
+        ]);
+
+        setWallets(walletRes.data);
+
+        const user = userRes.data;
+        const details = {
+          payout_method: user.payout_method || 'mobile',
+          payout_phone: user.payout_phone || '',
+          payout_bank_name: user.payout_bank_name || '',
+          payout_bank_branch: user.payout_bank_branch || '',
+          payout_account_number: user.payout_account_number || '',
+        };
+        setPaymentDetails(details);
+        setWithdrawMethod(details.payout_method as 'mobile' | 'bank');
       } catch (err) {
-        console.error('Failed to load wallet balance:', err);
-        setError('Failed to load wallet balance.');
+        console.error('Failed to load data:', err);
+        setError('Failed to load wallet or payment details.');
       }
     };
-    fetchWallets();
+    loadData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,20 +104,27 @@ const WithdrawalPage = () => {
       return;
     }
 
+    // Validation: Main wallet only on 5th
+    if (walletType === 'main') {
+      const today = new Date();
+      if (today.getDate() !== 5) {
+        setError('Main wallet withdrawals are only allowed on the 5th of each month.');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
-      // Get user's payout method from backend later — for now, assume mobile
       await api.post('/withdrawals/request/', {
         wallet_type: walletType,
         amount: numAmount,
-        method: 'mobile', // In real app, fetch from user profile
+        method: withdrawMethod,
       });
-      alert('Withdrawal request submitted successfully!');
       navigate('/wallet');
     } catch (err: any) {
       console.error('Withdrawal error:', err);
-      setError(err.response?.data?.error || 'Failed to request withdrawal.');
+      setError(err.response?.data?.error || 'Failed to request withdrawal. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -69,68 +134,173 @@ const WithdrawalPage = () => {
     ? wallets?.main_wallet_balance || 0 
     : wallets?.referral_wallet_balance || 0;
 
-  return (
-    <div className="min-h-screen bg-app p-4">
-      <div className="max-w-md mx-auto">
-        <div className="card">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            Withdraw from {walletType === 'main' ? 'Main' : 'Referral'} Wallet
-          </h1>
-          <p className="text-gray-600 mb-4">
-            Current balance: <span className="font-semibold">KES {maxBalance.toFixed(2)}</span>
-          </p>
+  const isMainWallet = walletType === 'main';
 
+  return (
+    <div className="min-h-screen bg-landing-cream font-inter p-4">
+      <div className="max-w-md mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 pt-4">
+          <button
+            onClick={() => navigate('/wallet')}
+            className="p-2 rounded-xl hover:bg-amber-50 transition-colors text-landing-text"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </button>
+          <h1 className="text-xl font-bold text-landing-heading">Withdraw Funds</h1>
+          <div className="w-10"></div>
+        </div>
+
+        {/* Wallet Banner */}
+        <div 
+          className={`relative overflow-hidden rounded-2xl p-6 mb-6 ${
+            isMainWallet 
+              ? 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500' 
+              : 'bg-gradient-to-br from-orange-400 via-orange-500 to-red-500'
+          }`}
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-white/20 rounded-xl">
+                {isMainWallet ? <WalletIcon className="w-5 h-5 text-white" /> : <UsersIcon className="w-5 h-5 text-white" />}
+              </div>
+              <span className="text-white/90 font-medium text-sm">
+                {isMainWallet ? 'Main Wallet' : 'Referral Wallet'}
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-white mb-1">
+              KES {maxBalance.toFixed(2)}
+            </p>
+            <p className="text-white/80 text-sm">
+              {isMainWallet 
+                ? 'Available for withdrawal on the 5th' 
+                : 'Withdraw anytime (every 24 hours)'}
+            </p>
+          </div>
+        </div>
+
+        {/* Withdrawal Method */}
+        <div className="bg-white rounded-2xl p-5 border border-amber-100 mb-6">
+          <h2 className="text-lg font-bold text-landing-heading mb-4">Withdraw To</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setWithdrawMethod('mobile')}
+              className={`p-4 rounded-xl border-2 transition-all ${
+                withdrawMethod === 'mobile'
+                  ? 'border-amber-500 bg-amber-50'
+                  : 'border-amber-100 hover:border-amber-300'
+              }`}
+            >
+              <PhoneIcon className="w-5 h-5 mx-auto text-emerald-600" />
+              <p className="font-medium text-landing-heading mt-2 text-sm">M-Pesa</p>
+              <p className="text-xs text-landing-muted">Instant</p>
+            </button>
+            <button
+              onClick={() => setWithdrawMethod('bank')}
+              className={`p-4 rounded-xl border-2 transition-all ${
+                withdrawMethod === 'bank'
+                  ? 'border-amber-500 bg-amber-50'
+                  : 'border-amber-100 hover:border-amber-300'
+              }`}
+            >
+              <BuildingIcon className="w-5 h-5 mx-auto text-blue-600" />
+              <p className="font-medium text-landing-heading mt-2 text-sm">Bank</p>
+              <p className="text-xs text-landing-muted">1-3 days</p>
+            </button>
+          </div>
+
+          {/* Payment Details Preview */}
+          {paymentDetails && (
+            <div className="mt-4 p-3 bg-amber-50 rounded-lg">
+              <p className="text-xs text-landing-muted mb-1">
+                {withdrawMethod === 'mobile' ? 'M-Pesa Number' : 'Bank Account'}
+              </p>
+              <p className="text-sm font-medium">
+                {withdrawMethod === 'mobile' 
+                  ? (paymentDetails.payout_phone || 'Not set') 
+                  : `${paymentDetails.payout_bank_name || '—'} • **** ${paymentDetails.payout_account_number?.slice(-4) || '****'}`}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Withdrawal Form */}
+        <div className="bg-white rounded-2xl p-5 border border-amber-100">
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (KES) *
+              <label className="block text-sm font-medium text-landing-heading mb-2">
+                Amount (KES)
               </label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                min="1"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                placeholder="e.g., 500"
+                min="100"
+                step="1"
+                className="w-full px-4 py-3 bg-amber-50/50 border border-amber-100 rounded-xl text-landing-heading placeholder:text-landing-muted focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all"
+                placeholder={`Min: KES 100`}
                 required
               />
+              <div className="flex justify-between text-xs text-landing-muted mt-1">
+                <span>Available: KES {maxBalance.toFixed(2)}</span>
+                <button
+                  type="button"
+                  onClick={() => setAmount(maxBalance.toString())}
+                  className="text-amber-600 hover:underline"
+                >
+                  Withdraw all
+                </button>
+              </div>
             </div>
 
-            <div className="text-sm text-gray-600 p-3 bg-blue-50 rounded-lg">
-              {walletType === 'main' ? (
-                <>
-                  <strong>Withdrawal Rules:</strong><br />
-                  • Only allowed on the <strong>5th of the month</strong><br />
-                  • Limited to <strong>once per month</strong>
-                </>
-              ) : (
-                <>
-                  <strong>Withdrawal Rules:</strong><br />
-                  • Allowed <strong>once every 24 hours</strong><br />
-                  • Minimum amount may apply
-                </>
-              )}
+            {/* Withdrawal Rules */}
+            <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-100">
+              <h3 className="font-bold text-landing-heading text-sm mb-1">
+                {isMainWallet ? 'Main Wallet Rules' : 'Referral Wallet Rules'}
+              </h3>
+              <ul className="text-xs text-landing-muted space-y-1">
+                {isMainWallet ? (
+                  <>
+                    <li>• Withdrawals only on <strong>5th of the month</strong></li>
+                    <li>• Processing within 24 hours</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• Withdraw <strong>once every 24 hours</strong></li>
+                    <li>• Minimum amount: <strong>KES 100</strong></li>
+                  </>
+                )}
+              </ul>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className={`btn-primary w-full ${loading ? 'opacity-75' : ''}`}
+              className={`w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-amber-200 transition-all ${
+                loading ? 'opacity-75 cursor-not-allowed' : ''
+              }`}
             >
-              {loading ? 'Processing...' : 'Request Withdrawal'}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                'Confirm Withdrawal'
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => navigate('/wallet')}
-              className="btn-outline w-full"
+              className="w-full py-3 bg-white text-landing-heading font-medium rounded-xl border border-amber-200 hover:bg-amber-50 transition-colors"
             >
               Cancel
             </button>
