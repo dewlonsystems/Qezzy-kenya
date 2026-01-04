@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/client';
+import LoadingSpinner from '../components/LoadingSpinner'; // ✅ ADD THIS
 
 const JobsProtectedRoute = () => {
   const { currentUser, loading: authLoading, getIdToken } = useAuth();
@@ -48,7 +49,6 @@ const JobsProtectedRoute = () => {
         } else if (!user.is_onboarded) {
           setValidationState({ loading: false, shouldRedirectToLogin: false, redirectToOnboarding: true, redirectToActivation: false });
         } else if (!user.is_active) {
-          // ✅ For jobs: require activation
           setValidationState({ loading: false, shouldRedirectToLogin: false, redirectToOnboarding: false, redirectToActivation: true });
         } else {
           setValidationState({ loading: false, shouldRedirectToLogin: false, redirectToOnboarding: false, redirectToActivation: false });
@@ -61,12 +61,9 @@ const JobsProtectedRoute = () => {
     validateUser();
   }, [currentUser, getIdToken]);
 
+  // ✅ SHOW BRANDED SPINNER WHILE AUTH/VALIDATION IS IN PROGRESS
   if (authLoading || validationState.loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-app">
-        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <LoadingSpinner message="Checking job access..." />;
   }
 
   if (validationState.shouldRedirectToLogin) {

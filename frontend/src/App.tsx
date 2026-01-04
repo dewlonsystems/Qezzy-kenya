@@ -1,4 +1,4 @@
-// src/App.tsx (updated)
+// src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import ProfileCompletionPage from './pages/onboarding/ProfileCompletionPage';
@@ -23,7 +23,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public routes — fully accessible */}
+        {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
@@ -33,7 +33,7 @@ function App() {
         <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
         <Route path="/activation" element={<ActivationPage />} />
 
-        {/* Protected routes — require onboarding */}
+        {/* Protected routes */}
         <Route element={<BasicProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/overview" element={<OverviewPage />} />
@@ -44,14 +44,14 @@ function App() {
           </Route>
         </Route>
 
-        {/* Jobs — require activation */}
+        {/* Jobs */}
         <Route element={<JobsProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/jobs" element={<JobsPage />} />
           </Route>
         </Route>
 
-        {/* ✅ Catch-all: show 404 page for any unmatched route */}
+        {/* show 404 page for any unmatched route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>

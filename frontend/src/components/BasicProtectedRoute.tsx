@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/client';
+import LoadingSpinner from '../components/LoadingSpinner'; // ✅ ADD THIS
 
 const BasicProtectedRoute = () => {
   const { currentUser, loading: authLoading, getIdToken } = useAuth();
@@ -45,7 +46,6 @@ const BasicProtectedRoute = () => {
         } else if (!user.is_onboarded) {
           setValidationState({ loading: false, shouldRedirectToLogin: false, redirectToOnboarding: true });
         } else {
-          // ✅ Allow access as long as onboarded (even if not active)
           setValidationState({ loading: false, shouldRedirectToLogin: false, redirectToOnboarding: false });
         }
       } catch (err) {
@@ -56,12 +56,9 @@ const BasicProtectedRoute = () => {
     validateUser();
   }, [currentUser, getIdToken]);
 
+  // ✅ SHOW BRANDED SPINNER WHILE AUTH/VALIDATION IS IN PROGRESS
   if (authLoading || validationState.loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-app">
-        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <LoadingSpinner message="Verifying your session..." />;
   }
 
   if (validationState.shouldRedirectToLogin) {
