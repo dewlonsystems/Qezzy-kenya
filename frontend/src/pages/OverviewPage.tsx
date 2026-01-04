@@ -352,12 +352,12 @@ const OverviewPage = () => {
           <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden animate-fade-in-up animation-delay-400">
             <div className="p-6 border-b border-amber-100 flex items-center justify-between">
               <h2 className="text-lg font-bold text-landing-heading">Recent Transactions</h2>
-              <a 
-                href="/wallet" 
-                className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors"
+              <button 
+                onClick={() => navigate('/wallet')} 
+                className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer"
               >
                 View All <ArrowRightIcon className="w-4 h-4" />
-              </a>
+              </button>
             </div>
             <div className="divide-y divide-amber-50">
               {recentTransactions.length > 0 ? (
@@ -406,18 +406,18 @@ const OverviewPage = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden animate-fade-in-up animation-delay-600">
             <div className="p-6 border-b border-amber-100 flex items-center justify-between">
               <h2 className="text-lg font-bold text-landing-heading">Available Tasks</h2>
-              <a 
-                href="/jobs" 
-                className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors"
+              <button 
+                onClick={() => navigate('/jobs')} 
+                className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer"
               >
                 View All <ArrowRightIcon className="w-4 h-4" />
-              </a>
+              </button>
             </div>
             <div className="p-4 space-y-4">
               {availableTasks.length > 0 ? (
                 availableTasks.map((task) => (
-                  <div key={task.id} className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-md transition-all duration-300">
-                    <div className="flex items-start justify-between mb-3">
+                  <div key={task.id} onClick={() => navigate(`/jobs/${task.id}`)} className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-md transition-all duration-300">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium px-2 py-1 bg-amber-200 text-amber-800 rounded-lg">
                         {task.category}
                       </span>
@@ -441,9 +441,9 @@ const OverviewPage = () => {
 
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in-up animation-delay-800">
-          <a 
-            href="/jobs" 
-            className="group p-6 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl text-white hover:shadow-xl hover:shadow-amber-200 transition-all duration-300"
+          <div
+            onClick={() => navigate('/jobs')} 
+            className="group p-6 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl text-white hover:shadow-xl hover:shadow-amber-200 transition-all duration-300 cursor-pointer"
           >
             <TaskIcon className="w-6 h-6" />
             <h3 className="text-lg font-bold mt-4 mb-2">Find Tasks</h3>
@@ -451,10 +451,10 @@ const OverviewPage = () => {
             <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
               Explore <ArrowRightIcon className="w-4 h-4" />
             </div>
-          </a>
-          <a 
-            href="/wallet" 
-            className="group p-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl text-white hover:shadow-xl hover:shadow-emerald-200 transition-all duration-300"
+          </div>
+          <div 
+            onClick={() => navigate('/wallet')} 
+            className="group p-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl text-white hover:shadow-xl hover:shadow-emerald-200 transition-all duration-300 cursor-pointer"
           >
             <WalletIcon className="w-6 h-6" />
             <h3 className="text-lg font-bold mt-4 mb-2">Withdraw Funds</h3>
@@ -462,10 +462,10 @@ const OverviewPage = () => {
             <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
               Withdraw <ArrowRightIcon className="w-4 h-4" />
             </div>
-          </a>
-          <a 
-            href="/profile" 
-            className="group p-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl text-white hover:shadow-xl hover:shadow-blue-200 transition-all duration-300"
+          </div>
+          <div 
+            onClick={() => navigate('/profile')} 
+            className="group p-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl text-white hover:shadow-xl hover:shadow-blue-200 transition-all duration-300 cursor-pointer"
           >
             <UsersIcon className="w-6 h-6" />
             <h3 className="text-lg font-bold mt-4 mb-2">Invite Friends</h3>
@@ -473,7 +473,7 @@ const OverviewPage = () => {
             <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
               Share <ArrowRightIcon className="w-4 h-4" />
             </div>
-          </a>
+          </div>
         </div>
 
         {/* Activation Banner */}
