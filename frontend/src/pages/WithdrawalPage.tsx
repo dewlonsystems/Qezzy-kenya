@@ -44,6 +44,13 @@ const UsersIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const CheckCircleIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
 const WithdrawalPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -52,6 +59,7 @@ const WithdrawalPage = () => {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false); // ✅ New success state
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [withdrawMethod, setWithdrawMethod] = useState<'mobile' | 'bank'>('mobile');
@@ -78,7 +86,7 @@ const WithdrawalPage = () => {
         setPaymentDetails(details);
         setWithdrawMethod(details.payout_method as 'mobile' | 'bank');
       } catch (err) {
-        console.error('Failed to load data:', err);
+        console.error('Failed to load ', err);
         setError('Failed to load wallet or payment details.');
       }
     };
@@ -121,7 +129,9 @@ const WithdrawalPage = () => {
         amount: numAmount,
         method: withdrawMethod,
       });
-      navigate('/wallet');
+      setSuccess(true); // ✅ Trigger success screen
+      // Auto-redirect after 2.5 seconds
+      setTimeout(() => navigate('/wallet'), 2500);
     } catch (err: any) {
       console.error('Withdrawal error:', err);
       setError(err.response?.data?.error || 'Failed to request withdrawal. Please try again.');
@@ -129,6 +139,53 @@ const WithdrawalPage = () => {
       setLoading(false);
     }
   };
+
+  // ✅ Beautiful Success Screen
+  if (success) {
+    return (
+      <div className="min-h-screen bg-landing-cream font-inter flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        {/* Confetti-like background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-10 left-10 w-4 h-4 bg-amber-400 rounded-full animate-float"></div>
+          <div className="absolute top-1/4 right-20 w-3 h-3 bg-orange-400 rounded-full animate-float-delayed"></div>
+          <div className="absolute bottom-1/3 left-1/3 w-2 h-2 bg-amber-500 rounded-full animate-float"></div>
+          <div className="absolute bottom-10 right-10 w-5 h-5 bg-orange-300 rounded-full animate-float-delayed"></div>
+        </div>
+
+        <div className="max-w-md w-full text-center z-10 animate-fade-in-up">
+          {/* Checkmark */}
+          <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-200">
+            <CheckCircleIcon className="w-12 h-12 text-white" />
+          </div>
+
+          {/* Message */}
+          <h2 className="text-2xl font-bold text-landing-heading mb-2">Withdrawal Requested!</h2>
+          <p className="text-landing-muted mb-6">
+            Your request for{' '}
+            <span className="font-bold text-amber-600">KES {parseFloat(amount).toFixed(2)}</span>{' '}
+            is being processed.
+          </p>
+
+          {/* Status Bar */}
+          <div className="w-full bg-amber-100 rounded-full h-2 mb-6 overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-400 to-emerald-500 h-full rounded-full animate-pulse w-full"></div>
+          </div>
+
+          <p className="text-xs text-landing-muted mb-6">
+            You’ll receive a confirmation shortly. Redirecting to wallet...
+          </p>
+
+          {/* Manual Go to Wallet */}
+          <button
+            onClick={() => navigate('/wallet')}
+            className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-amber-200 transition-all"
+          >
+            Go to Wallet Now
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const maxBalance = walletType === 'main' 
     ? wallets?.main_wallet_balance || 0 
