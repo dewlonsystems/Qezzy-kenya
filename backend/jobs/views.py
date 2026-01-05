@@ -28,6 +28,7 @@ class JobListView(APIView):
                 'question_count': job.question_count,
                 'reward_kes': float(job.reward_kes),
                 'created_at': job.created_at.isoformat(),
+                'category': {'name': job.category.name},
             })
         return Response(data)
 
