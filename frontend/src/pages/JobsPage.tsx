@@ -186,7 +186,7 @@ const TabButton = ({
   </button>
 );
 
-// Job card component
+// Job card component — UPDATED TO BE NON-CLICKABLE FOR NON-OPEN JOBS
 const JobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
   const slug = job.category || 'other';
   const category = categoryConfig[slug as keyof typeof categoryConfig] || categoryConfig.other;
@@ -194,15 +194,29 @@ const JobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
   const CategoryIcon = category.icon;
   const StatusIcon = status.icon;
 
+  const isClickable = job.status === 'open';
+
   return (
     <div
-      onClick={onClick}
-      className="group relative bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-5 cursor-pointer transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/30 overflow-hidden"
+      onClick={isClickable ? onClick : undefined}
+      className={`
+        group relative bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-5 
+        transition-all duration-500 overflow-hidden
+        ${isClickable 
+          ? 'cursor-pointer hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/30' 
+          : 'opacity-80 cursor-default'
+        }
+      `}
     >
-      <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-      </div>
+      {/* Hover effects only for clickable cards */}
+      {isClickable && (
+        <>
+          <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          </div>
+        </>
+      )}
 
       <div className="flex items-center justify-between mb-4">
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${category.bgColor}`}>
@@ -215,7 +229,9 @@ const JobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
         </div>
       </div>
 
-      <h3 className="text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-2">
+      <h3 className={`text-lg font-semibold text-foreground mb-3 line-clamp-2 ${
+        isClickable ? 'group-hover:text-primary transition-colors' : ''
+      }`}>
         {job.title}
       </h3>
 
@@ -270,7 +286,9 @@ const JobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
         )}
       </div>
 
-      <div className={`absolute -top-10 -right-10 w-24 h-24 rounded-full bg-gradient-to-br ${category.color} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity duration-500`} />
+      {isClickable && (
+        <div className={`absolute -top-10 -right-10 w-24 h-24 rounded-full bg-gradient-to-br ${category.color} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity duration-500`} />
+      )}
     </div>
   );
 };
@@ -571,11 +589,8 @@ const JobsPage = () => {
     fetchJobs();
   }, [navigate]);
 
+  // Only called for "open" jobs
   const openJobDetail = async (job: Job) => {
-    if (job.status !== 'open') {
-      setSelectedJob(job);
-      return;
-    }
     try {
       const res = await api.get(`/jobs/${job.id}/`);
       const detailedJob: Job = {
@@ -618,7 +633,6 @@ const JobsPage = () => {
     return <LoadingSpinner message="Fetching available jobs..." />;
   }
 
-  // ✅ CLEAN RETURN: NO FULL-PAGE WRAPPERS
   return (
     <>
       {/* Page Header */}
@@ -661,7 +675,10 @@ const JobsPage = () => {
               className="animate-fade-in"
               style={{ animationDelay: `${0.3 + index * 0.1}s` }}
             >
-              <JobCard job={job} onClick={() => openJobDetail(job)} />
+              <JobCard 
+                job={job} 
+                onClick={() => job.status === 'open' && openJobDetail(job)} 
+              />
             </div>
           ))}
         </div>
