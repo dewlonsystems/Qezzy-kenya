@@ -10,14 +10,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# ALLOWED_HOSTS — Replace with your actual domains
+# ALLOWED_HOSTS — Add your EC2 public IP here
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
-        'qezzy-kenya.onrender.com',  # Render auto-assigned URL
-        'api.yourdomain.com',         # Optional: custom domain
-        # Add more if needed
+        'YOUR_EC2_PUBLIC_IP',  # ← REPLACE THIS with your actual EC2 IP (e.g., '18.212.45.67')
+        'qezzy-kenya.onrender.com',  # Keep if you still use Render temporarily
     ]
 
 # Application definition
@@ -28,7 +27,6 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    # Whitenoise for static files
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
 
@@ -49,7 +47,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ← Serve static files efficiently
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -79,7 +77,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'earn_backend.wsgi.application'
 
-# Database (Supabase or Render PostgreSQL)
+# Database (Supabase)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -106,7 +104,7 @@ TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (for Render)
+# Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -127,26 +125,24 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'users.exceptions.custom_exception_handler',
 }
 
-# CORS — 🔒 LOCKED DOWN FOR PRODUCTION
+# CORS — Only allow your Vercel frontend
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
 else:
     CORS_ALLOWED_ORIGINS = [
-        "https://qezzy-surveys.vercel.app",   # ← REPLACE with your Vercel URL
-        "https://www.yourdomain.com",         # ← Optional: custom domain
-        "https://yourdomain.com",
+        "https://qezzy-surveys.vercel.app",
     ]
     CORS_ALLOW_CREDENTIALS = True
 
-# Security headers (only in production)
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
+# 🔒 SECURITY HEADERS (DISABLED FOR NOW — ENABLE AFTER ADDING HTTPS)
+# if not DEBUG:
+#     SECURE_SSL_REDIRECT = True
+#     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+#     SECURE_HSTS_SECONDS = 31536000
+#     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+#     SECURE_HSTS_PRELOAD = True
+#     SESSION_COOKIE_SECURE = True
+#     CSRF_COOKIE_SECURE = True
+#     SECURE_BROWSER_XSS_FILTER = True
+#     SECURE_CONTENT_TYPE_NOSNIFF = True
