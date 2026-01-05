@@ -3,23 +3,21 @@ import os
 from pathlib import Path
 from decouple import config
 
-# Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# ALLOWED_HOSTS — Add your EC2 public IP here
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
-        'YOUR_EC2_PUBLIC_IP',  # ← REPLACE THIS with your actual EC2 IP (e.g., '18.212.45.67')
-        'qezzy-kenya.onrender.com',  # Keep if you still use Render temporarily
+        '13.60.202.95',               # EC2 public IP
+        'qezzy-kenya.duckdns.org',    # DuckDNS domain
+
     ]
 
-# Application definition
 INSTALLED_APPS = [
     'corsheaders',
     'django.contrib.admin',
@@ -29,11 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
-
-    # Third-party
     'rest_framework',
-    
-    # Local apps
     'users',
     'onboarding',
     'activation',
@@ -98,23 +92,18 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_TZ = True
-
-# Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Firebase
 FIREBASE_PROJECT_ID = config('FIREBASE_PROJECT_ID')
 
-# REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'users.authentication.FirebaseAuthentication',
@@ -125,7 +114,7 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'users.exceptions.custom_exception_handler',
 }
 
-# CORS — Only allow your Vercel frontend
+# CORS
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
@@ -135,14 +124,13 @@ else:
     ]
     CORS_ALLOW_CREDENTIALS = True
 
-# 🔒 SECURITY HEADERS (DISABLED FOR NOW — ENABLE AFTER ADDING HTTPS)
-# if not DEBUG:
-#     SECURE_SSL_REDIRECT = True
-#     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-#     SECURE_HSTS_SECONDS = 31536000
-#     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-#     SECURE_HSTS_PRELOAD = True
-#     SESSION_COOKIE_SECURE = True
-#     CSRF_COOKIE_SECURE = True
-#     SECURE_BROWSER_XSS_FILTER = True
-#     SECURE_CONTENT_TYPE_NOSNIFF = True
+if not DEBUG:
+    SECURE_SSL_REDIRECT = False
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = 31536000 
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
