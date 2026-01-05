@@ -11,7 +11,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
-  refreshUser: () => Promise<void>; // ← ADD THIS
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,7 +28,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔁 NEW: Function to refresh user data
   const refreshUser = async () => {
     const token = localStorage.getItem('firebase_id_token');
     if (!token) {

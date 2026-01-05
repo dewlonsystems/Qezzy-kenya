@@ -153,7 +153,7 @@ const LandingPage = () => {
     },
     {
       name: "Grace Chebet",
-      location: "Mombasa",
+      location: "Eldoret",
       text: "As a university student, Qezzy helps me pay for my expenses. The tasks are easy and the platform is very user-friendly.",
       avatar: "GM"
     }

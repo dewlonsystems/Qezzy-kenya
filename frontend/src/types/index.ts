@@ -38,12 +38,17 @@ export interface Job {
   id: number;
   title: string;
   description: string;
-  status: 'open' | 'submitted' | 'completed' | 'cancelled' | 'declined';
+  status: 'open' | 'submitted' | 'completed' | 'declined';
   created_at: string;
+  question_count: number;
+  questions?: Question[];
   updated_at: string;
   reward?: number;
+  reward_kes: number; 
   category?: string;
   deadline_hours?: number;
+  submitted_at?: string;
+  completed_at?: string;
 }
 
 export interface WithdrawalRequest {
@@ -93,3 +98,9 @@ export type SupportMessage = {
   message: string;
   created_at: string;
 };
+
+export interface Question {
+  id: number;
+  text: string;
+}
+
