@@ -1,8 +1,7 @@
 // src/contexts/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom'; // ✅ Safe because AuthProvider is inside Router
 import api from '../api/client';
 import type { User } from '../types';
 
@@ -26,56 +25,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const navigate = useNavigate(); // ✅ Now safe!
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [inactivityTimer, setInactivityTimer] = useState<number | null>(null);
-
-  // ✅ Reset inactivity timer on user activity
-  const resetInactivityTimer = useCallback(() => {
-    if (inactivityTimer !== null) {
-      clearTimeout(inactivityTimer);
-    }
-
-    const newTimer = setTimeout(() => {
-      console.log('Auto-logout due to 3 minutes of inactivity');
-      handleAutoLogout();
-    }, 180_000); // 3 minutes
-
-    setInactivityTimer(newTimer);
-  }, [inactivityTimer]);
-
-  const handleAutoLogout = async () => {
-    await signOut(auth);
-    localStorage.removeItem('firebase_id_token');
-    setCurrentUser(null);
-    navigate('/login', { replace: true });
-  };
-
-  // ✅ Start/reset timer when user is authenticated
-  useEffect(() => {
-    if (currentUser) {
-      resetInactivityTimer();
-
-      // Listen to user activity
-      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-      events.forEach(event => window.addEventListener(event, resetInactivityTimer));
-
-      return () => {
-        events.forEach(event => window.removeEventListener(event, resetInactivityTimer));
-        if (inactivityTimer !== null) {
-          clearTimeout(inactivityTimer);
-          setInactivityTimer(null);
-        }
-      };
-    } else {
-      // Clear timer when logged out
-      if (inactivityTimer !== null) {
-        clearTimeout(inactivityTimer);
-        setInactivityTimer(null);
-      }
-    }
-  }, [currentUser, resetInactivityTimer, inactivityTimer]);
 
   const refreshUser = async () => {
     const token = localStorage.getItem('firebase_id_token');
@@ -87,8 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await api.get('/users/me/');
       setCurrentUser(res.data);
-      // Refreshing user = recent activity → reset timer
-      if (res.data) resetInactivityTimer();
     } catch (error: any) {
       console.error('Failed to refresh user:', error);
       setCurrentUser(null);
@@ -113,7 +62,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const res = await api.get('/users/me/');
         setCurrentUser(res.data);
-        resetInactivityTimer(); // Start timer after login
       } catch (error: any) {
         if (error.response?.status === 403) {
           setCurrentUser(null);
@@ -132,7 +80,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await signOut(auth);
     localStorage.removeItem('firebase_id_token');
     setCurrentUser(null);
-    // Timer will be cleared by useEffect above
   };
 
   useEffect(() => {
@@ -143,7 +90,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const res = await api.get('/users/me/');
           setCurrentUser(res.data);
-          resetInactivityTimer(); // Start timer on auth state change
         } catch (error: any) {
           if (error.response?.status === 403) {
             setCurrentUser(null);
@@ -162,7 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return unsubscribe;
-  }, [resetInactivityTimer]);
+  }, []);
 
   const value = {
     currentUser,

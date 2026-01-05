@@ -30,15 +30,17 @@ function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/cookies" element={<CookiesPage />} />
-          <Route path="/login" element={<LoginPage />} />            
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
+          <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />            
                   
 
           {/* Protected routes */}
           <Route element={<BasicProtectedRoute />}>
             {/* Onboarding — no layout */}            
             <Route path="/activation" element={<ActivationPage />} />
-            <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
-            <Route path="/onboarding/profile" element={<ProfileCompletionPage />} /> 
+            
+            
 
             {/* Dashboard — with layout */}
             <Route element={<DashboardLayout />}>
