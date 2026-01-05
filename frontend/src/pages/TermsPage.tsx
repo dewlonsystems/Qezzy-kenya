@@ -172,7 +172,7 @@ const TermsOfService = () => {
                   href="mailto:legal@qezzy.co.ke" 
                   className="text-amber-600 hover:text-amber-700 underline font-medium"
                 >
-                  legal@qezzy.co.ke
+                  dewlonsystems@gmail.com
                 </a>
                 .
               </p>

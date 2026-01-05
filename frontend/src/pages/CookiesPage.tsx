@@ -151,7 +151,7 @@ const CookiePolicy = () => {
                   href="mailto:privacy@qezzy.co.ke" 
                   className="text-amber-600 hover:text-amber-700 underline font-medium"
                 >
-                  privacy@qezzy.co.ke
+                  dewlonsystems@gmail.com
                 </a>
                 .
               </p>
