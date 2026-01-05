@@ -6,7 +6,7 @@ import type { Job } from '../types';
 import { getCategorySlug } from '../utils/categorySlug';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-// Custom inline SVG icons (exactly as in your mock)
+// Custom inline SVG icons (unchanged)
 const BriefcaseIcon = ({ className = "", size = 24 }: { className?: string; size?: number }) => (
   <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
@@ -16,7 +16,7 @@ const BriefcaseIcon = ({ className = "", size = 24 }: { className?: string; size
 
 const ClipboardIcon = ({ className = "", size = 24 }: { className?: string; size?: number }) => (
   <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 1 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
     <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
   </svg>
 );
@@ -76,7 +76,7 @@ const ArrowRightIcon = ({ className = "", size = 24 }: { className?: string; siz
 const SparklesIcon = ({ className = "", size = 24 }: { className?: string; size?: number }) => (
   <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-    <path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/>
+    <path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19 h4"/>
   </svg>
 );
 
@@ -130,7 +130,7 @@ const SendIcon = ({ className = "", size = 24 }: { className?: string; size?: nu
 // Types
 type JobStatus = 'open' | 'submitted' | 'completed' | 'declined';
 
-// Category config (matches your mock)
+// Category config
 const categoryConfig = {
   rivers: { icon: WaterIcon, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-500/10', label: 'Rivers & Water' },
   health: { icon: HeartPulseIcon, color: 'from-rose-500 to-pink-400', bgColor: 'bg-rose-500/10', label: 'Health & Wellness' },
@@ -150,36 +150,6 @@ const statusConfig = {
   completed: { icon: CheckCircleIcon, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10', label: 'Completed' },
   declined: { icon: XCircleIcon, color: 'text-red-500', bgColor: 'bg-red-500/10', label: 'Declined' },
 };
-
-// Floating particle component
-const FloatingParticle = ({ delay, size, left, duration }: { delay: number; size: number; left: string; duration: number }) => (
-  <div
-    className="absolute rounded-full bg-gradient-to-br from-primary/30 to-amber-300/20 blur-sm"
-    style={{
-      width: size,
-      height: size,
-      left,
-      bottom: '-20px',
-      animation: `float ${duration}s ease-in-out infinite`,
-      animationDelay: `${delay}s`,
-    }}
-  />
-);
-
-// Glowing orb component
-const GlowingOrb = ({ size, top, left, delay }: { size: number; top: string; left: string; delay: number }) => (
-  <div
-    className="absolute rounded-full bg-gradient-radial from-primary/20 via-amber-400/10 to-transparent blur-2xl"
-    style={{
-      width: size,
-      height: size,
-      top,
-      left,
-      animation: `pulse-glow 4s ease-in-out infinite`,
-      animationDelay: `${delay}s`,
-    }}
-  />
-);
 
 // Tab button component
 const TabButton = ({ 
@@ -499,7 +469,7 @@ const SurveyModal = ({
 // Empty state component
 const EmptyState = ({ status }: { status: JobStatus }) => {
   const messages = {
-    open: { title: 'No open surveys', description: 'Check back soon! New surveys are generated daily.' },
+    open: { title: 'No open surveys', description: 'Check back soon! New surveys are posted daily.' },
     submitted: { title: 'No pending reviews', description: 'Your submitted surveys will appear here.' },
     completed: { title: 'No completed surveys yet', description: 'Complete surveys to start earning!' },
     declined: { title: 'No declined surveys', description: 'Great job keeping quality high!' },
@@ -577,12 +547,10 @@ const JobsPage = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all jobs on mount
   useEffect(() => {
     const fetchJobs = async () => {
       try {
         const res = await api.get('/jobs/');
-        // Normalize category to slug
         const normalizedJobs = res.data.map((job: any) => ({
           ...job,
           category: getCategorySlug(job.category?.name || ''),
@@ -603,7 +571,6 @@ const JobsPage = () => {
     fetchJobs();
   }, [navigate]);
 
-  // Fetch job detail when opening modal
   const openJobDetail = async (job: Job) => {
     if (job.status !== 'open') {
       setSelectedJob(job);
@@ -634,7 +601,6 @@ const JobsPage = () => {
     if (selectedJob) {
       try {
         await api.post(`/jobs/${selectedJob.id}/`, { answers });
-        // Refresh job list to update status
         const res = await api.get('/jobs/');
         const normalizedJobs = res.data.map((job: any) => ({
           ...job,
@@ -650,74 +616,58 @@ const JobsPage = () => {
 
   if (loading) {
     return <LoadingSpinner message="Fetching available jobs..." />;
-    }
-   
+  }
 
+  // ✅ CLEAN RETURN: NO FULL-PAGE WRAPPERS
   return (
-    <div className="relative min-h-screen bg-background overflow-hidden">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <GlowingOrb size={400} top="-10%" left="-10%" delay={0} />
-        <GlowingOrb size={300} top="60%" left="80%" delay={2} />
-        <GlowingOrb size={250} top="30%" left="50%" delay={4} />
-        {[...Array(8)].map((_, i) => (
-          <FloatingParticle
-            key={i}
-            delay={i * 0.8}
-            size={6 + Math.random() * 10}
-            left={`${10 + i * 12}%`}
-            duration={6 + Math.random() * 4}
+    <>
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center shadow-lg shadow-primary/30">
+            <BriefcaseIcon size={24} className="text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Available Jobs</h1>
+            <p className="text-muted-foreground">Complete surveys and earn money</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mt-4 text-primary">
+          <SparklesIcon size={18} className="animate-pulse" />
+          <span className="text-sm font-medium">New surveys available daily!</span>
+        </div>
+      </div>
+
+      <StatsBar jobs={jobs} />
+
+      <div className="flex flex-wrap gap-3 mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        {tabs.map(tab => (
+          <TabButton
+            key={tab.status}
+            active={activeTab === tab.status}
+            onClick={() => setActiveTab(tab.status)}
+            icon={tab.icon}
+            label={tab.label}
+            count={jobs.filter(j => j.status === tab.status).length}
           />
         ))}
       </div>
 
-      <div className="relative z-10 p-6 md:p-8 max-w-7xl mx-auto">
-        <div className="mb-8 animate-fade-in">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center shadow-lg shadow-primary/30">
-              <BriefcaseIcon size={24} className="text-primary-foreground" />
+      {filteredJobs.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredJobs.map((job, index) => (
+            <div
+              key={job.id}
+              className="animate-fade-in"
+              style={{ animationDelay: `${0.3 + index * 0.1}s` }}
+            >
+              <JobCard job={job} onClick={() => openJobDetail(job)} />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Available Jobs</h1>
-              <p className="text-muted-foreground">Complete surveys and earn money</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 mt-4 text-primary">
-            <SparklesIcon size={18} className="animate-pulse" />
-            <span className="text-sm font-medium">New surveys available daily!</span>
-          </div>
-        </div>
-
-        <StatsBar jobs={jobs} />
-
-        <div className="flex flex-wrap gap-3 mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          {tabs.map(tab => (
-            <TabButton
-              key={tab.status}
-              active={activeTab === tab.status}
-              onClick={() => setActiveTab(tab.status)}
-              icon={tab.icon}
-              label={tab.label}
-              count={jobs.filter(j => j.status === tab.status).length}
-            />
           ))}
         </div>
-
-        {filteredJobs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredJobs.map((job, index) => (
-              <div
-                key={job.id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${0.3 + index * 0.1}s` }}
-              >
-                <JobCard job={job} onClick={() => openJobDetail(job)} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState status={activeTab} />
-        )}
-      </div>
+      ) : (
+        <EmptyState status={activeTab} />
+      )}
 
       {selectedJob && (
         <SurveyModal
@@ -726,7 +676,7 @@ const JobsPage = () => {
           onSubmit={handleSubmit}
         />
       )}
-    </div>
+    </>
   );
 };
 
