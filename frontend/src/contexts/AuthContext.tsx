@@ -1,7 +1,8 @@
 // src/contexts/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom'; // ✅ NEW
 import api from '../api/client';
 import type { User } from '../types';
 
@@ -25,8 +26,48 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate(); // ✅ NEW
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [timer, setTimer] = useState<number | null>(null);
+
+  // ✅ NEW: Reset inactivity timer
+  const resetInactivityTimer = useCallback(() => {
+    if (timer !== null) {
+      clearTimeout(timer);
+    }
+
+    const newTimer = setTimeout(async () => {
+      console.log('Auto-logout due to inactivity');
+      await signOut(auth);
+      localStorage.removeItem('firebase_id_token');
+      setCurrentUser(null);
+      navigate('/login', { replace: true });
+    }, 180_000); // 3 minutes = 180,000 ms
+
+    setTimer(newTimer);
+  }, [timer, navigate]);
+
+  // ✅ NEW: Handle user activity
+  useEffect(() => {
+    if (currentUser) {
+      resetInactivityTimer(); // Start timer on login or refresh
+
+      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+      events.forEach(event => window.addEventListener(event, resetInactivityTimer));
+
+      return () => {
+        events.forEach(event => window.removeEventListener(event, resetInactivityTimer));
+        if (timer) clearTimeout(timer);
+      };
+    } else {
+      // Clear timer when user logs out
+      if (timer) {
+        clearTimeout(timer);
+        setTimer(null);
+      }
+    }
+  }, [currentUser, resetInactivityTimer, timer]);
 
   const refreshUser = async () => {
     const token = localStorage.getItem('firebase_id_token');
@@ -38,6 +79,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await api.get('/users/me/');
       setCurrentUser(res.data);
+      // ✅ Refresh also resets inactivity timer
+      if (res.data) resetInactivityTimer();
     } catch (error: any) {
       console.error('Failed to refresh user:', error);
       setCurrentUser(null);
@@ -62,6 +105,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const res = await api.get('/users/me/');
         setCurrentUser(res.data);
+        // ✅ Login also starts the timer
+        resetInactivityTimer();
       } catch (error: any) {
         if (error.response?.status === 403) {
           setCurrentUser(null);
@@ -80,6 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await signOut(auth);
     localStorage.removeItem('firebase_id_token');
     setCurrentUser(null);
+    // Timer will be cleaned up by useEffect above
   };
 
   useEffect(() => {
@@ -90,6 +136,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const res = await api.get('/users/me/');
           setCurrentUser(res.data);
+          // ✅ Auth state change also resets timer
+          resetInactivityTimer();
         } catch (error: any) {
           if (error.response?.status === 403) {
             setCurrentUser(null);
@@ -104,11 +152,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('firebase_id_token');
         setCurrentUser(null);
         setLoading(false);
+        // Timer cleaned up via useEffect dependency
       }
     });
 
     return unsubscribe;
-  }, []);
+  }, [resetInactivityTimer]);
 
   const value = {
     currentUser,
@@ -116,7 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loginWithGoogle,
     logout,
     getIdToken,
-    refreshUser, // ← EXPOSE IT
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

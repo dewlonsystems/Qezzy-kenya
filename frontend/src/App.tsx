@@ -23,18 +23,21 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
+        {/* ===== PUBLIC ROUTES ===== */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/cookies" element={<CookiesPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
-        <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
-        <Route path="/activation" element={<ActivationPage />} />
 
-        {/* Protected routes */}
+        {/* ===== PROTECTED ROUTES ===== */}
         <Route element={<BasicProtectedRoute />}>
+          {/* Onboarding flows — full-screen, no sidebar/topbar */}
+          <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
+          <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
+          <Route path="/activation" element={<ActivationPage />} />
+
+          {/* Dashboard pages — with sidebar and topbar */}
           <Route element={<DashboardLayout />}>
             <Route path="/overview" element={<OverviewPage />} />
             <Route path="/wallet" element={<WalletPage />} />
@@ -44,14 +47,14 @@ function App() {
           </Route>
         </Route>
 
-        {/* Jobs */}
+        {/* Jobs route — protected with additional is_active check */}
         <Route element={<JobsProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/jobs" element={<JobsPage />} />
           </Route>
         </Route>
 
-        {/* show 404 page for any unmatched route */}
+        {/* Catch-all 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
