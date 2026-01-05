@@ -177,7 +177,7 @@ const OverviewPage = () => {
       .map(job => ({
         id: job.id,
         title: job.title,
-        reward: formatKES(job.reward ?? 0),
+        // REMOVED: reward: formatKES(job.reward ?? 0),
         category: getCategoryName(job.category),
         deadline: job.deadline_hours ? `${job.deadline_hours} hours` : '3 days',
       }));
@@ -423,12 +423,12 @@ const OverviewPage = () => {
             <div className="p-4 space-y-4">
               {availableTasks.length > 0 ? (
                 availableTasks.map((task) => (
-                  <div key={task.id} onClick={() => navigate(`/jobs/${task.id}`)} className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-md transition-all duration-300">
+                  <div key={task.id} onClick={() => navigate('/jobs')} className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium px-2 py-1 bg-amber-200 text-amber-800 rounded-lg">
                         {task.category}
                       </span>
-                      <span className="text-sm font-bold text-amber-600">{task.reward}</span>
+                      {/* REMOVED REWARD AMOUNT */}
                     </div>
                     <h3 className="font-semibold text-landing-heading mb-2">{task.title}</h3>
                     <div className="flex items-center gap-2 text-sm text-landing-muted">
