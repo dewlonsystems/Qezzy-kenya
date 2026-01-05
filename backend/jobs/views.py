@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from .models import SurveyJob, SurveyResponse, SurveyQuestion
 
+
 class JobListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -19,7 +20,8 @@ class JobListView(APIView):
                 'redirect_to': '/activation'
             }, status=403)
 
-        jobs = SurveyJob.objects.filter(user=user, status='open').order_by('-created_at')
+        # Fetch ALL jobs for the user, regardless of status
+        jobs = SurveyJob.objects.filter(user=user).order_by('-created_at')
         data = []
         for job in jobs:
             data.append({
@@ -28,6 +30,7 @@ class JobListView(APIView):
                 'question_count': job.question_count,
                 'reward_kes': float(job.reward_kes),
                 'created_at': job.created_at.isoformat(),
+                'status': job.status,  # ← Now included!
                 'category': {'name': job.category.name},
             })
         return Response(data)
