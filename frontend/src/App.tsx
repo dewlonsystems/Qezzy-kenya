@@ -1,6 +1,8 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext'; // ✅ Moved here
+import { AuthProvider } from './contexts/AuthContext';
+
+// Pages
 import LoginPage from './pages/LoginPage';
 import ProfileCompletionPage from './pages/onboarding/ProfileCompletionPage';
 import PaymentDetailsPage from './pages/onboarding/PaymentDetailsPage';
@@ -12,53 +14,56 @@ import WithdrawalPage from './pages/WithdrawalPage';
 import ProfilePage from './pages/ProfilePage';
 import JobsPage from './pages/JobsPage';
 import SupportPage from './pages/SupportPage';
-import BasicProtectedRoute from './components/BasicProtectedRoute';
-import JobsProtectedRoute from './components/JobsProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import CookiesPage from './pages/CookiesPage';
 import NotFound from './pages/NotFoundPage';
 
+// Route guards
+import BasicProtectedRoute from './components/BasicProtectedRoute';
+import JobsProtectedRoute from './components/JobsProtectedRoute';
+import OnboardingProtectedRoute from './components/OnboardingProtectedRoute'; 
+
 function App() {
   return (
     <Router>
-      <AuthProvider> {/* ✅ NOW inside Router → useNavigate() works! */}
+      <AuthProvider>
         <Routes>
-          {/* Public routes */}
+          {/* ===== PUBLIC ROUTES ===== */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/cookies" element={<CookiesPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
-          <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />            
-                  
+          <Route path="/login" element={<LoginPage />} />          
+          
 
-          {/* Protected routes */}
+          {/* ===== ONBOARDING ROUTES ===== */}
+          <Route element={<OnboardingProtectedRoute />}>
+            <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
+            <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
+          </Route>
+
+          {/* ===== FULLY PROTECTED DASHBOARD ROUTES ===== */}
           <Route element={<BasicProtectedRoute />}>
-            {/* Onboarding — no layout */}            
-            <Route path="/activation" element={<ActivationPage />} />
-            
-            
-
-            {/* Dashboard — with layout */}
             <Route element={<DashboardLayout />}>
               <Route path="/overview" element={<OverviewPage />} />
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/withdraw" element={<WithdrawalPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/support" element={<SupportPage />} />
+              <Route path="/activation" element={<ActivationPage />} />
             </Route>
           </Route>
 
-          {/* Jobs — special protection */}
+          {/* ===== JOBS ROUTE ===== */}
           <Route element={<JobsProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               <Route path="/jobs" element={<JobsPage />} />
             </Route>
           </Route>
 
+          {/* ===== 404 ===== */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
