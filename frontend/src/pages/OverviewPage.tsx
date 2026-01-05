@@ -164,14 +164,21 @@ const OverviewPage = () => {
   }, [mainTransactions, referralWalletTransactions, withdrawals]);
 
   const availableTasks = useMemo(() => {
-    return jobs
+    const getCategoryName = (category: any): string => {
+      if (!category) return 'Task';
+      if (typeof category === 'string') return category;
+      if (typeof category === 'object' && category.name) return category.name;
+      return 'Task';
+      };
+
+     return jobs
       .filter(job => job.status === 'open')
       .slice(0, 3)
       .map(job => ({
         id: job.id,
         title: job.title,
         reward: formatKES(job.reward ?? 0),
-        category: job.category || 'Task',
+        category: getCategoryName(job.category),
         deadline: job.deadline_hours ? `${job.deadline_hours} hours` : '3 days',
       }));
   }, [jobs]);
