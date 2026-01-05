@@ -1,19 +1,33 @@
+# jobs/admin.py
 from django.contrib import admin
-from .models import Job
-from users.models import User
+from .models import SurveyCategory, SurveyQuestion, SurveyJob, SurveyResponse
 
-@admin.register(Job)
-class JobAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'status', 'assigned_to', 'created_by', 'created_at']
-    list_filter = ['status', 'created_at']
-    search_fields = ['title', 'assigned_to__email', 'created_by__email']
-    autocomplete_fields = ['assigned_to', 'created_by']
+@admin.register(SurveyCategory)
+class SurveyCategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'min_questions', 'max_questions', 'created_at']
+    search_fields = ['name']
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "assigned_to":
-            # Only show onboarded, non-closed users
-            kwargs["queryset"] = User.objects.filter(is_onboarded=True, is_closed=False)
-        elif db_field.name == "created_by":
-            # Only show staff users (admins)
-            kwargs["queryset"] = User.objects.filter(is_staff=True)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+@admin.register(SurveyQuestion)
+class SurveyQuestionAdmin(admin.ModelAdmin):
+    list_display = ['category', 'text']
+    list_filter = ['category']
+    search_fields = ['text']
+    autocomplete_fields = ['category']
+
+
+@admin.register(SurveyJob)
+class SurveyJobAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'user', 'status', 'reward_kes', 'question_count', 'created_at']
+    list_filter = ['status', 'category', 'created_at']
+    search_fields = ['user__email', 'title']
+    readonly_fields = ['selected_question_ids', 'reward_kes', 'question_count']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'category')
+
+
+@admin.register(SurveyResponse)
+class SurveyResponseAdmin(admin.ModelAdmin):
+    list_display = ['job', 'submitted_at']
+    readonly_fields = ['job', 'answers', 'submitted_at']
