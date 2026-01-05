@@ -42,17 +42,17 @@ function App() {
           <Route element={<OnboardingProtectedRoute />}>
             <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
             <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
+            <Route path="/activation" element={<ActivationPage />} />
           </Route>
 
           {/* ===== FULLY PROTECTED DASHBOARD ROUTES ===== */}
-          <Route element={<BasicProtectedRoute />}>
+          <Route element={<BasicProtectedRoute />}>          
             <Route element={<DashboardLayout />}>
               <Route path="/overview" element={<OverviewPage />} />
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/withdraw" element={<WithdrawalPage />} />
               <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/support" element={<SupportPage />} />
-              <Route path="/activation" element={<ActivationPage />} />
+              <Route path="/support" element={<SupportPage />} />              
             </Route>
           </Route>
 
