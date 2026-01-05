@@ -239,7 +239,7 @@ const ActivationPage = () => {
   // Redirect if already active
   useEffect(() => {
     if (currentUser?.is_active) {
-      navigate('/', { replace: true });
+      navigate('/overview', { replace: true });
     }
   }, [currentUser, navigate]);
 
@@ -283,7 +283,7 @@ const ActivationPage = () => {
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         await refreshUser?.();
         setState('success');
-        setTimeout(() => navigate('/', { replace: true }), 1500);
+        setTimeout(() => navigate('/overview', { replace: true }), 1500);
         return;
       }
 
