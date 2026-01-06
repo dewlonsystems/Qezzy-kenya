@@ -120,6 +120,7 @@ if DEBUG:
     CORS_ALLOW_CREDENTIALS = True
 else:
     CORS_ALLOWED_ORIGINS = [
+        "https://qezzykenya.company",
         "https://qezzy-surveys.vercel.app",
     ]
     CORS_ALLOW_CREDENTIALS = True
