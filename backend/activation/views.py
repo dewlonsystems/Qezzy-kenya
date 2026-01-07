@@ -132,17 +132,8 @@ class DarajaCallbackView(APIView):
                     if trans_date:
                         from datetime import datetime
                         payment.transaction_date = datetime.strptime(trans_date, '%Y%m%d%H%M%S')
-                    payment.save()
-
-                    # Debit main wallet
-                    create_transaction(
-                        user=user,
-                        wallet_type='main',
-                        transaction_type='activation_payment',
-                        amount=-300.00,
-                        description=f"Account activation payment (Receipt: {receipt})"
-                    )
-
+                    payment.save()                    
+                   
                     # Handle referral bonus
                     if user.referred_by:
                         try:
