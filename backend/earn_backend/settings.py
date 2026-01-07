@@ -15,6 +15,7 @@ else:
     ALLOWED_HOSTS = [
         '13.60.202.95',               # EC2 public IP
         'qezzy-kenya.duckdns.org',    # DuckDNS domain
+        'api.qezzykenya.company',
 
     ]
 
