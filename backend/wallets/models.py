@@ -1,4 +1,7 @@
-from django.db import models
+# wallet/models.py
+from django.db import models, transaction as db_transaction
+from django.core.exceptions import ValidationError
+from decimal import Decimal
 from users.models import User
 
 class WalletTransaction(models.Model):
@@ -29,10 +32,62 @@ class WalletTransaction(models.Model):
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     source = models.CharField(max_length=10, choices=TRANSACTION_SOURCES, default='system')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    running_balance = models.DecimalField(max_digits=12, decimal_places=2)  # Balance after this transaction
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='completed')
+    running_balance = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # For tracking original state to detect changes
+    __original_status = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__original_status = self.status
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        status_changed = self.status != self.__original_status
+        is_now_completed = self.status == 'completed'
+        was_completed = self.__original_status == 'completed'
+
+        # Only apply financial impact if transitioning INTO 'completed'
+        should_update_balance = False
+        if is_new and is_now_completed:
+            should_update_balance = True
+        elif status_changed and is_now_completed and not was_completed:
+            should_update_balance = True
+
+        if should_update_balance:
+            if self.amount <= 0:
+                raise ValidationError("Transaction amount must be positive.")
+
+            with db_transaction.atomic():
+                # Get the latest COMPLETED transaction for this wallet
+                last_completed = WalletTransaction.objects.filter(
+                    user=self.user,
+                    wallet_type=self.wallet_type,
+                    status='completed'
+                ).order_by('-created_at').first()
+
+                current_balance = last_completed.running_balance if last_completed else Decimal('0.00')
+
+                # Determine balance impact based on transaction type
+                if self.transaction_type in ['withdrawal', 'activation_payment']:
+                    new_balance = current_balance - self.amount
+                else:
+                    new_balance = current_balance + self.amount
+
+                if new_balance < 0:
+                    raise ValidationError(f"Insufficient balance. Current: {current_balance}, Attempted: {self.amount}")
+
+                self.running_balance = new_balance
+                super().save(*args, **kwargs)
+                self.__original_status = self.status
+
+        else:
+            # Save without balance update (e.g., status = pending/failed, or no change)
+            super().save(*args, **kwargs)
+            self.__original_status = self.status
 
     class Meta:
         ordering = ['-created_at']
