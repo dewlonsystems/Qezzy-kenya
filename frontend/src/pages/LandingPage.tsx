@@ -651,7 +651,7 @@ const LandingPage = () => {
             <div>
               <h4 className="text-white font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>dewlonsystems@gmail.com</li>
+                <li>info@qezzykenya.company</li>
                 <li>+254 728 722 746</li>
                 <li>Nairobi, Kenya</li>
               </ul>
