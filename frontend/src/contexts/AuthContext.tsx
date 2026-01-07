@@ -1,19 +1,7 @@
 // src/contexts/AuthContext.tsx
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useRef,
-  type ReactNode,
-} from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import { auth } from '../firebase';
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signOut,
-} from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import api from '../api/client';
 import type { User } from '../types';
 
@@ -37,43 +25,35 @@ export const useAuth = () => {
 };
 
 // 🔒 Auto-logout after 3 minutes of inactivity
-const INACTIVITY_TIMEOUT = 3 * 60 * 1000; // 3 minutes
+const INACTIVITY_TIMEOUT = 3 * 60 * 1000; // 3 minutes in milliseconds
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const inactivityTimer = useRef<number | null>(null); // ✅ Use `number` for browser
 
-  const inactivityTimer = useRef<number | null>(null);
-  const lastActivityRef = useRef<number>(Date.now());
-
-  // 🔁 Reset inactivity timer (throttled)
+  // Reset inactivity timer on any user activity
   const resetInactivityTimer = () => {
-    if (!currentUser) return;
-
-    const now = Date.now();
-    if (now - lastActivityRef.current < 1000) return; // throttle to 1s
-
-    lastActivityRef.current = now;
-
-    if (inactivityTimer.current !== null) {
+    if (inactivityTimer.current) {
       clearTimeout(inactivityTimer.current);
-      inactivityTimer.current = null;
     }
 
-    inactivityTimer.current = window.setTimeout(() => {
-      console.log('Auto-logout due to inactivity');
-      handleLogout();
-    }, INACTIVITY_TIMEOUT);
+    if (currentUser) {
+      inactivityTimer.current = setTimeout(() => {
+        console.log('Auto-logout due to inactivity');
+        handleLogout();
+      }, INACTIVITY_TIMEOUT);
+    }
   };
 
-  // 🚪 Logout handler
+  // Enhanced logout with timer cleanup
   const handleLogout = async () => {
     try {
       await signOut(auth);
       localStorage.removeItem('firebase_id_token');
       setCurrentUser(null);
 
-      if (inactivityTimer.current !== null) {
+      if (inactivityTimer.current) {
         clearTimeout(inactivityTimer.current);
         inactivityTimer.current = null;
       }
@@ -82,7 +62,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // 🔄 Refresh user profile
   const refreshUser = async () => {
     const token = localStorage.getItem('firebase_id_token');
     if (!token) {
@@ -93,78 +72,98 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await api.get('/users/me/');
       setCurrentUser(res.data);
-      resetInactivityTimer();
-    } catch (error) {
+      resetInactivityTimer(); // Start timer when user is active
+    } catch (error: any) {
       console.error('Failed to refresh user:', error);
       setCurrentUser(null);
     }
   };
 
-  // 🔑 Get Firebase ID token
   const getIdToken = async (): Promise<string | null> => {
     const user = auth.currentUser;
-    if (!user) return null;
-
-    return user.getIdToken();
+    if (user) {
+      const tokenResult = await user.getIdTokenResult();
+      return tokenResult.token;
+    }
+    return null;
   };
 
-  // 🔐 Google login
   const loginWithGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, new GoogleAuthProvider());
       const token = await result.user.getIdToken();
       localStorage.setItem('firebase_id_token', token);
 
-      const res = await api.get('/users/me/');
-      setCurrentUser(res.data);
-      resetInactivityTimer();
+      try {
+        const res = await api.get('/users/me/');
+        setCurrentUser(res.data);
+        resetInactivityTimer(); // Start timer after login
+      } catch (error: any) {
+        if (error.response?.status === 403) {
+          setCurrentUser(null);
+        } else {
+          console.error('Failed to fetch user profile:', error);
+          setCurrentUser(null);
+        }
+      }
     } catch (error) {
       console.error('Login error:', error);
-      setCurrentUser(null);
       throw error;
     }
   };
 
-  // 🖱️ Global activity listeners (registered ONCE)
+  // Set up global activity listeners (enhanced for mobile)
   useEffect(() => {
-    const events: (keyof WindowEventMap)[] = [
-      'mousedown',
-      'mousemove',
-      'keydown',
-      'touchstart',
-      'touchmove',
+    const events = [
+      'mousedown', 'mousemove', 'mouseup',
+      'keydown', 'keypress', 'keyup',
+      'touchstart', 'touchmove', 'touchend',
       'scroll',
-      'wheel',
+      'wheel'
     ];
 
-    events.forEach((event) => {
-      window.addEventListener(event, resetInactivityTimer, {
-        passive: true,
-        capture: true,
-      });
-    });
-
-    return () => {
-      events.forEach((event) => {
-        window.removeEventListener(event, resetInactivityTimer, true);
+    const addListeners = () => {
+      events.forEach(event => {
+        if (event === 'scroll' || event === 'wheel') {
+          // Use passive: true for scroll/wheel (required for mobile performance)
+          window.addEventListener(event, resetInactivityTimer, { passive: true } as EventListenerOptions);
+        } else {
+          window.addEventListener(event, resetInactivityTimer, true);
+        }
       });
     };
-  }, []);
 
-  // 🔥 Firebase auth state listener
+    const removeListeners = () => {
+      events.forEach(event => {
+        if (event === 'scroll' || event === 'wheel') {
+          window.removeEventListener(event, resetInactivityTimer, { passive: true } as EventListenerOptions);
+        } else {
+          window.removeEventListener(event, resetInactivityTimer, true);
+        }
+      });
+    };
+
+    addListeners();
+    return removeListeners;
+  }, [currentUser]);
+
+  // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const token = await user.getIdToken();
         localStorage.setItem('firebase_id_token', token);
-
         try {
           const res = await api.get('/users/me/');
           setCurrentUser(res.data);
-          resetInactivityTimer();
-        } catch (error) {
-          console.error('Failed to fetch user:', error);
-          setCurrentUser(null);
+          resetInactivityTimer(); // Start timer on auth state change
+        } catch (error: any) {
+          if (error.response?.status === 403) {
+            setCurrentUser(null);
+          } else {
+            console.error('Failed to fetch user:', error);
+            setCurrentUser(null);
+          }
         } finally {
           setLoading(false);
         }
@@ -173,7 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setCurrentUser(null);
         setLoading(false);
 
-        if (inactivityTimer.current !== null) {
+        if (inactivityTimer.current) {
           clearTimeout(inactivityTimer.current);
           inactivityTimer.current = null;
         }
@@ -182,13 +181,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       unsubscribe();
-      if (inactivityTimer.current !== null) {
+      if (inactivityTimer.current) {
         clearTimeout(inactivityTimer.current);
       }
     };
   }, []);
 
-  const value: AuthContextType = {
+  const value = {
     currentUser,
     loading,
     loginWithGoogle,
@@ -197,9 +196,5 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     refreshUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
