@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, date
+from datetime import date
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.views import APIView
@@ -20,7 +20,6 @@ class WithdrawalRequestView(APIView):
 
         if not user.is_active:
             return Response({'error': 'Account not active'}, status=403)
-
         if user.is_closed:
             return Response({'error': 'Account closed'}, status=403)
 
@@ -41,10 +40,10 @@ class WithdrawalRequestView(APIView):
         except (ValueError, InvalidOperation):
             return Response({'error': 'Invalid amount'}, status=400)
 
-        # Get current wallet balance
+        # Get current wallet balance (only from completed transactions)
         from wallets.models import WalletTransaction
         last_tx = WalletTransaction.objects.filter(
-            user=user, wallet_type=wallet_type
+            user=user, wallet_type=wallet_type, status='completed'
         ).order_by('-created_at').first()
         balance = last_tx.running_balance if last_tx else Decimal('0.00')
 
@@ -56,10 +55,8 @@ class WithdrawalRequestView(APIView):
         now = timezone.now()
 
         if wallet_type == 'main':
-            # Only allowed on the 5th of the month
             if today.day != 5:
                 return Response({'error': 'Main wallet withdrawals only allowed on the 5th of the month'}, status=400)
-            # Check if already withdrawn this month
             existing = WithdrawalRequest.objects.filter(
                 user=user,
                 wallet_type='main',
@@ -71,7 +68,6 @@ class WithdrawalRequestView(APIView):
                 return Response({'error': 'Withdrawal already requested this month'}, status=400)
 
         elif wallet_type == 'referral':
-            # Only once every 24 hours
             last_withdrawal = WithdrawalRequest.objects.filter(
                 user=user,
                 wallet_type='referral',
@@ -81,7 +77,7 @@ class WithdrawalRequestView(APIView):
             if last_withdrawal:
                 return Response({'error': 'Referral withdrawal allowed once every 24 hours'}, status=400)
 
-        # Get payout details from user profile
+        # Get payout details
         if method == 'mobile':
             phone = user.payout_phone or user.phone_number
             if not phone:
@@ -95,7 +91,18 @@ class WithdrawalRequestView(APIView):
             if not all([bank_name, bank_branch, account_number]):
                 return Response({'error': 'Bank details not configured'}, status=400)
 
-        # Create withdrawal request
+        # STEP 1: Create a PENDING wallet transaction (no balance impact yet)
+        linked_tx = create_transaction(
+            user=user,
+            wallet_type=wallet_type,
+            transaction_type='withdrawal',
+            amount=amount,
+            description=f"Withdrawal request ({method})",
+            source='system',
+            status='pending'
+        )
+
+        # STEP 2: Create withdrawal request
         withdrawal = WithdrawalRequest.objects.create(
             user=user,
             wallet_type=wallet_type,
@@ -105,39 +112,37 @@ class WithdrawalRequestView(APIView):
             bank_name=bank_name,
             bank_branch=bank_branch,
             account_number=account_number,
-            status='pending'
+            status='pending',
+            linked_transaction=linked_tx
         )
 
-        # For mobile: auto-initiate Daraja B2C (or mark as pending for admin review if preferred)
+        # STEP 3: Handle mobile auto-process
         if method == 'mobile':
-            # Optional: auto-process in dev; in prod, you might want manual approval first
             try:
                 daraja_resp = send_b2c_payment(phone, float(amount))
                 if daraja_resp and 'ConversationID' in daraja_resp:
-                    withdrawal.status = 'processing'
-                    withdrawal.save()
-                    # Debit wallet immediately (or after confirmation — here we debit on request)
-                    create_transaction(
-                        user=user,
-                        wallet_type=wallet_type,
-                        transaction_type='withdrawal',
-                        amount=-amount,
-                        description=f"Withdrawal to {phone}",
-                        status='completed'
-                    )
+                    # Success: mark both as completed
+                    withdrawal.status = 'completed'
+                    withdrawal.save(update_fields=['status'])
+
+                    linked_tx.status = 'completed'
+                    linked_tx.save(update_fields=['status'])  # Triggers balance debit
                 else:
                     withdrawal.status = 'failed'
-                    withdrawal.save()
-                    return Response({'error': 'Failed to initiate payout'}, status=500)
+                    withdrawal.save(update_fields=['status'])
+
+                    linked_tx.status = 'failed'
+                    linked_tx.save(update_fields=['status'])  # No balance impact
             except Exception as e:
                 logger.error(f"Daraja B2C error: {str(e)}")
                 withdrawal.status = 'failed'
-                withdrawal.save()
+                withdrawal.save(update_fields=['status'])
+
+                linked_tx.status = 'failed'
+                linked_tx.save(update_fields=['status'])
                 return Response({'error': 'Payout service error'}, status=500)
-        else:
-            # Bank: remains pending for admin processing
-            # Debit wallet only when admin marks as completed
-            pass
+
+        # Bank withdrawals remain pending for admin approval
 
         return Response({
             'message': 'Withdrawal request submitted',
