@@ -169,10 +169,10 @@ const TermsOfService = () => {
               <p className="leading-relaxed">
                 For questions about these Terms of Service, contact our Legal Team at{" "}
                 <a 
-                  href="mailto:legal@qezzy.co.ke" 
+                  href="mailto:info@qezzykenya.company" 
                   className="text-amber-600 hover:text-amber-700 underline font-medium"
                 >
-                  dewlonsystems@gmail.com
+                  info@qezzykenya.company
                 </a>
                 .
               </p>

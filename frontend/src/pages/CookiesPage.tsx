@@ -148,10 +148,10 @@ const CookiePolicy = () => {
               <p className="leading-relaxed">
                 For questions about our cookie practices, contact us at{' '}
                 <a 
-                  href="mailto:privacy@qezzy.co.ke" 
+                  href="mailto:info@qezzykenya.company" 
                   className="text-amber-600 hover:text-amber-700 underline font-medium"
                 >
-                  dewlonsystems@gmail.com
+                  info@qezzykenya.company
                 </a>
                 .
               </p>

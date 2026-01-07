@@ -134,7 +134,7 @@ const LandingPage = () => {
   const steps = [
     { step: "01", title: "Sign Up", description: "Create your free account in minutes using your email or phone number." },
     { step: "02", title: "Complete Profile", description: "Fill in your details and payment information for seamless withdrawals." },
-    { step: "03", title: "Activate Account", description: "Make a one-time payment of KES 300 to unlock all earning features." },
+    { step: "03", title: "Activate Account", description: "Make a one-time payment of KES 300 to unlock all earning features. This is a verification fee to filter spam users. The full amount is credited to your main account once activated, and can be withdrawn in the next payout date together with your earnings." },
     { step: "04", title: "Start Earning", description: "Browse available tasks, complete them, and watch your wallet grow!" }
   ];
 
@@ -406,7 +406,7 @@ const LandingPage = () => {
             <span className="underline decoration-4 decoration-amber-200">KES 300</span>
           </h2>
           <p className="text-lg sm:text-xl text-amber-100 mb-8 max-w-2xl mx-auto">
-            A one-time activation fee unlocks unlimited earning potential. No hidden charges, no monthly fees. Pay once, earn forever.
+            A one-time verification fee unlocks unlimited earning potential. No hidden charges, no monthly fees. Activate once, earn forever.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             {["Lifetime Access", "All Features Unlocked", "Priority Support", "Referral Bonuses"].map((item, index) => (
@@ -556,7 +556,7 @@ const LandingPage = () => {
           <div className="space-y-4">
             {[
               { q: "How do I get paid?", a: "Withdraw your earnings instantly via M-Pesa or bank transfer. Mobile money withdrawals are processed automatically, while bank transfers are processed within 24-48 hours." },
-              { q: "Is the KES 300 activation fee refundable?", a: "The activation fee is a one-time payment that gives you lifetime access to all earning features. It is non-refundable but unlocks unlimited earning potential." },
+              { q: "Is the KES 300 activation fee refundable?", a: "The activation fee is a one-time payment that gives you lifetime access to all earning features. It is non-refundable but added to your wallet and can be withdrawn." },
               { q: "How much can I earn?", a: "Your earnings depend on the tasks you complete and referrals you make. Active users earn between KES 5,000 - KES 50,000+ monthly." },
               { q: "When can I withdraw my earnings?", a: "Main wallet withdrawals are available on the 5th of each month. Referral wallet withdrawals can be made every 24 hours." }
             ].map((faq, index) => (
