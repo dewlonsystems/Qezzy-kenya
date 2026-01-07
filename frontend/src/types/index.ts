@@ -86,6 +86,7 @@ export type PaymentDetails = {
 
 export type Transaction = {
   id: number;
+  wallet_type: 'main' | 'referral';
   transaction_type: string;
   amount: number;
   created_at: string; // ISO string

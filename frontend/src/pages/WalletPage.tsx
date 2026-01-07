@@ -97,14 +97,14 @@ const WalletPage = () => {
       try {
         const [walletRes, mainTxRes, refTxRes, userRes] = await Promise.all([
           api.get('/wallets/overview/'),
-          api.get('/wallets/transactions/?wallet_type=main'),
-          api.get('/wallets/transactions/?wallet_type=referral'),
+          api.get('/wallets/transactions/?wallet=main'),
+          api.get('/wallets/transactions/?wallet=referral'),
           api.get('/users/me/'),
         ]);
 
         setWallets(walletRes.data);
-        setMainTransactions(mainTxRes.data.transactions || []);
-        setReferralTransactions(refTxRes.data.transactions || []);
+        setMainTransactions(mainTxRes.data || []);
+        setReferralTransactions(refTxRes.data || []);
 
         const user = userRes.data;
         const details: PaymentDetails = {
