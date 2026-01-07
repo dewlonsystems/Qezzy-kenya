@@ -30,7 +30,7 @@ const INACTIVITY_TIMEOUT = 3 * 60 * 1000; // 3 minutes in milliseconds
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const inactivityTimer = useRef<number | null>(null);
+  const inactivityTimer = useRef<number | null>(null); // ✅ Use `number` for browser
 
   // Reset inactivity timer on any user activity
   const resetInactivityTimer = () => {
@@ -112,19 +112,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Set up global activity listeners
+  // Set up global activity listeners (enhanced for mobile)
   useEffect(() => {
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    const events = [
+      'mousedown', 'mousemove', 'mouseup',
+      'keydown', 'keypress', 'keyup',
+      'touchstart', 'touchmove', 'touchend',
+      'scroll',
+      'wheel'
+    ];
 
     const addListeners = () => {
       events.forEach(event => {
-        window.addEventListener(event, resetInactivityTimer, true);
+        if (event === 'scroll' || event === 'wheel') {
+          // Use passive: true for scroll/wheel (required for mobile performance)
+          window.addEventListener(event, resetInactivityTimer, { passive: true } as EventListenerOptions);
+        } else {
+          window.addEventListener(event, resetInactivityTimer, true);
+        }
       });
     };
 
     const removeListeners = () => {
       events.forEach(event => {
-        window.removeEventListener(event, resetInactivityTimer, true);
+        if (event === 'scroll' || event === 'wheel') {
+          window.addEventListener(event, resetInactivityTimer, { passive: true } as EventListenerOptions);
+        } else {
+          window.removeEventListener(event, resetInactivityTimer, true);
+        }
       });
     };
 
