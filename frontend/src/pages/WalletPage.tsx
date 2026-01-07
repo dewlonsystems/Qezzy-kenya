@@ -566,9 +566,19 @@ const WalletPage = () => {
                       }`}>
                         {tx.amount >= 0 ? '+' : ''}KES {Math.abs(tx.amount).toFixed(2)}
                       </p>
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700`}>
-                        <CheckCircleIcon className="w-3 h-3" />
-                        completed
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                        tx.status === 'completed'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : tx.status === 'pending'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-red-100 text-red-700'
+                      }`}>
+                          {tx.status === 'completed' ? (
+                            <CheckCircleIcon className="w-3 h-3" />
+                          ) : (
+                            <ClockIcon className="w-3 h-3" />
+                            )}
+                            {tx.status}
                       </span>
                     </div>
                   </div>
