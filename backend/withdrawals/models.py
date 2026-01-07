@@ -1,7 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from users.models import User
-from wallets.models import WalletTransaction
 
 class WithdrawalRequest(models.Model):
     STATUS_CHOICES = [
@@ -31,14 +30,6 @@ class WithdrawalRequest(models.Model):
     account_number = models.CharField(max_length=50, blank=True)
     # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    # Link to wallet transaction
-    linked_transaction = models.OneToOneField(
-        WalletTransaction,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='withdrawal_request'
-    )
     # Metadata
     request_date = models.DateField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
