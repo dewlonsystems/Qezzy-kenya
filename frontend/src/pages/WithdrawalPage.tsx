@@ -299,10 +299,10 @@ const WithdrawalPage = () => {
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                min="100"
+                min="50"
                 step="1"
                 className="w-full px-4 py-3 bg-amber-50/50 border border-amber-100 rounded-xl text-landing-heading placeholder:text-landing-muted focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all"
-                placeholder={`Min: KES 100`}
+                placeholder={`Min: KES 50`}
                 required
               />
               <div className="flex justify-between text-xs text-landing-muted mt-1">
@@ -331,7 +331,7 @@ const WithdrawalPage = () => {
                 ) : (
                   <>
                     <li>• Withdraw <strong>once every 24 hours</strong></li>
-                    <li>• Minimum amount: <strong>KES 100</strong></li>
+                    <li>• Minimum amount: <strong>KES 50</strong></li>
                   </>
                 )}
               </ul>
