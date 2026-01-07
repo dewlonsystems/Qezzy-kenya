@@ -91,6 +91,7 @@ export type Transaction = {
   amount: number;
   created_at: string; // ISO string
   description: string;
+  status: 'completed' | 'pending' | 'failed';
 };
 
 export type SupportMessage = {
