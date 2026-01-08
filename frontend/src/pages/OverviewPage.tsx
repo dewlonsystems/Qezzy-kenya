@@ -119,7 +119,7 @@ const getBalanceOnDate = (
 };
 
 const OverviewPage = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, } = useAuth();
   const navigate = useNavigate();
 
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
@@ -269,16 +269,7 @@ const OverviewPage = () => {
     fetchData();
   }, []);
 
-  // ⚠️ Note: handleLogout is no longer used on this page, but kept in case referenced elsewhere
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login', { replace: true });
-    } catch (err) {
-      console.error('Logout failed:', err);
-    }
-  };
-
+ 
   const handleActivate = () => {
     navigate('/activation');
   };
