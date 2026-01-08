@@ -69,12 +69,12 @@ class WithdrawalRequest(models.Model):
         super().save(*args, **kwargs)
         self._original_status = self.status
 
-        # 🔁 Sync status to linked wallet transaction (if exists)
-        if not is_new and status_changed and self.linked_transaction:
-            if self.status in ['completed', 'failed']:
-                # Only update transaction status to completed/failed
-                self.linked_transaction.status = self.status
-                self.linked_transaction.save(update_fields=['status'])
+        # 🔁 Sync status to linked wallet transaction (if exists and status changed)
+        if not is_new and status_changed and self.linked_transaction_id:
+            # Reload transaction to ensure clean state and trigger full balance logic
+            tx = WalletTransaction.objects.get(pk=self.linked_transaction_id)
+            tx.status = self.status
+            tx.save()  # Full save — NO update_fields!
 
     def __str__(self):
         return f"{self.user.email} - {self.amount} ({self.status})"

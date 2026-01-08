@@ -1,6 +1,7 @@
-# withdrawals/admin.py — FULL CORRECTED VERSION
+# withdrawals/admin.py
 from django.contrib import admin
-from django.core.exceptions import ValidationError
+from django.db import transaction as db_transaction
+from django.contrib import messages
 from .models import WithdrawalRequest
 
 @admin.register(WithdrawalRequest)
@@ -21,35 +22,30 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
             super().save_model(request, obj, form, change)
             return
 
-        # ALWAYS get the original object to compare status
-        original_obj = WithdrawalRequest.objects.get(pk=obj.pk)
-        old_status = original_obj.status
-        new_status = obj.status
+        # Fetch original with row lock to prevent race conditions
+        with db_transaction.atomic():
+            original_obj = WithdrawalRequest.objects.select_for_update().get(pk=obj.pk)
+            old_status = original_obj.status
+            new_status = obj.status
 
-        # Save the WithdrawalRequest first
-        super().save_model(request, obj, form, change)
-
-        # Now sync to linked transaction (if exists and status actually changed)
-        if obj.linked_transaction and old_status != new_status:
-            # Block reversal of completed mobile withdrawals
-            if obj.method == 'mobile' and old_status == 'completed':
-                from django.contrib import messages
-                messages.warning(request, "Completed mobile withdrawals cannot be reverted.")
-                # Revert the status change
-                obj.status = old_status
-                obj.save(update_fields=['status'])
+            if old_status == new_status:
+                super().save_model(request, obj, form, change)
                 return
 
-            # Sync status to linked transaction
-            obj.linked_transaction.status = new_status
-            try:
-                obj.linked_transaction.save(update_fields=['status'])
-            except Exception as e:
-                from django.contrib import messages
-                messages.error(request, f"Failed to update wallet balance: {str(e)}")
-                # Optionally revert status
-                obj.status = old_status
-                obj.save(update_fields=['status'])
+            # Block reversal of completed mobile withdrawals
+            if obj.method == 'mobile' and old_status == 'completed':
+                messages.warning(request, "Completed mobile withdrawals cannot be reverted.")
+                return  # Do not save
+
+            # Save the withdrawal request
+            super().save_model(request, obj, form, change)
+
+            # Sync status to linked transaction with full save
+            if obj.linked_transaction_id:
+                from wallets.models import WalletTransaction
+                tx = WalletTransaction.objects.select_for_update().get(pk=obj.linked_transaction_id)
+                tx.status = new_status
+                tx.save()  # Full save triggers balance update
 
     def user_email(self, obj):
         return obj.user.email
