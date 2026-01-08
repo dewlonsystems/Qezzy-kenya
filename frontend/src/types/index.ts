@@ -14,6 +14,7 @@ export interface User {
   is_onboarded: boolean;
   is_active: boolean;
   is_closed: boolean;
+  created_at: string; // ISO 8601 date string from backend
 }
 
 export interface OnboardingStatus {

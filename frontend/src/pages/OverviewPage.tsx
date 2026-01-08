@@ -66,14 +66,9 @@ const ArrowRightIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) 
   </svg>
 );
 
-const LogOutIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
+// ✅ REMOVED: LogOutIcon (no longer used)
 
+// ====== GREETING HELPER ======
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 12) return 'Good Morning';
@@ -82,7 +77,7 @@ const getGreeting = () => {
   return 'Good Night';
 };
 
-// ====== HELPERS ======
+// ====== FORMATTING HELPERS ======
 const formatKES = (amount: number) => `KES ${amount.toFixed(2)}`;
 
 const formatDate = (dateString: string) => {
@@ -96,7 +91,20 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-KE', { month: 'short', day: 'numeric' });
 };
 
-// ✅ NEW: Helper to compute balance on a given date
+// ✅ NEW: Format user's name to "John", not "JOHN" or "john"
+const formatName = (name: string | undefined): string => {
+  if (!name) return '';
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+};
+
+// ✅ NEW: Format join date as "January 2026"
+const formatJoinDate = (dateString: string | undefined): string => {
+  if (!dateString) return '—';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+};
+
+// ✅ Helper to compute balance on a given date
 const getBalanceOnDate = (
   transactions: any[],
   targetDate: Date
@@ -168,7 +176,7 @@ const OverviewPage = () => {
         type: 'Withdrawal',
         amount: `-${formatKES(wd.amount)}`,
         date: formatDate(wd.created_at),
-        status: wd.status === 'completed' ? 'completed' : 'pending', // ✅ FIXED
+        status: wd.status === 'completed' ? 'completed' : 'pending',
       });
     });
 
@@ -177,7 +185,7 @@ const OverviewPage = () => {
       .slice(0, 5);
   }, [mainTransactions, referralWalletTransactions, withdrawals]);
 
-  // ✅ NEW: Real wallet growth calculations
+  // ✅ REAL WALLET GROWTH CALCULATIONS
   const mainWalletGrowth = useMemo(() => {
     if (!mainTransactions.length || !wallets) return 0;
     
@@ -261,6 +269,7 @@ const OverviewPage = () => {
     fetchData();
   }, []);
 
+  // ⚠️ Note: handleLogout is no longer used on this page, but kept in case referenced elsewhere
   const handleLogout = async () => {
     try {
       await logout();
@@ -286,7 +295,7 @@ const OverviewPage = () => {
         {/* Welcome Section */}
         <div className="mb-8 animate-fade-in-up">
           <h1 className="text-3xl font-bold text-landing-heading mb-2">
-            {getGreeting()}, {currentUser?.first_name || 'User'}!
+            {getGreeting()}, {formatName(currentUser?.first_name) || 'User'}!
           </h1>
           <p className="text-landing-muted">
             Here's what's happening with your account today.
@@ -314,7 +323,6 @@ const OverviewPage = () => {
               <div className="p-3 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white">
                 <WalletIcon className="w-6 h-6" />
               </div>
-              {/* ✅ DYNAMIC MAIN WALLET GROWTH */}
               {mainWalletGrowth !== 0 && (
                 <span className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg ${
                   mainWalletGrowth > 0 
@@ -352,7 +360,6 @@ const OverviewPage = () => {
               <div className="p-3 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 text-white">
                 <UsersIcon className="w-6 h-6" />
               </div>
-              {/* ✅ DYNAMIC REFERRAL WALLET GROWTH */}
               {referralWalletGrowth !== 0 && (
                 <span className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg ${
                   referralWalletGrowth > 0 
@@ -562,15 +569,9 @@ const OverviewPage = () => {
           </div>
         )}
 
-        {/* Logout Button (bottom) */}
-        <div className="mt-12 text-center">
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur text-landing-muted rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
-          >
-            <LogOutIcon className="w-5 h-5" />
-            Logout
-          </button>
+        {/* ✅ REPLACED: Member Since instead of Logout */}
+        <div className="mt-12 text-center text-landing-muted text-sm">
+          Member since {formatJoinDate(currentUser?.created_at)}
         </div>
       </div>
     </div>
