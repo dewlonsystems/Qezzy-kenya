@@ -1,3 +1,4 @@
+# withdrawals/models.py
 from django.db import models
 from django.core.exceptions import ValidationError
 from users.models import User
@@ -23,15 +24,11 @@ class WithdrawalRequest(models.Model):
     wallet_type = models.CharField(max_length=10, choices=WALLET_CHOICES)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     method = models.CharField(max_length=10, choices=METHOD_CHOICES)
-    # Mobile payout
     mobile_phone = models.CharField(max_length=15, blank=True)
-    # Bank payout
     bank_name = models.CharField(max_length=100, blank=True)
     bank_branch = models.CharField(max_length=100, blank=True)
     account_number = models.CharField(max_length=50, blank=True)
-    # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    # Link to wallet transaction
     linked_transaction = models.OneToOneField(
         WalletTransaction,
         on_delete=models.PROTECT,
@@ -39,22 +36,45 @@ class WithdrawalRequest(models.Model):
         blank=True,
         related_name='withdrawal_request'
     )
-    # Metadata
     request_date = models.DateField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_status = self.status
+
     def clean(self):
         if self.method == 'mobile' and not self.mobile_phone:
             raise ValidationError('Mobile phone required for mobile withdrawal')
         if self.method == 'bank':
-            if not self.bank_name or not self.bank_branch or not self.account_number:
+            if not all([self.bank_name, self.bank_branch, self.account_number]):
                 raise ValidationError('Bank details incomplete')
 
     def save(self, *args, **kwargs):
         self.full_clean()
+
+        status_changed = self.status != self._original_status
+        is_new = self.pk is None
+
+        # Handle processed_at
+        if status_changed and self.status == 'completed':
+            from django.utils import timezone
+            self.processed_at = timezone.now()
+        elif status_changed and self.status != 'completed':
+            self.processed_at = None
+
+        # Save the withdrawal request first
         super().save(*args, **kwargs)
+        self._original_status = self.status
+
+        # 🔁 Sync status to linked wallet transaction (if exists)
+        if not is_new and status_changed and self.linked_transaction:
+            if self.status in ['completed', 'failed']:
+                # Only update transaction status to completed/failed
+                self.linked_transaction.status = self.status
+                self.linked_transaction.save(update_fields=['status'])
 
     def __str__(self):
         return f"{self.user.email} - {self.amount} ({self.status})"
