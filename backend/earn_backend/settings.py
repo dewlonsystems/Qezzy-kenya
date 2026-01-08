@@ -139,3 +139,16 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+
+
+from django.db import connection
+from django.db.backends.signals import connection_created
+from django.dispatch import receiver
+
+@receiver(connection_created)
+def setup_search_path(sender, connection, **kwargs):
+    """Force search_path on every new DB connection"""
+    with connection.cursor() as cursor:
+        cursor.execute("SET search_path TO private, public;")
