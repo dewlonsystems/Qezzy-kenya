@@ -1,10 +1,9 @@
-// src/pages/OverviewPage.tsx
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import type { WalletOverview, Job } from '../types';
-import LoadingSpinner from '../components/LoadingSpinner'; // ✅ NEW IMPORT
+import LoadingSpinner from '../components/LoadingSpinner';
 
 // ====== TYPED SVG ICONS ======
 const WalletIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
@@ -97,6 +96,20 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-KE', { month: 'short', day: 'numeric' });
 };
 
+// ✅ NEW: Helper to compute balance on a given date
+const getBalanceOnDate = (
+  transactions: any[],
+  targetDate: Date
+): number => {
+  const completedTx = transactions
+    .filter((tx: any) => tx.status === 'completed')
+    .filter((tx: any) => new Date(tx.created_at) <= targetDate)
+    .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+  if (completedTx.length === 0) return 0;
+  return completedTx[completedTx.length - 1].running_balance || 0;
+};
+
 const OverviewPage = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -125,6 +138,7 @@ const OverviewPage = () => {
 
   const totalReferrals = useMemo(() => referralTransactions.length, [referralTransactions]);
 
+  // ✅ FIXED: Correct withdrawal status mapping
   const recentTransactions = useMemo(() => {
     const all: any[] = [];
 
@@ -154,7 +168,7 @@ const OverviewPage = () => {
         type: 'Withdrawal',
         amount: `-${formatKES(wd.amount)}`,
         date: formatDate(wd.created_at),
-        status: wd.status === 'approved' ? 'completed' : 'processing',
+        status: wd.status === 'completed' ? 'completed' : 'pending', // ✅ FIXED
       });
     });
 
@@ -163,21 +177,49 @@ const OverviewPage = () => {
       .slice(0, 5);
   }, [mainTransactions, referralWalletTransactions, withdrawals]);
 
+  // ✅ NEW: Real wallet growth calculations
+  const mainWalletGrowth = useMemo(() => {
+    if (!mainTransactions.length || !wallets) return 0;
+    
+    const now = new Date();
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const currentBalance = wallets.main_wallet_balance || 0;
+    const pastBalance = getBalanceOnDate(mainTransactions, weekAgo);
+
+    if (pastBalance === 0) return currentBalance === 0 ? 0 : 100;
+    return Math.round(((currentBalance - pastBalance) / pastBalance) * 100);
+  }, [mainTransactions, wallets]);
+
+  const referralWalletGrowth = useMemo(() => {
+    if (!referralWalletTransactions.length || !wallets) return 0;
+    
+    const now = new Date();
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const currentBalance = wallets.referral_wallet_balance || 0;
+    const pastBalance = getBalanceOnDate(referralWalletTransactions, weekAgo);
+
+    if (pastBalance === 0) return currentBalance === 0 ? 0 : 100;
+    return Math.round(((currentBalance - pastBalance) / pastBalance) * 100);
+  }, [referralWalletTransactions, wallets]);
+
   const availableTasks = useMemo(() => {
     const getCategoryName = (category: any): string => {
       if (!category) return 'Task';
       if (typeof category === 'string') return category;
       if (typeof category === 'object' && category.name) return category.name;
       return 'Task';
-      };
+    };
 
-     return jobs
+    return jobs
       .filter(job => job.status === 'open')
       .slice(0, 3)
       .map(job => ({
         id: job.id,
         title: job.title,
-        // REMOVED: reward: formatKES(job.reward ?? 0),
         category: getCategoryName(job.category),
         deadline: job.deadline_hours ? `${job.deadline_hours} hours` : '3 days',
       }));
@@ -272,10 +314,17 @@ const OverviewPage = () => {
               <div className="p-3 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white">
                 <WalletIcon className="w-6 h-6" />
               </div>
-              <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                <TrendUpIcon className="w-5 h-5" />
-                +12%
-              </span>
+              {/* ✅ DYNAMIC MAIN WALLET GROWTH */}
+              {mainWalletGrowth !== 0 && (
+                <span className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg ${
+                  mainWalletGrowth > 0 
+                    ? 'text-emerald-600 bg-emerald-50' 
+                    : 'text-red-600 bg-red-50'
+                }`}>
+                  <TrendUpIcon className={`w-5 h-5 ${mainWalletGrowth < 0 ? 'rotate-180' : ''}`} />
+                  {mainWalletGrowth > 0 ? '+' : ''}{mainWalletGrowth}%
+                </span>
+              )}
             </div>
             <h3 className="text-2xl font-bold text-landing-heading mb-1">
               {showMainBalance ? formatKES(wallets?.main_wallet_balance || 0) : '••••••'}
@@ -303,10 +352,17 @@ const OverviewPage = () => {
               <div className="p-3 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 text-white">
                 <UsersIcon className="w-6 h-6" />
               </div>
-              <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                <TrendUpIcon className="w-5 h-5" />
-                +8%
-              </span>
+              {/* ✅ DYNAMIC REFERRAL WALLET GROWTH */}
+              {referralWalletGrowth !== 0 && (
+                <span className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg ${
+                  referralWalletGrowth > 0 
+                    ? 'text-emerald-600 bg-emerald-50' 
+                    : 'text-red-600 bg-red-50'
+                }`}>
+                  <TrendUpIcon className={`w-5 h-5 ${referralWalletGrowth < 0 ? 'rotate-180' : ''}`} />
+                  {referralWalletGrowth > 0 ? '+' : ''}{referralWalletGrowth}%
+                </span>
+              )}
             </div>
             <h3 className="text-2xl font-bold text-landing-heading mb-1">
               {showReferralBalance ? formatKES(wallets?.referral_wallet_balance || 0) : '••••••'}
@@ -377,7 +433,7 @@ const OverviewPage = () => {
                             ? 'bg-emerald-100 text-emerald-600' 
                             : 'bg-amber-100 text-amber-600'
                         }`}>
-                          {tx.status === 'processing' ? <ClockIcon className="w-5 h-5" /> : <CheckCircleIcon className="w-5 h-5" />}
+                          {tx.status === 'pending' ? <ClockIcon className="w-5 h-5" /> : <CheckCircleIcon className="w-5 h-5" />}
                         </div>
                         <div>
                           <p className="font-medium text-landing-heading">{tx.type}</p>
@@ -428,7 +484,6 @@ const OverviewPage = () => {
                       <span className="text-xs font-medium px-2 py-1 bg-amber-200 text-amber-800 rounded-lg">
                         {task.category}
                       </span>
-                      {/* REMOVED REWARD AMOUNT */}
                     </div>
                     <h3 className="font-semibold text-landing-heading mb-2">{task.title}</h3>
                     <div className="flex items-center gap-2 text-sm text-landing-muted">
@@ -476,7 +531,7 @@ const OverviewPage = () => {
           >
             <UsersIcon className="w-6 h-6" />
             <h3 className="text-lg font-bold mt-4 mb-2">Invite Friends</h3>
-            <p className="text-blue-100 text-sm">Earn KES 100 for every activated referral</p>
+            <p className="text-blue-100 text-sm">Earn KES 50 for every activated referral</p>
             <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
               Share <ArrowRightIcon className="w-4 h-4" />
             </div>
