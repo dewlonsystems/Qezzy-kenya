@@ -225,7 +225,7 @@ const ProfilePage = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-600 mt-3">
-                Share this code with friends. Earn KES 100 for each successful referral!
+                Share this code with friends. Earn KES 50 for each successful referral!
               </p>
             </div>
           </div>

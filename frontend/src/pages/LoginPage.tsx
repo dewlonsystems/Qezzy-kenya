@@ -1,4 +1,3 @@
-// src/pages/LoginPage.tsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -6,10 +5,10 @@ import { auth } from '../firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail, // 👈 ADDED
 } from 'firebase/auth';
 
 // Google Fonts: Inter
-
 
 const LoginPage = () => {
   const { currentUser, loading: authLoading } = useAuth();
@@ -26,6 +25,7 @@ const LoginPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [passwordResetSent, setPasswordResetSent] = useState(false); // 👈 NEW
 
   // 🔁 Redirect if already authenticated
   useEffect(() => {
@@ -70,6 +70,35 @@ const LoginPage = () => {
     } catch (err: any) {
       console.error('Google login error:', err);
       setError(err.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ NEW: Forgot Password Handler
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setPasswordResetSent(true);
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setPasswordResetSent(false), 5000);
+    } catch (err: any) {
+      console.error('Password reset error:', err);
+      if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address.');
+      } else {
+        setError('Failed to send reset email. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -131,6 +160,7 @@ const LoginPage = () => {
       setIsNewUser(null);
     }
     setError('');
+    setPasswordResetSent(false); // 👈 Reset on navigation
   };
 
   const resetFlow = () => {
@@ -140,6 +170,7 @@ const LoginPage = () => {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    setPasswordResetSent(false); // 👈 Reset here too
   };
 
   const isSubmitting = loading || authLoading;
@@ -444,14 +475,20 @@ const LoginPage = () => {
                   <div className="relative">
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-sm font-medium text-gray-700">Password</label>
-                      {!isNewUser && (
+                      {!isNewUser && !passwordResetSent && ( // 👈 Updated condition
                         <button
                           type="button"
                           className="text-sm text-amber-600 hover:underline"
-                          onClick={() => alert('Password reset not implemented')}
+                          onClick={handleForgotPassword}
+                          disabled={loading}
                         >
                           Forgot password?
                         </button>
+                      )}
+                      {!isNewUser && passwordResetSent && ( // 👈 NEW: Success message
+                        <p className="text-sm text-emerald-600">
+                          Password reset email sent! Check your inbox.
+                        </p>
                       )}
                     </div>
                     <div className="relative">
