@@ -32,6 +32,7 @@ class UserDetailView(APIView):
             'payout_bank_name': user.payout_bank_name,
             'payout_bank_branch': user.payout_bank_branch,
             'payout_account_number': user.payout_account_number,
+            'created_at': user.created_at,
         }
         return Response(data)
 
