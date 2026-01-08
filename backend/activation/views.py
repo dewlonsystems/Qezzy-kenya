@@ -151,6 +151,7 @@ class DarajaCallbackView(APIView):
                                 wallet_type='referral',
                                 transaction_type='referral_bonus',
                                 amount=50.00,
+                                status='completed',
                                 description=f"Referral bonus for {user.email}"
                             )
                         except ReferralTransaction.DoesNotExist:
