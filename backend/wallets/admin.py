@@ -1,4 +1,4 @@
-# wallet/admin.py
+# wallets/admin.py
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from .models import WalletTransaction
@@ -22,8 +22,8 @@ class WalletTransactionAdmin(admin.ModelAdmin):
             ]
             return readonly
         else:
-            # When creating NEW transaction (e.g., admin adjustment), allow all fields
-            return []
+            # When creating NEW transaction — make running_balance readonly (auto-calculated)
+            return ['running_balance']
 
     def has_add_permission(self, request):
         # Only allow adding admin adjustments manually

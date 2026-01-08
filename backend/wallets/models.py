@@ -1,4 +1,4 @@
-# wallet/models.py
+# wallets/models.py
 from django.db import models, transaction as db_transaction
 from django.core.exceptions import ValidationError
 from decimal import Decimal
@@ -32,7 +32,7 @@ class WalletTransaction(models.Model):
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     source = models.CharField(max_length=10, choices=TRANSACTION_SOURCES, default='system')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    running_balance = models.DecimalField(max_digits=12, decimal_places=2)
+    running_balance = models.DecimalField(max_digits=12, decimal_places=2, blank=True)  # ← ONLY CHANGE: added blank=True
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -72,8 +72,6 @@ class WalletTransaction(models.Model):
                 if is_now_completed:
                     # Apply effect on creation if completed
                     impact = self._get_balance_impact()
-                    current_balance = Decimal('0.00')
-                    # But better to get real current balance
                     current_balance = self._get_current_balance()
                     new_balance = current_balance + impact
                     if new_balance < 0 and self.transaction_type != 'withdrawal':
@@ -90,12 +88,7 @@ class WalletTransaction(models.Model):
                         # Reverting: UNDO the previous effect
                         impact = self._get_balance_impact()
                         current_balance = self._get_current_balance()
-                        # Undo: subtract the original impact
                         new_balance = current_balance - impact
-                        if new_balance < 0:
-                            # Allow negative only if reversing a credit? Be cautious.
-                            # For safety, we allow it only in admin context (handled by validation elsewhere)
-                            pass
                         self.running_balance = new_balance
                         balance_updated = True
 
@@ -113,11 +106,6 @@ class WalletTransaction(models.Model):
             # Save the model
             super().save(*args, **kwargs)
             self.__original_status = self.status
-
-            # After saving a balance-affecting transaction, ensure consistency
-            if balance_updated:
-                # Optional: validate that running_balance matches actual ledger (for debugging)
-                pass
 
     class Meta:
         ordering = ['-created_at']
