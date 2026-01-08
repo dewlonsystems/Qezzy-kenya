@@ -130,8 +130,8 @@ const WithdrawalPage = () => {
         method: withdrawMethod,
       });
       setSuccess(true); // ✅ Trigger success screen
-      // Auto-redirect after 2.5 seconds
-      setTimeout(() => navigate('/wallet'), 2500);
+      // Auto-redirect after 10 seconds
+      setTimeout(() => navigate('/wallet'), 10000);
     } catch (err: any) {
       console.error('Withdrawal error:', err);
       setError(err.response?.data?.error || 'Failed to request withdrawal. Please try again.');
@@ -172,7 +172,7 @@ const WithdrawalPage = () => {
           </div>
 
           <p className="text-xs text-landing-muted mb-6">
-            You’ll receive a confirmation shortly. Redirecting to wallet...
+            Your withdrawal is pending approval.Redirecting to wallet...
           </p>
 
           {/* Manual Go to Wallet */}
