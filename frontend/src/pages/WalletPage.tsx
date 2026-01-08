@@ -73,6 +73,15 @@ const ArrowLeftIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) =
   </svg>
 );
 
+// ✅ Helper: determine display sign, color, and direction from transaction_type
+const getDisplayAmount = (tx: Transaction) => {
+  const value = Math.abs(tx.amount);
+  if (tx.transaction_type === 'withdrawal' || tx.transaction_type === 'activation_payment') {
+    return { sign: '-', value, isCredit: false };
+  }
+  return { sign: '+', value, isCredit: true };
+};
+
 const WalletPage = () => {
   const navigate = useNavigate();
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
@@ -189,34 +198,35 @@ const WalletPage = () => {
     return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // ✅ Fixed: Only one declaration, no typo
   const currentTransactions = activeTab === 'main' ? mainTransactions : referralTransactions;
 
-  // ✅ Safe balance values
   const mainBalance = wallets?.main_wallet_balance || 0;
   const referralBalance = wallets?.referral_wallet_balance || 0;
   const totalEarned = mainBalance + referralBalance;
 
-  // Icons and status helpers
+  // ✅ Updated: Use transaction_type to determine icon
   const getTransactionIcon = (tx: Transaction) => {
     if (tx.transaction_type === 'referral_bonus') {
       return <UsersIcon className="w-5 h-5" />;
     }
-    if (tx.amount >= 0) {
-      return <ArrowDownIcon className="w-5 h-5" />;
+    if (tx.transaction_type === 'withdrawal' || tx.transaction_type === 'activation_payment') {
+      return <ArrowUpIcon className="w-5 h-5" />; // Money going out
     }
-    return <ArrowUpIcon className="w-5 h-5" />;
+    return <ArrowDownIcon className="w-5 h-5" />; // Money coming in
   };
 
+  // ✅ Updated: Use transaction_type to determine color
   const getTransactionColor = (tx: Transaction) => {
     if (tx.transaction_type === 'referral_bonus') return 'bg-orange-100 text-orange-600';
-    if (tx.amount >= 0) return 'bg-emerald-100 text-emerald-600';
-    return 'bg-amber-100 text-amber-600';
+    if (tx.transaction_type === 'withdrawal' || tx.transaction_type === 'activation_payment') {
+      return 'bg-amber-100 text-amber-600';
+    }
+    return 'bg-emerald-100 text-emerald-600';
   };
 
   if (loading) {
     return <LoadingSpinner message="Loading your wallet..." />;
-    }
+  }
 
   return (
     <div className="min-h-screen bg-landing-cream font-inter p-4">
@@ -544,46 +554,49 @@ const WalletPage = () => {
           {/* Transactions */}
           <div className="divide-y divide-amber-50">
             {currentTransactions.length > 0 ? (
-              currentTransactions.map((tx) => (
-                <div key={tx.id} className="p-4 hover:bg-amber-50/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-xl ${getTransactionColor(tx)}`}>
-                        {getTransactionIcon(tx)}
+              currentTransactions.map((tx) => {
+                const display = getDisplayAmount(tx);
+                return (
+                  <div key={tx.id} className="p-4 hover:bg-amber-50/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2 rounded-xl ${getTransactionColor(tx)}`}>
+                          {getTransactionIcon(tx)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-landing-heading text-sm">
+                            {formatTransactionType(tx.transaction_type)}
+                          </p>
+                          <p className="text-xs text-landing-muted">
+                            {new Date(tx.created_at).toLocaleString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-landing-heading text-sm">
-                          {formatTransactionType(tx.transaction_type)}
+                      <div className="text-right">
+                        <p className={`font-bold text-sm ${
+                          display.isCredit ? 'text-emerald-600' : 'text-amber-600'
+                        }`}>
+                          {display.sign}KES {display.value.toFixed(2)}
                         </p>
-                        <p className="text-xs text-landing-muted">
-                          {new Date(tx.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-bold text-sm ${
-                        tx.amount >= 0 ? 'text-emerald-600' : 'text-landing-heading'
-                      }`}>
-                        {tx.amount >= 0 ? '+' : ''}KES {Math.abs(tx.amount).toFixed(2)}
-                      </p>
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
-                        tx.status === 'completed'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : tx.status === 'pending'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-red-100 text-red-700'
-                      }`}>
-                          {tx.status === 'completed' ? (
-                            <CheckCircleIcon className="w-3 h-3" />
-                          ) : (
-                            <ClockIcon className="w-3 h-3" />
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                          tx.status === 'completed'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : tx.status === 'pending'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-700'
+                        }`}>
+                            {tx.status === 'completed' ? (
+                              <CheckCircleIcon className="w-3 h-3" />
+                            ) : (
+                              <ClockIcon className="w-3 h-3" />
                             )}
                             {tx.status}
-                      </span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="p-8 text-center text-landing-muted text-sm">
                 No transactions yet.
