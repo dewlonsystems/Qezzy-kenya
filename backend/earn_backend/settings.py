@@ -152,3 +152,5 @@ def setup_search_path(sender, connection, **kwargs):
     """Force search_path on every new DB connection"""
     with connection.cursor() as cursor:
         cursor.execute("SET search_path TO private, public;")
+
+PAYMENTS_ENABLED = False        

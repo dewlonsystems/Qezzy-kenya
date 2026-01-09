@@ -12,6 +12,7 @@ from .daraja import generate_stk_push, normalize_phone
 from users.models import User
 from referrals.models import ReferralTransaction
 from wallets.utils import create_transaction
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,9 @@ class InitiateActivationView(APIView):
 
     def post(self, request):
         user = request.user
+
+        if not getattr(settings, 'PAYMENTS_ENABLED', True):
+            return Response({'error': 'Payments are temporarily disabled.'}, status=503)       
 
         if user.is_active:
             return Response({'error': 'Account already active'}, status=400)
