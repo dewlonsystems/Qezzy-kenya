@@ -1,10 +1,12 @@
 # users/models.py
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import RegexValidator
+from .managers import UserManager
 
-class User(models.Model):
+class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-    firebase_uid = models.CharField(max_length=128, unique=True)
+    firebase_uid = models.CharField(max_length=128, unique=True, blank=True, null=True)
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
     phone_number = models.CharField(max_length=15, blank=True)
@@ -25,21 +27,23 @@ class User(models.Model):
     payout_bank_branch = models.CharField(max_length=100, blank=True)
     payout_account_number = models.CharField(max_length=50, blank=True)
     
-    # Django Admin required fields
+    # Django auth fields (now properly inherited and managed)
     is_staff = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_closed = models.BooleanField(default=False)
     
     # Your app status fields
     is_onboarded = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    is_closed = models.BooleanField(default=False)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Required for request.user compatibility
-    is_authenticated = True
-    is_anonymous = False
+    # 🔑 Tell Django to use email as the unique identifier for auth
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    # 🔑 Use custom manager
+    objects = UserManager()
 
     def __str__(self):
         return self.email
@@ -48,10 +52,3 @@ class User(models.Model):
         self.is_closed = True
         self.is_active = False
         self.save()
-
-    # Required by Django admin
-    def has_perm(self, perm, obj=None):
-        return self.is_staff
-
-    def has_module_perms(self, app_label):
-        return self.is_staff
