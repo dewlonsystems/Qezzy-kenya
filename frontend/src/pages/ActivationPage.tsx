@@ -1,6 +1,5 @@
 // src/pages/ActivationPage.tsx
-import React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/client';
@@ -229,7 +228,7 @@ const ActivationPage = () => {
   const [state, setState] = useState<ActivationState>('intro');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
-  const [skipLoading, setSkipLoading] = useState(false); // ✅ NEW: skip loading state
+  const [skipLoading, setSkipLoading] = useState(false);
   const [error, setError] = useState('');
   const [isPolling, setIsPolling] = useState(false);
 
@@ -282,8 +281,7 @@ const ActivationPage = () => {
         setIsPolling(false);
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         await refreshUser?.();
-        setState('success');
-        setTimeout(() => navigate('/overview', { replace: true }), 10000);
+        setState('success'); // ✅ Only set state — NO redirect here
         return;
       }
 
@@ -337,7 +335,6 @@ const ActivationPage = () => {
     }
   };
 
-  // ✅ UPDATED: handleSkip with loader
   const handleSkip = async () => {
     setSkipLoading(true);
     try {
@@ -358,6 +355,23 @@ const ActivationPage = () => {
   // ========== RENDER STATES ==========
 
   if (state === 'success') {
+    const [countdown, setCountdown] = useState(10);
+
+    useEffect(() => {
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            navigate('/overview', { replace: true });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }, [navigate]);
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
         <div className="w-full max-w-md text-center">
@@ -365,14 +379,17 @@ const ActivationPage = () => {
             <CheckCircleIcon className="w-10 h-10 text-amber-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">You're All Set!</h1>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-600 mb-6">
             Your account is now active. Start earning by completing tasks.
+          </p>
+          <p className="text-sm text-gray-500 mb-8">
+            Redirecting to dashboard in {countdown} second{countdown !== 1 ? 's' : ''}...
           </p>
           <button
             onClick={() => navigate('/overview')}
             className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
           >
-            Go to Dashboard
+            Go to Dashboard Now
             <ArrowRightIcon className="w-5 h-5 ml-2 inline" />
           </button>
         </div>
@@ -461,7 +478,6 @@ const ActivationPage = () => {
                 <label htmlFor="phone" className="text-sm font-medium text-gray-700 block mb-1">
                   M-Pesa Phone Number
                 </label>
-                {/* ✅ UPDATED: removed hardcoded +254 prefix */}
                 <input
                   id="phone"
                   type="tel"
@@ -563,7 +579,6 @@ const ActivationPage = () => {
                 Activate Now
                 <ArrowRightIcon className="w-5 h-5 ml-2 inline" />
               </button>
-              {/* ✅ UPDATED: Skip button with loader */}
               <button
                 onClick={handleSkip}
                 disabled={skipLoading}
