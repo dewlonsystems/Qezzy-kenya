@@ -24,7 +24,7 @@ class InitiateActivationView(APIView):
         user = request.user
 
         if not getattr(settings, 'PAYMENTS_ENABLED', True):
-            return Response({'error': 'Payments are temporarily disabled.'}, status=503)       
+            return Response({'error': 'Payments are temporarily disabled. Please try again later, or contact admin for manual account activation.'}, status=503)       
 
         if user.is_active:
             return Response({'error': 'Account already active'}, status=400)
