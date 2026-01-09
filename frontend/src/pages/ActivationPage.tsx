@@ -283,7 +283,7 @@ const ActivationPage = () => {
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         await refreshUser?.();
         setState('success');
-        setTimeout(() => navigate('/overview', { replace: true }), 1500);
+        setTimeout(() => navigate('/overview', { replace: true }), 10000);
         return;
       }
 

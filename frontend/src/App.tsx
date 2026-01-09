@@ -19,6 +19,7 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import CookiesPage from './pages/CookiesPage';
 import NotFound from './pages/NotFoundPage';
+import AboutPage from './pages/AboutPage';
 
 // Route guards
 import BasicProtectedRoute from './components/BasicProtectedRoute';
@@ -35,7 +36,8 @@ function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/cookies" element={<CookiesPage />} />
-          <Route path="/login" element={<LoginPage />} />          
+          <Route path="/login" element={<LoginPage />} /> 
+          <Route path="/about" element={<AboutPage />} />         
           
 
           {/* ===== ONBOARDING ROUTES ===== */}
