@@ -238,10 +238,10 @@ const ActivationPage = () => {
 
   // Redirect if already active
   useEffect(() => {
-    if (currentUser?.is_active) {
+    if (currentUser?.is_active && successCountdown === null) {
       navigate('/overview', { replace: true });
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, successCountdown, navigate]);
 
   // Cleanup polling
   useEffect(() => {
@@ -298,7 +298,9 @@ const ActivationPage = () => {
         setIsPolling(false);
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         await refreshUser?.();
-        setSuccessCountdown(10); // ✅ Trigger 10-second success screen
+         setTimeout(() => {
+          setSuccessCountdown(10);
+          }, 300);
         return;
       }
 
