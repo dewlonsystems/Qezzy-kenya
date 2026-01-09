@@ -231,17 +231,22 @@ const ActivationPage = () => {
   const [skipLoading, setSkipLoading] = useState(false);
   const [error, setError] = useState('');
   const [isPolling, setIsPolling] = useState(false);
-  const [successCountdown, setSuccessCountdown] = useState<number | null>(null); // ✅ Top-level state
+  const [successCountdown, setSuccessCountdown] = useState<number | null>(null);
+  const [isCompletingActivation, setIsCompletingActivation] = useState(false); // ✅ ADDED
 
   const pollCountRef = useRef(0);
   const pollIntervalRef = useRef<number | null>(null);
 
-  // Redirect if already active
+  // Redirect if already active AND not in the middle of showing success
   useEffect(() => {
-    if (currentUser?.is_active && successCountdown === null) {
+    if (
+      currentUser?.is_active &&
+      successCountdown === null &&
+      !isCompletingActivation // ✅ BLOCK redirect during success transition
+    ) {
       navigate('/overview', { replace: true });
     }
-  }, [currentUser, successCountdown, navigate]);
+  }, [currentUser, successCountdown, isCompletingActivation, navigate]); // ✅ added isCompletingActivation to deps
 
   // Cleanup polling
   useEffect(() => {
@@ -297,10 +302,16 @@ const ActivationPage = () => {
       if (status.payment_status === 'completed') {
         setIsPolling(false);
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        
+        // ✅ Prevent immediate redirect while preparing success screen
+        setIsCompletingActivation(true);
         await refreshUser?.();
-         setTimeout(() => {
-          setSuccessCountdown(10);
-          }, 300);
+        
+        setTimeout(() => {
+          setSuccessCountdown(10); // Show success screen
+          setIsCompletingActivation(false); // Re-enable normal redirects
+        }, 300);
+        
         return;
       }
 
