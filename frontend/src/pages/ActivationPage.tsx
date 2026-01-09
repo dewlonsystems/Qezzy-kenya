@@ -196,7 +196,7 @@ const XIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-type ActivationState = 'intro' | 'payment' | 'processing' | 'success';
+type ActivationState = 'intro' | 'payment' | 'processing';
 
 const benefits = [
   {
@@ -231,6 +231,7 @@ const ActivationPage = () => {
   const [skipLoading, setSkipLoading] = useState(false);
   const [error, setError] = useState('');
   const [isPolling, setIsPolling] = useState(false);
+  const [successCountdown, setSuccessCountdown] = useState<number | null>(null); // ✅ Top-level state
 
   const pollCountRef = useRef(0);
   const pollIntervalRef = useRef<number | null>(null);
@@ -250,6 +251,22 @@ const ActivationPage = () => {
       }
     };
   }, []);
+
+  // ✅ Auto-redirect after success countdown
+  useEffect(() => {
+    if (successCountdown === null) return;
+
+    if (successCountdown <= 0) {
+      navigate('/overview', { replace: true });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setSuccessCountdown(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [successCountdown, navigate]);
 
   const fetchActivationStatus = async () => {
     try {
@@ -281,7 +298,7 @@ const ActivationPage = () => {
         setIsPolling(false);
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         await refreshUser?.();
-        setState('success'); // ✅ Only set state — NO redirect here
+        setSuccessCountdown(10); // ✅ Trigger 10-second success screen
         return;
       }
 
@@ -352,26 +369,8 @@ const ActivationPage = () => {
     setError('');
   };
 
-  // ========== RENDER STATES ==========
-
-  if (state === 'success') {
-    const [countdown, setCountdown] = useState(10);
-
-    useEffect(() => {
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            navigate('/overview', { replace: true });
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }, [navigate]);
-
+  // ========== RENDER SUCCESS SCREEN ==========
+  if (successCountdown !== null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
         <div className="w-full max-w-md text-center">
@@ -383,7 +382,7 @@ const ActivationPage = () => {
             Your account is now active. Start earning by completing tasks.
           </p>
           <p className="text-sm text-gray-500 mb-8">
-            Redirecting to dashboard in {countdown} second{countdown !== 1 ? 's' : ''}...
+            Redirecting to dashboard in {successCountdown} second{successCountdown !== 1 ? 's' : ''}...
           </p>
           <button
             onClick={() => navigate('/overview')}
@@ -396,6 +395,8 @@ const ActivationPage = () => {
       </div>
     );
   }
+
+  // ========== RENDER OTHER STATES ==========
 
   if (state === 'processing') {
     return (
