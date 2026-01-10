@@ -52,13 +52,6 @@ const CheckIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const CopyIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-  </svg>
-);
-
 const TrashIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M3 6h18" />
@@ -151,11 +144,33 @@ const ProfilePage = () => {
     }
   };
 
-  const handleCopyReferral = async () => {
-    if (user?.referral_code) {
-      await navigator.clipboard.writeText(user.referral_code);
+  // ✅ REPLACED: Now shares a referral link instead of just copying code
+  const handleShareReferralLink = async () => {
+    if (!user?.referral_code) return;
+
+    const referralLink = `https://qezzykenya.company/?ref=${encodeURIComponent(user.referral_code)}`;
+
+    // Try native share (mobile-friendly)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join Qezzy Kenya',
+          text: 'Earn KES 50 when you sign up with my link!',
+          url: referralLink,
+        });
+        return;
+      } catch (err) {
+        // User canceled or not supported → fallback to copy
+      }
+    }
+
+    // Fallback: copy full link to clipboard
+    try {
+      await navigator.clipboard.writeText(referralLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy referral link');
     }
   };
 
@@ -208,7 +223,7 @@ const ProfilePage = () => {
                   <p className="text-lg font-bold font-mono mt-1">{user.referral_code}</p>
                 </div>
                 <button
-                  onClick={handleCopyReferral}
+                  onClick={handleShareReferralLink}
                   className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                 >
                   {copied ? (
@@ -218,14 +233,19 @@ const ProfilePage = () => {
                     </>
                   ) : (
                     <>
-                      <CopyIcon className="w-4 h-4 text-gray-600" />
-                      <span className="text-gray-600">Copy</span>
+                      {/* Share icon (standard "upload" repurposed) */}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                      </svg>
+                      <span className="text-gray-600">Share Link</span>
                     </>
                   )}
                 </button>
               </div>
               <p className="text-xs text-gray-600 mt-3">
-                Share this code with friends. Earn KES 50 for each successful referral!
+                Share this link with friends. Earn KES 50 for each successful referral!
               </p>
             </div>
           </div>
