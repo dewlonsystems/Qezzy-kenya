@@ -21,17 +21,6 @@ const LoginPage = () => {
   const { currentUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // 🔑 NEW: Capture referral code from URL on first load
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get('ref');
-    if (refCode) {
-      sessionStorage.setItem('referral_code', refCode);
-      // Clean URL for better UX (optional but recommended)
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
-
   // Auth flow state
   const [authStep, setAuthStep] = useState<'user-type' | 'auth-method' | 'email-form'>('user-type');
   const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
