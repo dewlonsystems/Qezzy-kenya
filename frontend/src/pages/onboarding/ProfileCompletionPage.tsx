@@ -56,7 +56,7 @@ const CheckCircleIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>)
   </svg>
 );
 
-// Validation helpers (updated to work with cleaned input)
+// Validation helpers
 const isValidName = (value: string): boolean => /^[a-zA-Z\s\-']+$/u.test(value) && value.trim().length > 0;
 const isValidPhoneNumber = (value: string): boolean => /^0[17]\d{8}$/.test(value);
 const isValidSkills = (value: string): boolean => !value.trim() || /^[a-zA-Z\s,]+$/u.test(value);
@@ -69,7 +69,10 @@ const isValidTown = (value: string): boolean => /^[a-zA-Z\s]+$/u.test(value) && 
 const ProfileCompletionPage = () => {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
-  
+
+  // Determine if we have a referral from link
+  const hasReferralFromLink = !!sessionStorage.getItem('referral_code');
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -79,18 +82,16 @@ const ProfileCompletionPage = () => {
     zip_code: '',
     town: '',
     skills: '',
-    referral_code: '',
+    referral_code: sessionStorage.getItem('referral_code') || '',
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [generalError, setGeneralError] = useState('');
 
-  // Enhanced change handler for phone (allows spaces/dashes in input)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
-    // For phone number, allow digits, spaces, and dashes in input field
+
     if (name === 'phone_number') {
       if (/^[0-9\s\-]*$/.test(value)) {
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -119,13 +120,12 @@ const ProfileCompletionPage = () => {
 
     if (!isValidName(formData.first_name)) newErrors.first_name = 'First name must contain only letters, spaces, hyphens, or apostrophes.';
     if (!isValidName(formData.last_name)) newErrors.last_name = 'Last name must contain only letters, spaces, hyphens, or apostrophes.';
-    
-    // Clean phone number before validation
+
     const cleanPhone = formData.phone_number.replace(/\D/g, '');
     if (!isValidPhoneNumber(cleanPhone)) {
       newErrors.phone_number = 'Phone must be 10 digits, starting with 07 or 01 (e.g., 0712345678).';
     }
-    
+
     if (!isValidStreet(formData.street)) newErrors.street = 'Street must contain only letters, numbers, spaces, or basic punctuation (.,#-).';
     if (!isValidHouseNumber(formData.house_number)) newErrors.house_number = 'House number can contain letters, numbers, spaces, hyphens, or slashes.';
     if (!isValidZipCode(formData.zip_code)) newErrors.zip_code = 'ZIP code must be 1–5 digits (numbers only).';
@@ -149,14 +149,12 @@ const ProfileCompletionPage = () => {
     setLoading(true);
 
     try {
-      // Clean phone number for submission
       const cleanPhone = formData.phone_number.replace(/\D/g, '');
-      
       const skills = formData.skills.split(',').map(s => s.trim()).filter(s => s.length > 0);
       const payload = {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
-        phone_number: cleanPhone, // ← cleaned digits only
+        phone_number: cleanPhone,
         street: formData.street.trim(),
         house_number: formData.house_number.trim(),
         zip_code: formData.zip_code,
@@ -167,6 +165,7 @@ const ProfileCompletionPage = () => {
 
       await api.post('/onboarding/profile/', payload);
       await refreshUser();
+      sessionStorage.removeItem('referral_code'); // Clear after successful use
       navigate('/onboarding/payment');
     } catch (err: any) {
       console.error('Profile submission error:', err);
@@ -176,7 +175,6 @@ const ProfileCompletionPage = () => {
     }
   };
 
-  // Determine if form is valid for button state (using cleaned phone)
   const isFormValid = () => {
     const cleanPhone = formData.phone_number.replace(/\D/g, '');
     return (
@@ -193,7 +191,6 @@ const ProfileCompletionPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 font-sans">
       <div className="max-w-md mx-auto">
-        {/* Header */}
         <div className="text-center mb-8 pt-8">
           <div className="w-16 h-16 rounded-2xl bg-amber-100 mx-auto flex items-center justify-center mb-4 shadow-lg">
             <UserIcon className="w-8 h-8 text-amber-600" />
@@ -204,7 +201,6 @@ const ProfileCompletionPage = () => {
           </p>
         </div>
 
-        {/* Form Card */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-lg">
           {(generalError || Object.keys(errors).length > 0) && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
@@ -254,7 +250,7 @@ const ProfileCompletionPage = () => {
               </div>
             </div>
 
-            {/* Phone - UPDATED: no +254 prefix */}
+            {/* Phone */}
             <div>
               <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <PhoneIcon className="w-4 h-4 text-gray-500" />
@@ -382,25 +378,37 @@ const ProfileCompletionPage = () => {
               <div className="p-4 rounded-xl border border-amber-200 bg-amber-50">
                 <label htmlFor="referral_code" className="block text-sm font-medium text-amber-800 mb-2 flex items-center gap-2">
                   <GiftIcon className="w-4 h-4 text-amber-600" />
-                  Referral Code (Optional)
+                  Referral Code {hasReferralFromLink ? '(Applied)' : '(Optional)'}
                 </label>
                 <p className="text-xs text-amber-700 mb-3">
-                  Enter a referral code from a friend to connect your accounts
+                  {hasReferralFromLink
+                    ? 'You were invited by a friend. This code cannot be changed.'
+                    : 'Enter a referral code from a friend to connect your accounts'}
                 </p>
                 <input
                   id="referral_code"
                   name="referral_code"
                   type="text"
-                  placeholder="e.g., ABC12345"
+                  placeholder={hasReferralFromLink ? "Referred by a friend" : "e.g., ABC12345"}
                   value={formData.referral_code}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 border border-amber-300 rounded-xl focus:ring-2 focus:outline-none focus:ring-amber-500 ${
-                    errors.referral_code ? 'border-red-500' : ''
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:outline-none ${
+                    hasReferralFromLink
+                      ? 'bg-amber-100 border-amber-300 cursor-not-allowed'
+                      : errors.referral_code
+                        ? 'border-red-500'
+                        : 'border-amber-300 focus:ring-amber-500'
                   }`}
                   maxLength={8}
+                  readOnly={hasReferralFromLink}
                 />
                 {errors.referral_code && (
                   <p className="mt-1 text-sm text-red-600">{errors.referral_code}</p>
+                )}
+                {hasReferralFromLink && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    This referral code was automatically applied from your invite link.
+                  </p>
                 )}
               </div>
             </div>
