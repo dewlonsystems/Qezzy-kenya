@@ -154,4 +154,4 @@ def setup_search_path(sender, connection, **kwargs):
     with connection.cursor() as cursor:
         cursor.execute("SET search_path TO private, public;")
 
-PAYMENTS_ENABLED = True        
+PAYMENTS_ENABLED = False       
