@@ -222,8 +222,8 @@ const SupportPage = () => {
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [newMessage, setNewMessage] = useState('');
-  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [newMessage, setNewMessage] = useState(''); 
+  const [openingTicketId, setOpeningTicketId] = useState<number | null>(null); // ✅ New state
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -260,7 +260,7 @@ const SupportPage = () => {
   }, []);
 
   const loadTicketMessages = async (ticketId: number) => {
-    setLoadingMessages(true);
+    setOpeningTicketId(ticketId); // ✅ Show immediate feedback
     setMessage('');
     try {
       const res = await api.get(`/support/tickets/${ticketId}/`);
@@ -270,7 +270,7 @@ const SupportPage = () => {
       console.error('Failed to load ticket:', err);
       setMessage('Failed to open ticket.');
     } finally {
-      setLoadingMessages(false);
+      setOpeningTicketId(null);
     }
   };
 
@@ -372,36 +372,31 @@ const SupportPage = () => {
 
           {/* Messages */}
           <div className="space-y-4 mb-6 max-h-96 overflow-y-auto pb-4">
-            {loadingMessages ? (
-              <div className="flex justify-center items-center py-6 text-gray-500">
-                <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                Loading messages...
-              </div>
-            ) : selectedTicket.messages?.length === 0 ? (
+            {selectedTicket.messages?.length === 0 ? (
               <p className="text-center text-gray-500 py-4">No messages yet.</p>
             ) : (
               selectedTicket.messages.map((msg: any) => (
                 <div
                   key={msg.id}
-                  className={`flex gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                  className={`flex gap-3 ${msg.sender === 'You' ? 'flex-row-reverse' : 'flex-row'}`}
                 >
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                      msg.sender === 'user' ? 'bg-amber-100' : 'bg-gray-100'
+                      msg.sender === 'You' ? 'bg-amber-100' : 'bg-blue-100'
                     }`}
                   >
-                    {msg.sender === 'user' ? (
+                    {msg.sender === 'You' ? (
                       <UserIcon className="w-4 h-4 text-amber-600" />
                     ) : (
-                      <MessageCircleIcon className="w-4 h-4 text-gray-600" />
+                      <ShieldIcon className="w-4 h-4 text-blue-600" />
                     )}
                   </div>
-                  <div className={`flex-1 max-w-[80%] ${msg.sender === 'user' ? 'text-right' : ''}`}>
+                  <div className={`flex-1 max-w-[80%] ${msg.sender === 'You' ? 'text-right' : ''}`}>
                     <div
                       className={`inline-block p-4 rounded-2xl ${
-                        msg.sender === 'user'
+                        msg.sender === 'You'
                           ? 'bg-amber-100 text-amber-800 rounded-tr-none'
-                          : 'bg-gray-100 text-gray-800 rounded-tl-none'
+                          : 'bg-blue-100 text-blue-800 rounded-tl-none'
                       }`}
                     >
                       <p className="text-sm">{msg.message}</p>
@@ -553,7 +548,12 @@ const SupportPage = () => {
                 <button
                   key={ticket.ticket_id}
                   onClick={() => loadTicketMessages(ticket.ticket_id)}
-                  className="w-full bg-white rounded-2xl border border-gray-200 p-4 text-left hover:border-amber-300 transition-colors"
+                  disabled={openingTicketId === ticket.ticket_id}
+                  className={`w-full bg-white rounded-2xl border border-gray-200 p-4 text-left transition-colors ${
+                    openingTicketId === ticket.ticket_id
+                      ? 'opacity-75 cursor-not-allowed'
+                      : 'hover:border-amber-300'
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -568,7 +568,11 @@ const SupportPage = () => {
                         {categories.find(c => c.value === ticket.category)?.label}
                       </p>
                     </div>
-                    <ChevronRightIcon className="w-4 h-4 text-gray-400 shrink-0" />
+                    {openingTicketId === ticket.ticket_id ? (
+                      <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ChevronRightIcon className="w-4 h-4 text-gray-400 shrink-0" />
+                    )}
                   </div>
                 </button>
               ))}
