@@ -1,3 +1,4 @@
+// src/pages/LoginPage.tsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -5,14 +6,31 @@ import { auth } from '../firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail, // 👈 ADDED
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 
 // Google Fonts: Inter
+const InterFontLink = () => (
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+);
 
 const LoginPage = () => {
   const { currentUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // 🔑 NEW: Capture referral code from URL on first load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode) {
+      sessionStorage.setItem('referral_code', refCode);
+      // Clean URL for better UX (optional but recommended)
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Auth flow state
   const [authStep, setAuthStep] = useState<'user-type' | 'auth-method' | 'email-form'>('user-type');
@@ -25,7 +43,7 @@ const LoginPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [passwordResetSent, setPasswordResetSent] = useState(false); // 👈 NEW
+  const [passwordResetSent, setPasswordResetSent] = useState(false);
 
   // 🔁 Redirect if already authenticated
   useEffect(() => {
@@ -75,7 +93,7 @@ const LoginPage = () => {
     }
   };
 
-  // ✅ NEW: Forgot Password Handler
+  // ✅ Forgot Password Handler
   const handleForgotPassword = async () => {
     if (!email) {
       setError('Please enter your email address');
@@ -88,7 +106,6 @@ const LoginPage = () => {
     try {
       await sendPasswordResetEmail(auth, email);
       setPasswordResetSent(true);
-      // Auto-hide success message after 5 seconds
       setTimeout(() => setPasswordResetSent(false), 5000);
     } catch (err: any) {
       console.error('Password reset error:', err);
@@ -160,7 +177,7 @@ const LoginPage = () => {
       setIsNewUser(null);
     }
     setError('');
-    setPasswordResetSent(false); // 👈 Reset on navigation
+    setPasswordResetSent(false);
   };
 
   const resetFlow = () => {
@@ -170,7 +187,7 @@ const LoginPage = () => {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
-    setPasswordResetSent(false); // 👈 Reset here too
+    setPasswordResetSent(false);
   };
 
   const isSubmitting = loading || authLoading;
@@ -204,6 +221,7 @@ const LoginPage = () => {
 
   return (
     <>
+      <InterFontLink />
       <div className="min-h-screen bg-gray-50 flex font-sans overflow-x-hidden">
         {/* Left Branding Panel (hidden on mobile) */}
         <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-amber-500 to-amber-600 relative overflow-hidden">
@@ -475,7 +493,7 @@ const LoginPage = () => {
                   <div className="relative">
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-sm font-medium text-gray-700">Password</label>
-                      {!isNewUser && !passwordResetSent && ( // 👈 Updated condition
+                      {!isNewUser && !passwordResetSent && (
                         <button
                           type="button"
                           className="text-sm text-amber-600 hover:underline"
@@ -485,7 +503,7 @@ const LoginPage = () => {
                           Forgot password?
                         </button>
                       )}
-                      {!isNewUser && passwordResetSent && ( // 👈 NEW: Success message
+                      {!isNewUser && passwordResetSent && (
                         <p className="text-sm text-emerald-600">
                           Password reset email sent! Check your inbox.
                         </p>
