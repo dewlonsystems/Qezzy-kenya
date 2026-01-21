@@ -12,21 +12,29 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
             return
 
         await self.accept()
-
-        # Optional: join a user-specific group for future use (e.g., global notifications)
-        self.user_group = f"user_{user.id}_support"
-        await self.channel_layer.group_add(self.user_group, self.channel_name)
+        self.ticket_groups = set()  # Track groups this connection is in
 
     async def disconnect(self, code):
-        user = self.scope.get("user")
-        if user:
-            await self.channel_layer.group_discard(self.user_group, self.channel_name)
+        # Leave all ticket groups
+        for group in self.ticket_groups:
+            await self.channel_layer.group_discard(group, self.channel_name)
 
     async def receive_json(self, content):
         user = self.scope["user"]
         action = content.get("action")
 
-        if action == "send_message":
+        if action == "join_ticket":
+            ticket_id = content.get("ticket_id")
+            try:
+                ticket = await self.get_ticket_for_user(ticket_id, user.id)
+                group_name = f"ticket_{ticket_id}"
+                await self.channel_layer.group_add(group_name, self.channel_name)
+                self.ticket_groups.add(group_name)
+                await self.send_json({"status": "joined", "ticket_id": ticket_id})
+            except ObjectDoesNotExist:
+                await self.send_json({"error": "Ticket not found"})
+
+        elif action == "send_message":
             ticket_id = content.get("ticket_id")
             message_text = content.get("message", "").strip()
 
@@ -37,17 +45,26 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
             try:
                 ticket = await self.get_ticket_for_user(ticket_id, user.id)
                 message = await self.create_support_message(ticket.id, user.id, message_text, is_admin=False)
-                # Broadcast to all clients in this ticket's group (if you later add multi-user chat)
-                # For now, just echo back to sender
-                await self.send_json({
-                    "id": message.id,
-                    "sender": user.email,
-                    "is_admin": False,
-                    "message": message.message,
-                    "created_at": message.created_at.isoformat(),
-                })
+                
+                # Broadcast to ticket group
+                await self.channel_layer.group_send(
+                    f"ticket_{ticket_id}",
+                    {
+                        "type": "chat_message",
+                        "data": {
+                            "id": message.id,
+                            "sender": "You",
+                            "is_admin": False,
+                            "message": message.message,
+                            "created_at": message.created_at.isoformat(),
+                        }
+                    }
+                )
             except ObjectDoesNotExist:
                 await self.send_json({"error": "Ticket not found or access denied"})
+
+    async def chat_message(self, event):
+        await self.send_json(event["data"])
 
     @database_sync_to_async
     def get_ticket_for_user(self, ticket_id, user_id):
