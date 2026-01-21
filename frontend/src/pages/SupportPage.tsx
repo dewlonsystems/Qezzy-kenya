@@ -1,5 +1,5 @@
 // src/pages/SupportPage.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import type { SupportTicket } from '../types';
@@ -223,7 +223,10 @@ const SupportPage = () => {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [newMessage, setNewMessage] = useState(''); 
-  const [openingTicketId, setOpeningTicketId] = useState<number | null>(null); // ✅ New state
+  const [openingTicketId, setOpeningTicketId] = useState<number | null>(null);
+
+  // 🔹 NEW: WebSocket ref
+  const wsRef = useRef<WebSocket | null>(null);
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -259,8 +262,80 @@ const SupportPage = () => {
     loadTickets();
   }, []);
 
+  // 🔹 NEW: Real-time WebSocket connection
+  useEffect(() => {
+    if (activeTicket === null) return;
+
+    let ws: WebSocket | null = null;
+
+    const connectWebSocket = async () => {
+      try {
+        // Get Firebase ID token
+        const token = await (window as any).auth.currentUser.getIdToken();
+        const API_URL = import.meta.env.VITE_API_URL || 'https://api.qezzykenya.company';
+        const wsUrl = `${API_URL.replace('http', 'ws')}/ws/support/?token=${token}`;
+        
+        ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          console.log('WebSocket connected for support');
+        };
+
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.error) {
+            setMessage(data.error);
+            return;
+          }
+
+          // Only update if it's a new message
+          if (data.id && data.message) {
+            setTickets(prev => prev.map(ticket => {
+              if (ticket.ticket_id === activeTicket) {
+                return {
+                  ...ticket,
+                  messages: [...(ticket.messages || []), {
+                    id: data.id,
+                    sender: data.is_admin ? 'Support Team' : 'You',
+                    message: data.message,
+                    created_at: data.created_at,
+                  }]
+                };
+              }
+              return ticket;
+            }));
+          }
+        };
+
+        ws.onclose = () => {
+          console.log('WebSocket disconnected');
+          // Optional: auto-reconnect logic can go here
+        };
+
+        ws.onerror = (err) => {
+          console.error('WebSocket error:', err);
+          setMessage('Connection error. Messages may be delayed.');
+        };
+      } catch (err) {
+        console.error('Failed to get token for WebSocket:', err);
+        setMessage('Authentication error. Please refresh.');
+      }
+    };
+
+    connectWebSocket();
+
+    // Cleanup on unmount or ticket change
+    return () => {
+      if (ws) {
+        ws.close();
+        wsRef.current = null;
+      }
+    };
+  }, [activeTicket]);
+
   const loadTicketMessages = async (ticketId: number) => {
-    setOpeningTicketId(ticketId); // ✅ Show immediate feedback
+    setOpeningTicketId(ticketId);
     setMessage('');
     try {
       const res = await api.get(`/support/tickets/${ticketId}/`);
@@ -297,13 +372,40 @@ const SupportPage = () => {
 
   const handleSendReply = async () => {
     if (!newMessage.trim() || activeTicket === null) return;
-    try {
-      await api.post(`/support/tickets/${activeTicket}/`, { message: newMessage });
+
+    // 🔹 NEW: Send via WebSocket if connected
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        action: "send_message",
+        ticket_id: activeTicket,
+        message: newMessage,
+      }));
       setNewMessage('');
-      loadTicketMessages(activeTicket);
-    } catch (err) {
-      setMessage('Failed to send reply.');
-      console.error(err);
+      // Optimistic update
+      setTickets(prev => prev.map(ticket => {
+        if (ticket.ticket_id === activeTicket) {
+          return {
+            ...ticket,
+            messages: [...(ticket.messages || []), {
+              id: Date.now(), // temporary ID
+              sender: 'You',
+              message: newMessage,
+              created_at: new Date().toISOString(),
+            }]
+          };
+        }
+        return ticket;
+      }));
+    } else {
+      // Fallback to REST
+      try {
+        await api.post(`/support/tickets/${activeTicket}/`, { message: newMessage });
+        setNewMessage('');
+        loadTicketMessages(activeTicket);
+      } catch (err) {
+        setMessage('Failed to send reply.');
+        console.error(err);
+      }
     }
   };
 
@@ -354,7 +456,11 @@ const SupportPage = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-6 pt-4">
             <button
-              onClick={() => setActiveTicket(null)}
+              onClick={() => {
+                setActiveTicket(null);
+                // Close WebSocket when leaving
+                if (wsRef.current) wsRef.current.close();
+              }}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
             >
               <ChevronRightIcon className="w-4 h-4 rotate-180" />
