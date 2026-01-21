@@ -1,22 +1,23 @@
 # support/middleware.py
 import urllib.parse
-from django.contrib.auth import get_user_model
 from asgiref.sync import sync_to_async
 from django.db import close_old_connections
 
-User = get_user_model()
+# ❌ DO NOT call get_user_model() at module level
+# User = get_user_model()  # ← REMOVE THIS
 
 @sync_to_async
 def get_user_from_firebase_token(token):
+    from django.contrib.auth import get_user_model  # ✅ Import inside function
     from users.authentication import FirebaseAuthentication
     from django.http import HttpRequest
     try:
-        # Reuse your existing FirebaseAuthentication logic
         fake_request = HttpRequest()
         fake_request.META['HTTP_AUTHORIZATION'] = f'Bearer {token}'
         user_auth_tuple = FirebaseAuthentication().authenticate(fake_request)
         if user_auth_tuple is None:
             return None
+        User = get_user_model()  # ✅ Safe: Django is initialized by now
         user, _ = user_auth_tuple
         if user and not getattr(user, 'is_closed', False):
             return user
