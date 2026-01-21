@@ -2,6 +2,7 @@ asgiref==3.11.0
 certifi==2025.11.12
 cffi==2.0.0
 charset-normalizer==3.4.4
+channels==4.3.2
 cryptography==46.0.3
 dj-database-url==3.0.1
 Django>=5.2,<6.0
