@@ -3,26 +3,31 @@ import urllib.parse
 from asgiref.sync import sync_to_async
 from django.db import close_old_connections
 
-# ❌ DO NOT call get_user_model() at module level
-# User = get_user_model()  # ← REMOVE THIS
-
 @sync_to_async
 def get_user_from_firebase_token(token):
-    from django.contrib.auth import get_user_model  # ✅ Import inside function
-    from users.authentication import FirebaseAuthentication
-    from django.http import HttpRequest
     try:
+        from django.contrib.auth import get_user_model
+        from users.authentication import FirebaseAuthentication
+        from django.http import HttpRequest
+
         fake_request = HttpRequest()
         fake_request.META['HTTP_AUTHORIZATION'] = f'Bearer {token}'
-        user_auth_tuple = FirebaseAuthentication().authenticate(fake_request)
-        if user_auth_tuple is None:
+        
+        result = FirebaseAuthentication().authenticate(fake_request)
+        if result is None:
+            print("❌ Auth failed: FirebaseAuthentication returned None")
             return None
-        User = get_user_model()  # ✅ Safe: Django is initialized by now
-        user, _ = user_auth_tuple
+            
+        user, _ = result
         if user and not getattr(user, 'is_closed', False):
+            print(f"✅ Auth success: {user.email}")
             return user
-        return None
-    except Exception:
+        else:
+            print("❌ Auth failed: user is closed or invalid")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Auth exception: {e}")
         return None
 
 class FirebaseTokenAuthMiddleware:
@@ -40,6 +45,12 @@ class FirebaseTokenAuthMiddleware:
             scope["user"] = await get_user_from_firebase_token(token)
         else:
             scope["user"] = None
+
+        # If no user, close connection
+        if scope["user"] is None:
+            print("❌ No user — closing WebSocket")
+            from channels.exceptions import DenyConnection
+            raise DenyConnection("Authentication failed")
 
         return await self.inner(scope, receive, send)
 
