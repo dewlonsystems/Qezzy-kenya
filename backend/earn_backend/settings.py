@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'wallets',
     'withdrawals',
     'support',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -71,7 +72,11 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'earn_backend.wsgi.application'
+ASGI_APPLICATION = 'earn_backend.asgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+}
 
 # Database (Supabase)
 DATABASES = {
