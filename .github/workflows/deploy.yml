@@ -24,4 +24,4 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
           python manage.py collectstatic --noinput
-          sudo systemctl reload django
+          sudo systemctl restart django
