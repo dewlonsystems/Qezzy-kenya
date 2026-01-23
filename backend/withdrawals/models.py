@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from users.models import User
 from wallets.models import WalletTransaction
 
+
 class WithdrawalRequest(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -36,6 +37,8 @@ class WithdrawalRequest(models.Model):
         blank=True,
         related_name='withdrawal_request'
     )
+    originator_conversation_id = models.CharField(max_length=20, blank=True, null=True)
+    daraja_conversation_id = models.CharField(max_length=50, blank=True, null=True)
     request_date = models.DateField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -58,23 +61,19 @@ class WithdrawalRequest(models.Model):
         status_changed = self.status != self._original_status
         is_new = self.pk is None
 
-        # Handle processed_at
         if status_changed and self.status == 'completed':
             from django.utils import timezone
             self.processed_at = timezone.now()
         elif status_changed and self.status != 'completed':
             self.processed_at = None
 
-        # Save the withdrawal request first
         super().save(*args, **kwargs)
         self._original_status = self.status
 
-        # 🔁 Sync status to linked wallet transaction (if exists and status changed)
         if not is_new and status_changed and self.linked_transaction_id:
-            # Reload transaction to ensure clean state and trigger full balance logic
             tx = WalletTransaction.objects.get(pk=self.linked_transaction_id)
             tx.status = self.status
-            tx.save()  # Full save — NO update_fields!
+            tx.save()
 
     def __str__(self):
         return f"{self.user.email} - {self.amount} ({self.status})"

@@ -2,6 +2,9 @@ import logging
 from datetime import date
 from django.db import transaction
 from django.utils import timezone
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -9,8 +12,10 @@ from .models import WithdrawalRequest
 from .daraja_payout import send_b2c_payment
 from wallets.utils import create_transaction
 from decimal import Decimal, InvalidOperation
+import json
 
 logger = logging.getLogger(__name__)
+
 
 class WithdrawalRequestView(APIView):
     permission_classes = [IsAuthenticated]
@@ -119,22 +124,28 @@ class WithdrawalRequestView(APIView):
         # STEP 3: Handle mobile auto-process
         if method == 'mobile':
             try:
-                daraja_resp = send_b2c_payment(phone, float(amount))
+                # Pass a unique ID so we can match it in the callback
+                originator_id = f"B2C_{withdrawal.id}"[:20]
+                daraja_resp = send_b2c_payment(phone, float(amount), originator_id=originator_id)
+                
                 if daraja_resp and 'ConversationID' in daraja_resp:
-                    # Success: mark both as completed
-                    withdrawal.status = 'completed'
-                    withdrawal.save(update_fields=['status'])
-
-                    linked_tx.status = 'completed'
-                    linked_tx.save(update_fields=['status'])  # Triggers balance debit
+                    # Store the IDs for later matching in callback
+                    withdrawal.daraja_conversation_id = daraja_resp['ConversationID']
+                    withdrawal.originator_conversation_id = originator_id
+                    withdrawal.status = 'processing'  # Not 'completed' yet — wait for result!
+                    withdrawal.save(update_fields=['daraja_conversation_id', 'originator_conversation_id', 'status'])
                 else:
+                    # Immediate failure (e.g., validation error)
+                    error_msg = daraja_resp.get('error', 'Unknown error') if daraja_resp else 'No response'
+                    logger.error(f"B2C immediate failure: {error_msg}")
                     withdrawal.status = 'failed'
                     withdrawal.save(update_fields=['status'])
 
                     linked_tx.status = 'failed'
-                    linked_tx.save(update_fields=['status'])  # No balance impact
+                    linked_tx.save(update_fields=['status'])
+                    
             except Exception as e:
-                logger.error(f"Daraja B2C error: {str(e)}")
+                logger.error(f"Daraja B2C exception during send: {str(e)}")
                 withdrawal.status = 'failed'
                 withdrawal.save(update_fields=['status'])
 
@@ -170,3 +181,99 @@ class WithdrawalHistoryView(APIView):
                 'processed_at': w.processed_at.isoformat() if w.processed_at else None
             })
         return Response(data)
+
+
+# ==============================
+# Daraja B2C Callback Handlers
+# ==============================
+
+@csrf_exempt
+@require_POST
+def daraja_b2c_result(request):
+    """
+    Handle M-Pesa B2C result callback from Safaricom.
+    Must respond with HTTP 200 within 1 second.
+    """
+    try:
+        payload = json.loads(request.body)
+        logger.info(f"Received B2C Result Callback: {payload}")
+
+        result = payload.get('Result', {})
+        result_code = result.get('ResultCode')
+        result_desc = result.get('ResultDesc', 'No description')
+        conversation_id = result.get('ConversationID')
+        originator_id = result.get('OriginatorConversationID')
+
+        # Find the withdrawal using either ID
+        withdrawal = None
+        if originator_id:
+            withdrawal = WithdrawalRequest.objects.filter(originator_conversation_id=originator_id).first()
+        if not withdrawal and conversation_id:
+            withdrawal = WithdrawalRequest.objects.filter(daraja_conversation_id=conversation_id).first()
+
+        if not withdrawal:
+            logger.warning(f"No withdrawal found for B2C callback. Originator: {originator_id}, ConvID: {conversation_id}")
+            return HttpResponse("OK", status=200)
+
+        # Update status based on ResultCode
+        if result_code == 0:
+            # Success
+            withdrawal.status = 'completed'
+            withdrawal.processed_at = timezone.now()
+            withdrawal.save(update_fields=['status', 'processed_at'])
+
+            # Now mark the linked transaction as completed → triggers balance deduction
+            if withdrawal.linked_transaction:
+                withdrawal.linked_transaction.status = 'completed'
+                withdrawal.linked_transaction.save(update_fields=['status'])
+        else:
+            # Failure
+            withdrawal.status = 'failed'
+            withdrawal.save(update_fields=['status'])
+
+            if withdrawal.linked_transaction:
+                withdrawal.linked_transaction.status = 'failed'
+                withdrawal.linked_transaction.save(update_fields=['status'])
+
+        logger.info(f"B2C withdrawal {withdrawal.id} updated to status: {withdrawal.status} (Code: {result_code})")
+        return HttpResponse("OK", status=200)
+
+    except Exception as e:
+        logger.error(f"Error processing B2C result callback: {str(e)}", exc_info=True)
+        return HttpResponse("Error", status=500)
+
+
+@csrf_exempt
+@require_POST
+def daraja_b2c_timeout(request):
+    """
+    Handle M-Pesa B2C timeout callback.
+    Safaricom sends this if the result isn't delivered in time.
+    """
+    try:
+        payload = json.loads(request.body)
+        logger.info(f"Received B2C Timeout Callback: {payload}")
+
+        # Extract identifiers
+        conversation_id = payload.get('ConversationID')
+        originator_id = payload.get('OriginatorConversationID')
+
+        withdrawal = None
+        if originator_id:
+            withdrawal = WithdrawalRequest.objects.filter(originator_conversation_id=originator_id).first()
+        if not withdrawal and conversation_id:
+            withdrawal = WithdrawalRequest.objects.filter(daraja_conversation_id=conversation_id).first()
+
+        if withdrawal:
+            withdrawal.status = 'failed'
+            withdrawal.save(update_fields=['status'])
+            if withdrawal.linked_transaction:
+                withdrawal.linked_transaction.status = 'failed'
+                withdrawal.linked_transaction.save(update_fields=['status'])
+            logger.info(f"Marked withdrawal {withdrawal.id} as failed due to timeout")
+
+        return HttpResponse("OK", status=200)
+
+    except Exception as e:
+        logger.error(f"Error processing B2C timeout callback: {str(e)}", exc_info=True)
+        return HttpResponse("Error", status=500)
