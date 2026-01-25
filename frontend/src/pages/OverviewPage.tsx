@@ -217,7 +217,7 @@ const OverviewPage = () => {
         amount: wd.amount,
         isCredit: false,
         created_at: wd.created_at,
-        status: wd.status === 'completed' ? 'completed' : 'pending',
+        status: wd.status
       });
     });
 
@@ -509,6 +509,8 @@ const OverviewPage = () => {
                           <span className={`text-xs px-2 py-1 rounded-full ${
                             tx.status === 'completed'
                               ? 'bg-emerald-100 text-emerald-700'
+                              : tx.status === 'failed'
+                              ? 'bg-red-100 text-red-700'
                               : 'bg-amber-100 text-amber-700'
                           }`}>
                             {tx.status}
