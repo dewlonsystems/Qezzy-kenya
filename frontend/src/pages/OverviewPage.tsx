@@ -1,3 +1,4 @@
+// src/pages/OverviewPage.tsx
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -66,7 +67,13 @@ const ArrowRightIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) 
   </svg>
 );
 
-// ✅ REMOVED: LogOutIcon (no longer used)
+// ✅ NEW: ArrowDownIcon for consistency with WalletPage
+const ArrowDownIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <polyline points="19 12 12 19 5 12" />
+  </svg>
+);
 
 // ====== GREETING HELPER ======
 const getGreeting = () => {
@@ -97,11 +104,26 @@ const formatName = (name: string | undefined): string => {
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 };
 
-// ✅ NEW: Format join date as "January 2026"
+// ✅ UPDATED: Full join date with ordinal day
 const formatJoinDate = (dateString: string | undefined): string => {
   if (!dateString) return '—';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'long' });
+  const year = date.getFullYear();
+
+  const getOrdinalSuffix = (num: number): string => {
+    if (num > 3 && num < 21) return 'th';
+    switch (num % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+
+  return `${day}${getOrdinalSuffix(day)} ${month}, ${year}`;
 };
 
 // ✅ Helper to compute balance on a given date
@@ -119,7 +141,7 @@ const getBalanceOnDate = (
 };
 
 const OverviewPage = () => {
-  const { currentUser, } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
@@ -146,16 +168,33 @@ const OverviewPage = () => {
 
   const totalReferrals = useMemo(() => referralTransactions.length, [referralTransactions]);
 
-  // ✅ FIXED: Correct withdrawal status mapping
+  // ✅ ACCURATE ACTIVE REFERRALS COUNT
+  const activeReferrals = useMemo(() => {
+    return referralTransactions.filter(tx =>
+      tx.referred_user_is_active &&
+      tx.referred_user_is_onboarded &&
+      !tx.referred_user_is_closed
+    ).length;
+  }, [referralTransactions]);
+
+  // ✅ FIXED: Sort by real timestamp, consistent styling
   const recentTransactions = useMemo(() => {
-    const all: any[] = [];
+    const all: Array<{
+      id: string;
+      type: string;
+      amount: number;
+      isCredit: boolean;
+      created_at: string;
+      status: string;
+    }> = [];
 
     mainTransactions.slice(0, 3).forEach(tx => {
       all.push({
         id: `main-${tx.id}`,
         type: 'Task Earning',
-        amount: `+${formatKES(tx.amount)}`,
-        date: formatDate(tx.created_at),
+        amount: tx.amount,
+        isCredit: true,
+        created_at: tx.created_at,
         status: 'completed',
       });
     });
@@ -164,8 +203,9 @@ const OverviewPage = () => {
       all.push({
         id: `ref-${tx.id}`,
         type: 'Referral Bonus',
-        amount: `+${formatKES(tx.amount)}`,
-        date: formatDate(tx.created_at),
+        amount: tx.amount,
+        isCredit: true,
+        created_at: tx.created_at,
         status: 'completed',
       });
     });
@@ -174,15 +214,21 @@ const OverviewPage = () => {
       all.push({
         id: `wd-${wd.id}`,
         type: 'Withdrawal',
-        amount: `-${formatKES(wd.amount)}`,
-        date: formatDate(wd.created_at),
+        amount: wd.amount,
+        isCredit: false,
+        created_at: wd.created_at,
         status: wd.status === 'completed' ? 'completed' : 'pending',
       });
     });
 
     return all
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5)
+      .map(tx => ({
+        ...tx,
+        formattedAmount: `${tx.isCredit ? '+' : '-'}${formatKES(tx.amount)}`,
+        formattedDate: formatDate(tx.created_at),
+      }));
   }, [mainTransactions, referralWalletTransactions, withdrawals]);
 
   // ✅ REAL WALLET GROWTH CALCULATIONS
@@ -247,7 +293,7 @@ const OverviewPage = () => {
         ] = await Promise.all([
           api.get('/wallets/overview/'),
           api.get('/jobs/'),
-          api.get('/referrals/transactions/'),
+          api.get('/referrals/transactions/'), // ✅ Now includes user status flags
           api.get('/withdrawals/history/'),
           api.get('/wallets/transactions/?wallet=main'),
           api.get('/wallets/transactions/?wallet=referral'),
@@ -255,7 +301,7 @@ const OverviewPage = () => {
 
         setWallets(walletRes.data);
         setJobs(jobsRes.data);
-        setReferralTransactions(referralRes.data);
+        setReferralTransactions(referralRes.data.results || referralRes.data);
         setWithdrawals(withdrawalsRes.data.results || withdrawalsRes.data);
         setMainTransactions(mainTxRes.data.results || mainTxRes.data);
         setReferralWalletTransactions(refTxRes.data.results || refTxRes.data);
@@ -269,7 +315,6 @@ const OverviewPage = () => {
     fetchData();
   }, []);
 
- 
   const handleActivate = () => {
     navigate('/activation');
   };
@@ -398,7 +443,7 @@ const OverviewPage = () => {
                 <UsersIcon className="w-6 h-6" />
               </div>
               <span className="flex items-center gap-1 text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                {referralTransactions.filter(t => t.status === 'activated').length} active
+                {activeReferrals} active
               </span>
             </div>
             <h3 className="text-2xl font-bold text-landing-heading mb-1">{totalReferrals}</h3>
@@ -422,39 +467,57 @@ const OverviewPage = () => {
             </div>
             <div className="divide-y divide-amber-50">
               {recentTransactions.length > 0 ? (
-                recentTransactions.map((tx) => (
-                  <div key={tx.id} className="p-4 hover:bg-amber-50/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-xl ${
-                          tx.amount.startsWith('+') 
-                            ? 'bg-emerald-100 text-emerald-600' 
-                            : 'bg-amber-100 text-amber-600'
-                        }`}>
-                          {tx.status === 'pending' ? <ClockIcon className="w-5 h-5" /> : <CheckCircleIcon className="w-5 h-5" />}
+                recentTransactions.map((tx) => {
+                  let icon, bgColor, textColor;
+                  if (tx.type === 'Withdrawal') {
+                    bgColor = 'bg-amber-100';
+                    textColor = 'text-amber-600';
+                  } else if (tx.type === 'Referral Bonus') {
+                    icon = <UsersIcon className="w-5 h-5" />;
+                    bgColor = 'bg-orange-100';
+                    textColor = 'text-orange-600';
+                  } else {
+                    // Task Earning
+                    icon = <ArrowDownIcon className="w-5 h-5" />;
+                    bgColor = 'bg-emerald-100';
+                    textColor = 'text-emerald-600';
+                  }
+
+                  // Override icon based on status
+                  if (tx.status === 'completed') {
+                    icon = <CheckCircleIcon className="w-5 h-5" />;
+                  } else if (tx.status === 'pending') {
+                    icon = <ClockIcon className="w-5 h-5" />;
+                  }
+
+                  return (
+                    <div key={tx.id} className="p-4 hover:bg-amber-50/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2 rounded-xl ${bgColor} ${textColor}`}>
+                            {icon}
+                          </div>
+                          <div>
+                            <p className="font-medium text-landing-heading">{tx.type}</p>
+                            <p className="text-sm text-landing-muted">{tx.formattedDate}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-landing-heading">{tx.type}</p>
-                          <p className="text-sm text-landing-muted">{tx.date}</p>
+                        <div className="text-right">
+                          <p className={`font-bold ${tx.isCredit ? 'text-emerald-600' : 'text-amber-600'}`}>
+                            {tx.formattedAmount}
+                          </p>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            tx.status === 'completed'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {tx.status}
+                          </span>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${
-                          tx.amount.startsWith('+') ? 'text-emerald-600' : 'text-landing-heading'
-                        }`}>
-                          {tx.amount}
-                        </p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          tx.status === 'completed' 
-                            ? 'bg-emerald-100 text-emerald-700' 
-                            : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {tx.status}
-                        </span>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="p-4 text-center text-landing-muted">
                   No transactions yet.
@@ -560,7 +623,7 @@ const OverviewPage = () => {
           </div>
         )}
 
-        {/* ✅ REPLACED: Member Since instead of Logout */}
+        {/* ✅ FULL JOIN DATE */}
         <div className="mt-12 text-center text-landing-muted text-sm">
           Member since {formatJoinDate(currentUser?.created_at)}
         </div>
