@@ -59,7 +59,8 @@ const WithdrawalPage = () => {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false); // ✅ New success state
+  const [success, setSuccess] = useState(false);
+  const [successMethod, setSuccessMethod] = useState<'mobile' | 'bank' | null>(null); // ✅ Track method
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [withdrawMethod, setWithdrawMethod] = useState<'mobile' | 'bank'>('mobile');
@@ -129,19 +130,33 @@ const WithdrawalPage = () => {
         amount: numAmount,
         method: withdrawMethod,
       });
-      setSuccess(true); // ✅ Trigger success screen
-      // Auto-redirect after 10 seconds
+      setSuccess(true);
+      setSuccessMethod(withdrawMethod); // ✅ Save method for success screen
       setTimeout(() => navigate('/wallet'), 10000);
     } catch (err: any) {
       console.error('Withdrawal error:', err);
-      setError(err.response?.data?.error || 'Failed to request withdrawal. Please try again.');
+      setError(err.response?.data?.error || 'An error occurred while processing your withdrawal. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Beautiful Success Screen
-  if (success) {
+  // ✅ Method-aware Success Screen
+  if (success && successMethod) {
+    const formattedAmount = parseFloat(amount).toFixed(2);
+
+    let title, message, statusText;
+
+    if (successMethod === 'mobile') {
+      title = "Withdrawal Sent!";
+      message = `Your withdrawal of KES ${formattedAmount} is on the way.`;
+      statusText = "Please wait for an SMS confirmation from M-Pesa.";
+    } else {
+      title = "Withdrawal Requested!";
+      message = `Your request for KES ${formattedAmount} is being processed.`;
+      statusText = "Your withdrawal is pending approval. Redirecting to wallet...";
+    }
+
     return (
       <div className="min-h-screen bg-landing-cream font-inter flex flex-col items-center justify-center p-4 relative overflow-hidden">
         {/* Confetti-like background */}
@@ -158,22 +173,17 @@ const WithdrawalPage = () => {
             <CheckCircleIcon className="w-12 h-12 text-white" />
           </div>
 
-          {/* Message */}
-          <h2 className="text-2xl font-bold text-landing-heading mb-2">Withdrawal Requested!</h2>
-          <p className="text-landing-muted mb-6">
-            Your request for{' '}
-            <span className="font-bold text-amber-600">KES {parseFloat(amount).toFixed(2)}</span>{' '}
-            is being processed.
-          </p>
+          {/* Dynamic Title & Message */}
+          <h2 className="text-2xl font-bold text-landing-heading mb-2">{title}</h2>
+          <p className="text-landing-muted mb-6">{message}</p>
 
           {/* Status Bar */}
           <div className="w-full bg-amber-100 rounded-full h-2 mb-6 overflow-hidden">
             <div className="bg-gradient-to-r from-amber-400 to-emerald-500 h-full rounded-full animate-pulse w-full"></div>
           </div>
 
-          <p className="text-xs text-landing-muted mb-6">
-            Your withdrawal is pending approval.Redirecting to wallet...
-          </p>
+          {/* Dynamic Status Text */}
+          <p className="text-xs text-landing-muted mb-6">{statusText}</p>
 
           {/* Manual Go to Wallet */}
           <button
