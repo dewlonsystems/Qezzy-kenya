@@ -1,26 +1,33 @@
 # users/authentication.py
 import time
-import random
+import secrets
 import string
 from jose import jwt, JWTError
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from .models import User
 import requests
+
+User = get_user_model()
 
 
 def generate_unique_referral_code(max_attempts=10):
     """
-    Generate a unique 8-character alphanumeric referral code.
-    Retries up to `max_attempts` to avoid collisions.
+    Generate a unique 8-character alphanumeric referral code in UPPERCASE.
+    Uses cryptographically secure randomness and retries up to `max_attempts`
+    to avoid collisions.
     """
+    alphabet = string.ascii_uppercase + string.digits
     for _ in range(max_attempts):
-        code = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        code = ''.join(secrets.choice(alphabet) for _ in range(8))
         if not User.objects.filter(referral_code=code).exists():
             return code
-    # Extremely unlikely fallback: mix timestamp + random
-    fallback = (str(int(time.time())) + ''.join(random.choices(string.ascii_lowercase, k=4)))[-8:]
+    
+    # Extremely unlikely fallback: mix timestamp + random uppercase chars
+    timestamp_part = str(int(time.time()))[-4:]  # last 4 digits of timestamp
+    random_part = ''.join(secrets.choice(string.ascii_uppercase) for _ in range(4))
+    fallback = (timestamp_part + random_part)[-8:]
     return fallback
 
 
@@ -74,7 +81,7 @@ class FirebaseAuthentication(BaseAuthentication):
             first_name = name_parts[0] if name_parts else ''
             last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
 
-            # 🔑 Create user if new — with 8-char referral code
+            # 🔑 Create user if new — with 8-char UPPERCASE referral code
             user, created = User.objects.get_or_create(
                 email=email,
                 defaults={
