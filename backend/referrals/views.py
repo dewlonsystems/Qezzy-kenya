@@ -15,6 +15,9 @@ class ReferralTransactionsView(APIView):
                 'amount': float(t.amount),
                 'status': t.status,
                 'created_at': t.created_at.isoformat(),
-                'completed_at': t.completed_at.isoformat() if t.completed_at else None
+                'completed_at': t.completed_at.isoformat() if t.completed_at else None,
+                'referred_user_is_active': referred.is_active,
+                'referred_user_is_onboarded': referred.is_onboarded,
+                'referred_user_is_closed': referred.is_closed,
             })
         return Response(data)
