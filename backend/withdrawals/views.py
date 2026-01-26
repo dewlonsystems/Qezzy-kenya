@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import WithdrawalRequest
+from .models import WithdrawalRequest, SystemSetting
 from .daraja_payout import send_b2c_payment
 from wallets.utils import create_transaction
 from decimal import Decimal, InvalidOperation
@@ -27,6 +27,12 @@ class WithdrawalRequestView(APIView):
             return Response({'error': 'Account not active'}, status=403)
         if user.is_closed:
             return Response({'error': 'Account closed'}, status=403)
+
+        # ✅ NEW: Check if withdrawals are enabled globally
+        if not SystemSetting.withdrawals_enabled():
+            return Response({
+                'error': 'Withdrawals are temporarily disabled. Please try again later.'
+            }, status=403)
 
         data = request.data
         wallet_type = data.get('wallet_type')

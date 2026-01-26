@@ -1,8 +1,23 @@
-# withdrawals/admin.py
 from django.contrib import admin
 from django.db import transaction as db_transaction
 from django.contrib import messages
-from .models import WithdrawalRequest
+from .models import WithdrawalRequest, SystemSetting
+
+
+@admin.register(SystemSetting)
+class SystemSettingAdmin(admin.ModelAdmin):
+    list_display = ['key', 'value', 'description', 'updated_at']
+    list_editable = ['value']
+    readonly_fields = ['key', 'updated_at']
+    search_fields = ['key', 'description']
+    list_display_links = None  # Disable link to detail page
+    
+    def has_delete_permission(self, request, obj=None):
+        return False  # Prevent deletion of system settings
+    
+    def has_add_permission(self, request):
+        return False  # Prevent manual creation (use get_or_create)
+
 
 @admin.register(WithdrawalRequest)
 class WithdrawalRequestAdmin(admin.ModelAdmin):
