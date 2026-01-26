@@ -12,6 +12,11 @@ class SystemSettingAdmin(admin.ModelAdmin):
     search_fields = ['key', 'description']
     list_display_links = None  # Disable link to detail page
     
+    def get_queryset(self, request):
+        # Auto-create the required setting if it doesn't exist
+        SystemSetting.withdrawals_enabled()
+        return super().get_queryset(request)
+    
     def has_delete_permission(self, request, obj=None):
         return False  # Prevent deletion of system settings
     
