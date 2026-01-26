@@ -128,32 +128,55 @@ class WithdrawalRequestView(APIView):
                 originator_id = f"B2C_{withdrawal.id}"[:20]
                 daraja_resp = send_b2c_payment(phone, float(amount), originator_id=originator_id)
                 
+                logger.info(f"B2C API Response for withdrawal {withdrawal.id}: {daraja_resp}")
+                
                 if daraja_resp and 'ConversationID' in daraja_resp:
-                    # Store the IDs for later matching in callback
+                    # Success - M-Pesa accepted the request
                     withdrawal.daraja_conversation_id = daraja_resp['ConversationID']
                     withdrawal.originator_conversation_id = originator_id
-                    withdrawal.status = 'processing'  # Not 'completed' yet — wait for result!
+                    withdrawal.status = 'processing'
                     withdrawal.save(update_fields=['daraja_conversation_id', 'originator_conversation_id', 'status'])
+                    
+                    logger.info(f"Withdrawal {withdrawal.id} sent to M-Pesa successfully, status: processing")
+                    
                 else:
-                    # Immediate failure (e.g., validation error)
-                    error_msg = daraja_resp.get('error', 'Unknown error') if daraja_resp else 'No response'
-                    logger.error(f"B2C immediate failure: {error_msg}")
+                    # Immediate failure (validation/auth error from M-Pesa)
+                    error_msg = daraja_resp.get('error', 'Unknown error') if daraja_resp else 'No response from M-Pesa'
+                    logger.error(f"B2C immediate failure for withdrawal {withdrawal.id}: {error_msg}")
+                    if daraja_resp:
+                        logger.error(f"B2C full response: {daraja_resp}")
+                    
+                    # Mark as failed
                     withdrawal.status = 'failed'
                     withdrawal.save(update_fields=['status'])
-
+                    
                     linked_tx.status = 'failed'
                     linked_tx.save(update_fields=['status'])
                     
+                    # ✅ RETURN ERROR TO USER - Critical fix
+                    return Response({
+                        'error': f'Payout failed: {error_msg}',
+                        'request_id': withdrawal.id,
+                        'status': 'failed'
+                    }, status=400)
+                    
             except Exception as e:
-                logger.error(f"Daraja B2C exception during send: {str(e)}")
+                logger.error(f"Daraja B2C exception for withdrawal {withdrawal.id}: {str(e)}", exc_info=True)
                 withdrawal.status = 'failed'
                 withdrawal.save(update_fields=['status'])
-
+                
                 linked_tx.status = 'failed'
                 linked_tx.save(update_fields=['status'])
-                return Response({'error': 'Payout service error'}, status=500)
+                
+                # ✅ RETURN ERROR TO USER - Critical fix
+                return Response({
+                    'error': 'Payout service error',
+                    'request_id': withdrawal.id,
+                    'status': 'failed'
+                }, status=500)
 
         # Bank withdrawals remain pending for admin approval
+        # Mobile withdrawals that succeeded reach here
 
         return Response({
             'message': 'Withdrawal request submitted',
@@ -226,6 +249,8 @@ def daraja_b2c_result(request):
             if withdrawal.linked_transaction:
                 withdrawal.linked_transaction.status = 'completed'
                 withdrawal.linked_transaction.save(update_fields=['status'])
+            
+            logger.info(f"B2C withdrawal {withdrawal.id} completed successfully. Transaction ID: {result.get('TransactionID')}")
         else:
             # Failure
             withdrawal.status = 'failed'
@@ -234,6 +259,8 @@ def daraja_b2c_result(request):
             if withdrawal.linked_transaction:
                 withdrawal.linked_transaction.status = 'failed'
                 withdrawal.linked_transaction.save(update_fields=['status'])
+            
+            logger.error(f"B2C withdrawal {withdrawal.id} failed. Code: {result_code}, Desc: {result_desc}")
 
         logger.info(f"B2C withdrawal {withdrawal.id} updated to status: {withdrawal.status} (Code: {result_code})")
         return HttpResponse("OK", status=200)
@@ -271,6 +298,8 @@ def daraja_b2c_timeout(request):
                 withdrawal.linked_transaction.status = 'failed'
                 withdrawal.linked_transaction.save(update_fields=['status'])
             logger.info(f"Marked withdrawal {withdrawal.id} as failed due to timeout")
+        else:
+            logger.warning(f"No withdrawal found for timeout callback. Originator: {originator_id}, ConvID: {conversation_id}")
 
         return HttpResponse("OK", status=200)
 
