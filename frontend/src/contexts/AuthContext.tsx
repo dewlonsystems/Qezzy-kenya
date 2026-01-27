@@ -7,6 +7,7 @@ import type { User } from '../types';
 
 interface AuthContextType {
   currentUser: User | null;
+  accountClosed: boolean;
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -29,8 +30,9 @@ const INACTIVITY_TIMEOUT = 3 * 60 * 1000; // 3 minutes in milliseconds
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [accountClosed, setAccountClosed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const inactivityTimer = useRef<number | null>(null); // ✅ Use `number` for browser
+  const inactivityTimer = useRef<number | null>(null);
 
   // Reset inactivity timer on any user activity
   const resetInactivityTimer = () => {
@@ -46,12 +48,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Enhanced logout with timer cleanup
+  // Enhanced logout with timer and session cleanup
   const handleLogout = async () => {
     try {
       await signOut(auth);
       localStorage.removeItem('firebase_id_token');
+      sessionStorage.removeItem('login-toast-shown'); // 👈 clear login toast flag
       setCurrentUser(null);
+      setAccountClosed(false);
 
       if (inactivityTimer.current) {
         clearTimeout(inactivityTimer.current);
@@ -66,16 +70,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const token = localStorage.getItem('firebase_id_token');
     if (!token) {
       setCurrentUser(null);
+      setAccountClosed(false);
       return;
     }
 
     try {
       const res = await api.get('/users/me/');
       setCurrentUser(res.data);
-      resetInactivityTimer(); // Start timer when user is active
+      setAccountClosed(false);
+      resetInactivityTimer();
     } catch (error: any) {
       console.error('Failed to refresh user:', error);
       setCurrentUser(null);
+      setAccountClosed(false);
     }
   };
 
@@ -97,14 +104,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const res = await api.get('/users/me/');
         setCurrentUser(res.data);
-        resetInactivityTimer(); // Start timer after login
+        setAccountClosed(false);
+        resetInactivityTimer();
       } catch (error: any) {
         if (error.response?.status === 403) {
-          setCurrentUser(null);
-        } else {
-          console.error('Failed to fetch user profile:', error);
-          setCurrentUser(null);
+          try {
+            const data = error.response.data;
+            if (data?.error && data.error.includes('Account closed')) {
+              setAccountClosed(true);
+              setCurrentUser(null);
+              await signOut(auth);
+              localStorage.removeItem('firebase_id_token');
+              return;
+            }
+          } catch (e) {
+            console.warn('Could not parse error response');
+          }
         }
+        console.error('Failed to fetch user profile:', error);
+        setCurrentUser(null);
+        setAccountClosed(false);
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -125,7 +144,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const addListeners = () => {
       events.forEach(event => {
         if (event === 'scroll' || event === 'wheel') {
-          // Use passive: true for scroll/wheel (required for mobile performance)
           window.addEventListener(event, resetInactivityTimer, { passive: true } as EventListenerOptions);
         } else {
           window.addEventListener(event, resetInactivityTimer, true);
@@ -156,20 +174,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const res = await api.get('/users/me/');
           setCurrentUser(res.data);
-          resetInactivityTimer(); // Start timer on auth state change
+          setAccountClosed(false);
+          resetInactivityTimer();
         } catch (error: any) {
           if (error.response?.status === 403) {
-            setCurrentUser(null);
+            try {
+              const data = error.response.data;
+              if (data?.error && data.error.includes('Account closed')) {
+                setAccountClosed(true);
+                setCurrentUser(null);
+                await signOut(auth);
+                localStorage.removeItem('firebase_id_token');
+              } else {
+                setCurrentUser(null);
+                setAccountClosed(false);
+              }
+            } catch (e) {
+              console.warn('Could not parse error response');
+              setCurrentUser(null);
+              setAccountClosed(false);
+            }
           } else {
             console.error('Failed to fetch user:', error);
             setCurrentUser(null);
+            setAccountClosed(false);
           }
         } finally {
           setLoading(false);
         }
       } else {
         localStorage.removeItem('firebase_id_token');
+        sessionStorage.removeItem('login-toast-shown');
         setCurrentUser(null);
+        setAccountClosed(false);
         setLoading(false);
 
         if (inactivityTimer.current) {
@@ -189,6 +226,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     currentUser,
+    accountClosed,
     loading,
     loginWithGoogle,
     logout: handleLogout,

@@ -1,7 +1,9 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext'; // 👈 NEW
 import { useEffect } from 'react';
+import { GlobalToastHandler } from './components/GlobalToastHandler'; // 👈 NEW
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -47,43 +49,46 @@ function AppContent() {
   useReferralTracker();
 
   return (
-    <Routes>
-      {/* ===== PUBLIC ROUTES ===== */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/terms" element={<TermsPage />} />
-      <Route path="/privacy" element={<PrivacyPage />} />
-      <Route path="/cookies" element={<CookiesPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/about" element={<AboutPage />} />
+    <>
+      <GlobalToastHandler /> {/* 👈 Shows login/account-closed toasts */}
+      <Routes>
+        {/* ===== PUBLIC ROUTES ===== */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/cookies" element={<CookiesPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/about" element={<AboutPage />} />
 
-      {/* ===== ONBOARDING ROUTES ===== */}
-      <Route element={<OnboardingProtectedRoute />}>
-        <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
-        <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
-        <Route path="/activation" element={<ActivationPage />} />
-      </Route>
-
-      {/* ===== FULLY PROTECTED DASHBOARD ROUTES ===== */}
-      <Route element={<BasicProtectedRoute />}>
-        <Route element={<DashboardLayout />}>
-          <Route path="/overview" element={<OverviewPage />} />
-          <Route path="/wallet" element={<WalletPage />} />
-          <Route path="/withdraw" element={<WithdrawalPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/support" element={<SupportPage />} />
+        {/* ===== ONBOARDING ROUTES ===== */}
+        <Route element={<OnboardingProtectedRoute />}>
+          <Route path="/onboarding/profile" element={<ProfileCompletionPage />} />
+          <Route path="/onboarding/payment" element={<PaymentDetailsPage />} />
+          <Route path="/activation" element={<ActivationPage />} />
         </Route>
-      </Route>
 
-      {/* ===== JOBS ROUTE ===== */}
-      <Route element={<JobsProtectedRoute />}>
-        <Route element={<DashboardLayout />}>
-          <Route path="/jobs" element={<JobsPage />} />
+        {/* ===== FULLY PROTECTED DASHBOARD ROUTES ===== */}
+        <Route element={<BasicProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/overview" element={<OverviewPage />} />
+            <Route path="/wallet" element={<WalletPage />} />
+            <Route path="/withdraw" element={<WithdrawalPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/support" element={<SupportPage />} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* ===== 404 ===== */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        {/* ===== JOBS ROUTE ===== */}
+        <Route element={<JobsProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/jobs" element={<JobsPage />} />
+          </Route>
+        </Route>
+
+        {/* ===== 404 ===== */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }
 
@@ -91,7 +96,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppContent />
+        <ToastProvider> {/* 👈 Wrap entire app in toast provider */}
+          <AppContent />
+        </ToastProvider>
       </AuthProvider>
     </Router>
   );

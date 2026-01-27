@@ -8,6 +8,7 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
 } from 'firebase/auth';
+import { useToast } from '../contexts/ToastContext'; // 👈 NEW
 
 // Google Fonts: Inter
 const InterFontLink = () => (
@@ -20,18 +21,19 @@ const InterFontLink = () => (
 const LoginPage = () => {
   const { currentUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast(); // 👈 NEW
 
   // Auth flow state
   const [authStep, setAuthStep] = useState<'user-type' | 'auth-method' | 'email-form'>('user-type');
   const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   
-  // Form state
+  // Form state (for validation only)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState(''); // 👈 Renamed from `error` to avoid confusion
   const [passwordResetSent, setPasswordResetSent] = useState(false);
 
   // 🔁 Redirect if already authenticated
@@ -47,7 +49,7 @@ const LoginPage = () => {
     }
   }, [currentUser, navigate]);
 
-  // 🔥 Unified new user check
+  // 🔥 Unified new user check with account closed handling
   const checkNewUserAndRedirect = async (token: string) => {
     try {
       const response = await fetch('/api/users/me/', {
@@ -55,10 +57,26 @@ const LoginPage = () => {
       });
 
       if (response.ok) {
-        return; // existing user → AuthContext handles redirect
+        // Success: user exists and is active → let GlobalToastHandler show "Logged in"
+        return;
       }
+
+      // Handle non-OK responses
+      if (response.status === 403) {
+        const data = await response.json();
+        if (data?.error && data.error.includes('Account closed')) {
+          showToast('Your account has been closed. Please contact support for assistance.', 'error');
+          // Clear token and sign out
+          localStorage.removeItem('firebase_id_token');
+          await auth.signOut?.(); // Optional: ensure Firebase sign-out
+          return;
+        }
+      }
+
+      // Any other error (e.g., 404 = new user)
       navigate('/onboarding/profile');
-    } catch {
+    } catch (err) {
+      console.error('Error checking user status:', err);
       navigate('/onboarding/profile');
     }
   };
@@ -67,7 +85,8 @@ const LoginPage = () => {
   const handleGoogleLogin = async () => {
     if (loading) return;
     setLoading(true);
-    setError('');
+    setFormError('');
+
     try {
       const { signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
       const result = await signInWithPopup(auth, new GoogleAuthProvider());
@@ -76,7 +95,11 @@ const LoginPage = () => {
       await checkNewUserAndRedirect(token);
     } catch (err: any) {
       console.error('Google login error:', err);
-      setError(err.message || 'Google sign-in failed. Please try again.');
+      let message = 'Google sign-in failed. Please try again.';
+      if (err.code === 'auth/popup-closed-by-user') {
+        message = 'Sign-in cancelled.';
+      }
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -85,26 +108,27 @@ const LoginPage = () => {
   // ✅ Forgot Password Handler
   const handleForgotPassword = async () => {
     if (!email) {
-      setError('Please enter your email address');
+      setFormError('Please enter your email address');
       return;
     }
 
     setLoading(true);
-    setError('');
+    setFormError('');
 
     try {
       await sendPasswordResetEmail(auth, email);
       setPasswordResetSent(true);
+      showToast('Password reset email sent!', 'success');
       setTimeout(() => setPasswordResetSent(false), 5000);
     } catch (err: any) {
       console.error('Password reset error:', err);
+      let message = 'Failed to send reset email. Please try again.';
       if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email.');
+        message = 'No account found with this email.';
       } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address.');
-      } else {
-        setError('Failed to send reset email. Please try again.');
+        message = 'Invalid email address.';
       }
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -113,20 +137,20 @@ const LoginPage = () => {
   // Email Auth
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setFormError('');
 
     if (!email || !password) {
-      setError('Please fill in all fields');
+      setFormError('Please fill in all fields');
       return;
     }
 
     if (isNewUser && password !== confirmPassword) {
-      setError('Passwords do not match');
+      setFormError('Passwords do not match');
       return;
     }
 
     if (isNewUser && password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setFormError('Password must be at least 8 characters');
       return;
     }
 
@@ -144,15 +168,15 @@ const LoginPage = () => {
       await checkNewUserAndRedirect(token);
     } catch (err: any) {
       console.error('Email auth error:', err);
+      let message = 'Authentication failed. Please try again.';
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
-        setError('Invalid email or password.');
+        message = 'Invalid email or password.';
       } else if (err.code === 'auth/email-already-in-use') {
-        setError('Email already in use. Try signing in.');
+        message = 'Email already in use. Try signing in.';
       } else if (err.code === 'auth/weak-password') {
-        setError('Password should be at least 6 characters.');
-      } else {
-        setError(err.message || 'Authentication failed. Please try again.');
+        message = 'Password should be at least 6 characters.';
       }
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -165,14 +189,14 @@ const LoginPage = () => {
       setAuthStep('user-type');
       setIsNewUser(null);
     }
-    setError('');
+    setFormError('');
     setPasswordResetSent(false);
   };
 
   const resetFlow = () => {
     setAuthStep('user-type');
     setIsNewUser(null);
-    setError('');
+    setFormError('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -453,14 +477,14 @@ const LoginPage = () => {
                   </p>
                 </div>
 
-                {error && (
+                {/* 👇 Keep inline form validation errors (not toasts) */}
+                {formError && (
                   <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
-                    {error}
+                    {formError}
                   </div>
                 )}
 
-                <form onSubmit={handleEmailAuth} className="space-y-4">               
-
+                <form onSubmit={handleEmailAuth} className="space-y-4">
                   <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                     <div className="relative">
