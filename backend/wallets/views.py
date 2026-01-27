@@ -77,16 +77,16 @@ class WalletStatementPDFView(APIView):
             user=user,
             wallet_type=wallet_type,
             status='completed'
-        ).order_by('created_at')  # Chronological order for statement
+        ).order_by('created_at')
 
-        if start_date_str:
-            start_date = parse_date(start_date_str)
-            if start_date:
-                transactions_qs = transactions_qs.filter(created_at__date__gte=start_date)
-        if end_date_str:
-            end_date = parse_date(end_date_str)
-            if end_date:
-                transactions_qs = transactions_qs.filter(created_at__date__lte=end_date)
+        # Parse and filter by date range
+        start_date = parse_date(start_date_str) if start_date_str else None
+        end_date = parse_date(end_date_str) if end_date_str else None
+
+        if start_date:
+            transactions_qs = transactions_qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            transactions_qs = transactions_qs.filter(created_at__date__lte=end_date)
 
         transactions = list(transactions_qs)
 
@@ -112,6 +112,17 @@ class WalletStatementPDFView(APIView):
         if not user_full_name:
             user_full_name = user.email
 
+        # ✅ Format dates for template (as display-ready strings)
+        statement_date = datetime.now(timezone.utc).strftime("%d %b %Y")  # e.g., "27 Jan 2026"
+
+        start_date_display = start_date.strftime("%d %b % Y").replace(" %", "%") if start_date else None
+        end_date_display = end_date.strftime("%d %b % Y").replace(" %", "%") if end_date else None
+        # Fix: strftime with %b %Y can have extra space; safer to use:
+        if start_date:
+            start_date_display = start_date.strftime("%d %b %Y")
+        if end_date:
+            end_date_display = end_date.strftime("%d %b %Y")
+
         html_string = render_to_string('wallet/statement.html', {
             'user': user,
             'user_full_name': user_full_name,
@@ -119,9 +130,10 @@ class WalletStatementPDFView(APIView):
             'opening_balance': opening_balance,
             'closing_balance': closing_balance,
             'transactions': transactions,
-            'generated_at': datetime.now(timezone.utc).strftime("%d %B %Y at %H:%M UTC"),
-            'start_date': start_date_str,
-            'end_date': end_date_str,
+            # Pass pre-formatted strings — no need for |date in template
+            'statement_date': statement_date,
+            'start_date_display': start_date_display,
+            'end_date_display': end_date_display,
         })
 
         pdf_file = HTML(string=html_string).write_pdf()
