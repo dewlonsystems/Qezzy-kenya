@@ -1,6 +1,7 @@
 // src/pages/WalletPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../contexts/ToastContext';
 import api from '../api/client';
 import type { WalletOverview, Transaction, PaymentDetails } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -84,6 +85,7 @@ const getDisplayAmount = (tx: Transaction) => {
 
 const WalletPage = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast(); 
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
   const [mainTransactions, setMainTransactions] = useState<Transaction[]>([]);
   const [referralTransactions, setReferralTransactions] = useState<Transaction[]>([]);
@@ -181,8 +183,11 @@ const WalletPage = () => {
       };
       setPaymentDetails(updatedDetails);
       setIsEditing(false);
+      showToast('Payment details updated successfully!', 'success');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to save payment details. Please try again.');
+      const message = err.response?.data?.error || 'Failed to save payment details. Please try again.';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setSaving(false);
     }
