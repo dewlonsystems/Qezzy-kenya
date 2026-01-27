@@ -103,6 +103,77 @@ const WalletPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // ====== Statement Download Modal State ======
+  const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
+  const [selectedWalletType, setSelectedWalletType] = useState<'main' | 'referral'>('main');
+  const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
+  const today = new Date();
+  const formatDate = (d: Date) => d.toISOString().split('T')[0]; // YYYY-MM-DD
+
+  const setPresetRange = (preset: 'week' | 'month' | 'lastMonth') => {    
+    const now = new Date();
+    let start = new Date(now.getFullYear(), now.getMonth(), 1);
+    let end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    if (preset === 'week') {
+      // This week (Monday to Sunday)
+      const day = now.getDay();
+      const mondayOffset = day === 0 ? -6 : 1 - day;
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset);
+      end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+    } else if (preset === 'month') {
+      // This month
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (preset === 'lastMonth') {
+      // Last month
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    }
+
+    setDateRange({
+      start: formatDate(start),
+      end: formatDate(end),
+    });
+  };
+
+  const handleDownloadStatementWithRange = async (
+    walletType: 'main' | 'referral',
+    startDate: string | null,
+    endDate: string | null
+  ) => {
+    try {
+      showToast('Generating statement...', 'info');
+
+      const params = new URLSearchParams({ wallet: walletType });
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+
+      const response = await api.get(`/wallets/statement/?${params.toString()}`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Qezzy_${walletType}_statement_${formatDate(new Date())}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showToast('Statement downloaded!', 'success');
+    } catch (err: any) {
+      console.error('Failed to download statement:', err);
+      const message = err.response?.data?.error || 'Failed to generate statement. Please try again.';
+      showToast(message, 'error');
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -281,12 +352,24 @@ const WalletPage = () => {
                   <p className="text-white font-medium">5th of month</p>
                 </div>
                 {activeTab === 'main' && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleWithdraw('main'); }}
-                    className="px-4 py-2 bg-white text-amber-600 font-bold rounded-lg hover:bg-amber-50 transition-colors text-sm"
-                  >
-                    Withdraw
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleWithdraw('main'); }}
+                      className="px-4 py-2 bg-white text-amber-600 font-bold rounded-lg hover:bg-amber-50 transition-colors text-sm"
+                    >
+                      Withdraw
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedWalletType('main');
+                        setIsStatementModalOpen(true);
+                      }}
+                      className="px-4 py-2 bg-white/90 text-amber-700 font-medium rounded-lg hover:bg-white transition-colors text-xs"
+                    >
+                      Download Statement
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -322,12 +405,24 @@ const WalletPage = () => {
                   <p className="text-white font-medium">Every 24 hours</p>
                 </div>
                 {activeTab === 'referral' && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleWithdraw('referral'); }}
-                    className="px-4 py-2 bg-white text-orange-600 font-bold rounded-lg hover:bg-orange-50 transition-colors text-sm"
-                  >
-                    Withdraw
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleWithdraw('referral'); }}
+                      className="px-4 py-2 bg-white text-orange-600 font-bold rounded-lg hover:bg-orange-50 transition-colors text-sm"
+                    >
+                      Withdraw
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedWalletType('referral');
+                        setIsStatementModalOpen(true);
+                      }}
+                      className="px-4 py-2 bg-white/90 text-orange-700 font-medium rounded-lg hover:bg-white transition-colors text-xs"
+                    >
+                      Download Statement
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -609,6 +704,100 @@ const WalletPage = () => {
             )}
           </div>
         </div>
+
+        {/* Statement Download Modal */}
+        {isStatementModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div 
+              className="bg-white rounded-2xl w-full max-w-md p-6 relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setIsStatementModalOpen(false)}
+                className="absolute top-4 right-4 text-landing-muted hover:text-landing-heading"
+              >
+                ✕
+              </button>
+
+              <h3 className="text-lg font-bold text-landing-heading mb-4">Download Statement</h3>
+              
+              <p className="text-sm text-landing-muted mb-4">
+                Select a date range for your {selectedWalletType} wallet statement.
+              </p>
+
+              {/* Preset Buttons */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <button
+                  onClick={() => setPresetRange('week')}
+                  className="px-2 py-1.5 text-xs bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition"
+                >
+                  This Week
+                </button>
+                <button
+                  onClick={() => setPresetRange('month')}
+                  className="px-2 py-1.5 text-xs bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition"
+                >
+                  This Month
+                </button>
+                <button
+                  onClick={() => setPresetRange('lastMonth')}
+                  className="px-2 py-1.5 text-xs bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition"
+                >
+                  Last Month
+                </button>
+              </div>
+
+              {/* Manual Date Pickers */}
+              <div className="space-y-3 mb-6">
+                <div>
+                  <label className="block text-xs font-medium text-landing-heading mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={dateRange.start || ''}
+                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                    max={dateRange.end || undefined}
+                    className="w-full px-3 py-2 border border-amber-200 rounded-lg focus:ring-1 focus:ring-amber-400 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-landing-heading mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={dateRange.end || ''}
+                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                    min={dateRange.start || undefined}
+                    max={formatDate(today)}
+                    className="w-full px-3 py-2 border border-amber-200 rounded-lg focus:ring-1 focus:ring-amber-400 focus:outline-none text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsStatementModalOpen(false)}
+                  className="flex-1 px-3 py-2 border border-amber-200 text-amber-700 rounded-lg text-sm hover:bg-amber-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleDownloadStatementWithRange(selectedWalletType, dateRange.start, dateRange.end);
+                    setIsStatementModalOpen(false);
+                  }}
+                  disabled={!dateRange.start || !dateRange.end}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium ${
+                    (!dateRange.start || !dateRange.end)
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90'
+                  }`}
+                >
+                  Download PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
