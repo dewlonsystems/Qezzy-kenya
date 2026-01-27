@@ -151,7 +151,6 @@ const ProfilePage = () => {
     }
   };
 
-  // ✅ REPLACED: Now shares a referral link instead of just copying code
   const handleShareReferralLink = async () => {
     if (!user?.referral_code) return;
 
@@ -240,7 +239,7 @@ const ProfilePage = () => {
                     </>
                   ) : (
                     <>
-                      {/* Share icon (standard "upload" repurposed) */}
+                      {/* Share icon */}
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
                         <polyline points="16 6 12 2 8 6" />
@@ -439,6 +438,24 @@ const ProfilePage = () => {
                 </>
               )}
             </div>
+          </div>
+
+          {/* 🔒 Security Info — NEW SECTION */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
+            <h3 className="font-semibold text-gray-800 mb-3">Security Information</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">My IP address:</span>
+                <span className="font-mono text-gray-800">{user.last_seen_ip || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">My device:</span>
+                <span className="text-gray-800">{user.device_info || '—'}</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              This information helps us keep your account secure.
+            </p>
           </div>
 
           {/* Account Closure */}
