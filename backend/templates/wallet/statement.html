@@ -177,7 +177,7 @@
                 {% if user.street or user.house_number or user.town or user.zip_code %}
                 <h3>Address</h3>
                 <p>
-                    {% if user.house_number %}{{ user.house_number }}{% endif %}
+                    {% if user.house_number %}{{ user.house_number }}, {% endif %}
                     {% if user.street %}{% if user.house_number %} {{ user.street }}{% else %}{{ user.street }}{% endif %}{% endif %}<br>
                     {% if user.town %}{{ user.town }}{% endif %}
                     {% if user.zip_code %} {{ user.zip_code }}{% endif %}<br>
