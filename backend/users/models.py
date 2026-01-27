@@ -1,7 +1,6 @@
 # users/models.py
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from django.core.validators import RegexValidator
 from .managers import UserManager
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -34,6 +33,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     # Your app status fields
     is_onboarded = models.BooleanField(default=False)
+    
+    # 👇 NEW FIELDS: IP and device tracking
+    last_seen_ip = models.GenericIPAddressField(null=True, blank=True)
+    device_info = models.CharField(max_length=255, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

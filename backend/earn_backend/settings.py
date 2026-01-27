@@ -160,3 +160,4 @@ def setup_search_path(sender, connection, **kwargs):
         cursor.execute("SET search_path TO private, public;")
 
 PAYMENTS_ENABLED = True       
+UA_PARSER_CACHE = True
