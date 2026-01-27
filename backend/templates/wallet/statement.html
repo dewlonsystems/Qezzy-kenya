@@ -151,8 +151,8 @@
         /* Print adjustments */
         @media print {
             body {
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact;        
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
             .container { padding: 0; }
         }
@@ -169,7 +169,7 @@
 
         <!-- User & Wallet Info -->
         <div class="user-section">
-            <!-- Left: Name & Address (Proof of Address Format) -->
+            <!-- Left: Name & Address -->
             <div class="user-info">
                 <h3>Account Holder</h3>
                 <p>{{ user_full_name }}</p>
@@ -191,7 +191,7 @@
                 <h3>Statement Details</h3>
                 <div class="period">
                     {% if start_date and end_date %}
-                        {{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}
+                        {{ start_date|date:"d M Y" }} to {{ end_date|date:"d M Y" }}
                     {% elif start_date %}
                         From {{ start_date|date:"d M Y" }}
                     {% elif end_date %}
@@ -203,6 +203,7 @@
                 <div><label>Wallet:</label> {{ wallet_type|capfirst }} Wallet</div>
                 <div><label>Phone:</label> {{ user.phone_number|default:"—"}} </div>
                 <div><label>Email:</label> {{ user.email }}</div>
+                <div><label>Statement Date:</label> {{ generated_at|date:"d M Y" }}</div>
             </div>
         </div>
 
@@ -210,7 +211,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Date & Time</th>
+                    <th>Date</th>
                     <th>Description</th>
                     <th>Type</th>
                     <th class="amount">Amount (KES)</th>
@@ -224,12 +225,12 @@
                 </tr>
                 {% for tx in transactions %}
                 <tr>
-                    <td>{{ tx.created_at|date:"d M Y H:i" }}</td>
+                    <td>{{ tx.created_at|date:"d M Y" }}</td> <!-- DATE ONLY -->
                     <td>{{ tx.description|default:tx.get_transaction_type_display }}</td>
                     <td>{{ tx.get_transaction_type_display }}</td>
                     <td class="amount">
                         {% if tx.transaction_type == 'withdrawal' or tx.transaction_type == 'activation_payment' %}
-                            <span class="debit">({{ tx.amount|floatformat:2 }})</span>
+                            <span class="debit">-{{ tx.amount|floatformat:2 }}</span> <!-- NO PARENTHESES -->
                         {% else %}
                             <span class="credit">{{ tx.amount|floatformat:2 }}</span>
                         {% endif %}
@@ -250,10 +251,9 @@
             </tbody>
         </table>
 
-        <!-- Footer -->
+        <!-- Simplified Footer -->
         <div class="footer">
-            <p>Generated on {{ generated_at }} • This is a computer-generated statement and does not require a signature.</p>
-            <p>© {{ "now"|date:"Y" }} Qezzy Kenya. All rights reserved.</p>
+            <p>This is a computer-generated statement and does not require a signature.</p>
         </div>
     </div>
 </body>
