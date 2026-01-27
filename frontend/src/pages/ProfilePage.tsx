@@ -1,6 +1,7 @@
 // src/pages/ProfilePage.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext'; 
 import api from '../api/client';
 import type { User } from '../types';
 
@@ -68,6 +69,7 @@ const ShieldIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
 
 const ProfilePage = () => {
   const { currentUser, logout } = useAuth();
+  const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -122,9 +124,14 @@ const ProfilePage = () => {
       const res = await api.get('/users/me/');
       setUser(res.data);
       setIsEditing(false);
+
+      showToast('Profile updated successfully!', 'success');
+
     } catch (err: any) {
       console.error('Update error:', err);
-      setError(err.response?.data?.error || 'Failed to update profile.');
+      const message = err.response?.data?.error || 'Failed to update profile. Please try again.';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
