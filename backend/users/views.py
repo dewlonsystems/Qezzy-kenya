@@ -113,10 +113,9 @@ class UserDetailView(APIView):
             'payout_bank_name': user.payout_bank_name,
             'payout_bank_branch': user.payout_bank_branch,
             'payout_account_number': user.payout_account_number,
-            'created_at': user.created_at,
-            # 👇 Optionally include in response for debugging
-            # 'last_seen_ip': user.last_seen_ip,
-            # 'device_info': user.device_info,
+            'created_at': user.created_at,            
+            'last_seen_ip': user.last_seen_ip,
+            'device_info': user.device_info,
         }
         return Response(data)
 
