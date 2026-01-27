@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
+from weasyprint.text.fonts import FontConfiguration
 from .models import WalletTransaction
 
 
@@ -112,17 +113,14 @@ class WalletStatementPDFView(APIView):
         if not user_full_name:
             user_full_name = user.email
 
-        # ✅ Format dates for template (as display-ready strings)
-        statement_date = datetime.now(timezone.utc).strftime("%d %b %Y")  # e.g., "27 Jan 2026"
+        # Format display dates
+        now_utc = datetime.now(timezone.utc)
+        statement_date = now_utc.strftime("%d %b %Y")  # e.g., "27 Jan 2026"
 
-        start_date_display = start_date.strftime("%d %b % Y").replace(" %", "%") if start_date else None
-        end_date_display = end_date.strftime("%d %b % Y").replace(" %", "%") if end_date else None
-        # Fix: strftime with %b %Y can have extra space; safer to use:
-        if start_date:
-            start_date_display = start_date.strftime("%d %b %Y")
-        if end_date:
-            end_date_display = end_date.strftime("%d %b %Y")
+        start_date_display = start_date.strftime("%d %b %Y") if start_date else None
+        end_date_display = end_date.strftime("%d %b %Y") if end_date else None
 
+        # Render HTML template
         html_string = render_to_string('wallet/statement.html', {
             'user': user,
             'user_full_name': user_full_name,
@@ -130,15 +128,30 @@ class WalletStatementPDFView(APIView):
             'opening_balance': opening_balance,
             'closing_balance': closing_balance,
             'transactions': transactions,
-            # Pass pre-formatted strings — no need for |date in template
             'statement_date': statement_date,
             'start_date_display': start_date_display,
             'end_date_display': end_date_display,
         })
 
-        pdf_file = HTML(string=html_string).write_pdf()
+        # Generate PDF with metadata and font support
+        font_config = FontConfiguration()
+        html = HTML(string=html_string)
+        pdf_file = html.write_pdf(
+            stylesheets=[],  # Add CSS files here if needed, e.g. [CSS(settings.STATICFILES_DIRS[0] + '/css/statement.css')]
+            font_config=font_config,
+            presentational_hints=True,
+            metadata={
+                'title': f'Qezzy {wallet_type.title()} Wallet Statement',
+                'author': 'Qezzy Kenya',
+                'subject': f'Account statement for {user_full_name}',
+                'keywords': 'qezzy,kenya,statement,wallet,finance',
+                'creator': 'Qezzy Backend System',
+                'producer': 'WeasyPrint + Django',
+            }
+        )
 
+        # Prepare HTTP response
+        filename = f"Qezzy_{wallet_type}_statement_{now_utc.strftime('%Y%m%d')}.pdf"
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        filename = f"Qezzy_{wallet_type}_statement_{datetime.now().strftime('%Y%m%d')}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
