@@ -124,15 +124,16 @@ const WalletPage = () => {
       const day = now.getDay();
       const mondayOffset = day === 0 ? -6 : 1 - day;
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset);
-      end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+      const sunday = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+      end = sunday > today ? today : sunday;
     } else if (preset === 'month') {
       // This month
       start = new Date(now.getFullYear(), now.getMonth(), 1);
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      end = today; 
     } else if (preset === 'lastMonth') {
       // Last month
       start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      end = new Date(now.getFullYear(), now.getMonth(), 0);
+      end = new Date(now.getFullYear(), now.getMonth(), 0); 
     }
 
     setDateRange({
