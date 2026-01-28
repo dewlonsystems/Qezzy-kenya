@@ -1,0 +1,132 @@
+<!-- templates/emails/welcome_aboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome Aboard, {{ first_name }}!</title>
+  <style>
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-top: 4px solid #d4a017;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo {
+      font-weight: bold;
+      font-size: 28px;
+      color: #8B5E00;
+      letter-spacing: -0.5px;
+    }
+    .icon-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      margin: 12px 0;
+      gap: 12px;
+    }
+    .feature-icon {
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 28px;
+      background-color: #d4a017;
+      color: white !important;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-top: 16px;
+      font-size: 16px;
+    }
+    .footer {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">Qezzy Kenya</div>
+      <h1 style="color: #8B5E00; font-size: 22px;">Welcome Aboard, {{ first_name }}!</h1>
+    </div>
+    
+    <div class="icon-container">
+      <!-- SVG Checkmark (green) -->
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" fill="#2e7d32"/>
+        <path d="M8 12L11 15L16 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="content" style="font-size: 16px; margin-bottom: 24px;">
+      <p><strong>Congratulations!</strong> Your account is now fully activated and ready to go.</p>
+      
+      <div style="background-color: #fdf9f0; border-left: 3px solid #d4a017; padding: 16px; margin: 20px 0; border-radius: 4px;">
+        <!-- Feature list with SVG icons -->
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" fill="#2e7d32"/>
+              <path d="M8 12L11 15L16 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>You’ve unlocked all earning features</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" fill="#2e7d32"/>
+              <path d="M8 12L11 15L16 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>KES 300 activation fee has been credited to your main wallet</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" fill="#2e7d32"/>
+              <path d="M8 12L11 15L16 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>You can now complete tasks and refer friends</div>
+        </div>
+      </div>
+
+      <p>Start exploring available tasks, share your referral code, and watch your earnings grow!</p>
+
+      <p style="text-align: center;">
+        <a href="https://qezzykenya.company" class="button">Go to Dashboard</a>
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>© {% now "Y" %} Qezzy Kenya. All rights reserved.<br>
+         Nairobi, Kenya | www.qezzykenya.company</p>
+    </div>
+  </div>
+</body>
+</html>

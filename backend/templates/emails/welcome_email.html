@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Qezzy!</title>
+  <title>Welcome to Qezzy Kenya</title>
   <style>
     body {
       font-family: Helvetica, Arial, sans-serif;
@@ -20,60 +20,92 @@
       padding: 30px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-top: 4px solid #d4a017; /* Amber accent from your statement */
     }
     .header {
       text-align: center;
       margin-bottom: 24px;
     }
-    .header h1 {
-      color: #2c3e50;
-      font-size: 24px;
-    }
     .logo {
       font-weight: bold;
       font-size: 28px;
-      color: #3498db; /* Use your brand color */
+      color: #8B5E00; /* Dark amber — matches your PDF header */
+      letter-spacing: -0.5px;
     }
     .content {
       font-size: 16px;
       margin-bottom: 24px;
     }
-    .footer {
-      font-size: 14px;
-      color: #7f8c8d;
+    .highlight-box {
+      background-color: #fdf9f0; /* Light amber tint from wallet box */
+      border: 1px solid #f0e0c0;
+      border-radius: 6px;
+      padding: 16px;
+      margin: 20px 0;
       text-align: center;
-      margin-top: 30px;
-      border-top: 1px solid #eee;
-      padding-top: 20px;
+    }
+    .highlight-box h3 {
+      color: #8B5E00;
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    .amount {
+      font-size: 22px;
+      font-weight: bold;
+      color: #c62828; /* Debit red — consistent with statement */
+      margin: 10px 0;
     }
     .button {
       display: inline-block;
-      padding: 12px 24px;
-      background-color: #3498db;
+      padding: 12px 28px;
+      background-color: #d4a017; /* Amber button */
       color: white !important;
       text-decoration: none;
       border-radius: 4px;
       font-weight: bold;
       margin-top: 16px;
+      font-size: 16px;
+    }
+    .footer {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">Qezzy</div>
-      <h1>Welcome aboard, {{ first_name }}!</h1>
+      <div class="logo">Qezzy Kenya</div>
+      <h1 style="color: #8B5E00; font-size: 22px;">Welcome, {{ first_name }}!</h1>
     </div>
     <div class="content">
-      <p>We're absolutely delighted to have you with us!</p>
-      <p>Your account is now fully set up and ready to go. You can start exploring opportunities, managing your profile, and tracking your earnings anytime.</p>
-      <p>If you ever need help, our support team is just a message away.</p>
-      <a href="https://qezzykenya.company" class="button">Visit Your Dashboard</a>
+      <p>Congratulations! You've successfully completed your onboarding.</p>
+
+      <div class="highlight-box">
+        <h3>Next: Activate Your Account</h3>
+        <p>To unlock all earning features, please make a one-time activation payment of:</p>
+        <div class="amount">KES 300</div>
+        <p>This verification fee helps us keep spam users out. The full amount will be credited to your main wallet and can be withdrawn on the next payout date along with your earnings.</p>
+      </div>
+
+      <p>Once activated, you’ll be able to:</p>
+      <ul>
+        <li>Complete paid tasks tailored for Kenya</li>
+        <li>Earn KES 50 for every friend who activates</li>
+        <li>Withdraw instantly via M-Pesa</li>
+      </ul>
+
+      <p style="text-align: center;">
+        <a href="https://qezzykenya.company" class="button">Activate Now</a>
+      </p>
     </div>
     <div class="footer">
-      <p>© {% now "Y" %} Qezzy. All rights reserved.<br>
-         qezzykenya.company<br>
-         Nairobi, Kenya</p>
+      <p>© {% now "Y" %} Qezzy Kenya. All rights reserved.<br>
+         Nairobi, Kenya | www.qezzykenya.company</p>
     </div>
   </div>
 </body>

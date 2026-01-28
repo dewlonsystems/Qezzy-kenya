@@ -13,6 +13,7 @@ from users.models import User
 from referrals.models import ReferralTransaction
 from wallets.utils import create_transaction
 from django.conf import settings
+from users.utils import send_welcome_aboard_email
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,11 @@ class DarajaCallbackView(APIView):
                     user = payment.user
                     user.is_active = True
                     user.save()
+
+                    try:
+                        send_welcome_aboard_email(user)
+                    except Exception as e:
+                        logger.warning(f"Failed to send welcome aboard email to {user.email}: {e}")
 
                     # Update payment
                     payment.status = 'completed'

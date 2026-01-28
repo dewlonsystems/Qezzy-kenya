@@ -29,3 +29,28 @@ def send_welcome_email(user):
     except Exception as e:
         # In production, use logging instead of print
         print(f"Failed to send welcome email to {user.email}: {e}")
+
+def send_welcome_aboard_email(user):
+    """
+    Send 'Welcome Aboard' email after successful activation.
+    """
+    subject = "Welcome Aboard! Your Qezzy Account Is Active"
+    context = {
+        'first_name': user.first_name.title(),
+    }
+    
+    html_content = render_to_string('emails/welcome_aboard.html', context)
+    text_content = strip_tags(html_content)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email]
+    )
+    msg.attach_alternative(html_content, "text/html")
+    
+    try:
+        msg.send()
+    except Exception as e:
+        print(f"Failed to send welcome aboard email to {user.email}: {e}")
