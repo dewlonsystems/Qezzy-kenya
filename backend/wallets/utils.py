@@ -48,28 +48,26 @@ def create_transaction(user, wallet_type, transaction_type, amount, description=
         )
 
 
-def generate_statement_pdf(user, wallet_type='main', start_date=None, end_date=None):
+# wallets/utils.py — UPDATED generate_statement_pdf
+
+def generate_statement_pdf(user, wallet_type='main', start_date=None, end_date=None, password=None):
     """
-    Generate a branded PDF account statement for the user.
-    
-    Args:
-        user: User instance
-        wallet_type: 'main' or 'referral'
-        start_date: date object or None
-        end_date: date object or None
-    
-    Returns:
-        BytesIO: PDF content as an in-memory byte stream
+    Generate a branded PDF account statement.
+    If password is provided, the PDF will be encrypted.
     """
     from django.utils.dateparse import parse_date
+    from weasyprint import HTML
+    from weasyprint.text.fonts import FontConfiguration
+    from io import BytesIO
+    from pypdf import PdfWriter, PdfReader
 
-    # Handle string dates if passed
+    # Handle date parsing
     if isinstance(start_date, str):
         start_date = parse_date(start_date)
     if isinstance(end_date, str):
         end_date = parse_date(end_date)
 
-    # Fetch completed transactions in range
+    # Fetch transactions...
     transactions_qs = WalletTransaction.objects.filter(
         user=user,
         wallet_type=wallet_type,
@@ -83,7 +81,6 @@ def generate_statement_pdf(user, wallet_type='main', start_date=None, end_date=N
 
     transactions = list(transactions_qs)
 
-    # Calculate opening and closing balances
     if transactions:
         first_tx = transactions[0]
         prior_tx = WalletTransaction.objects.filter(
@@ -98,20 +95,18 @@ def generate_statement_pdf(user, wallet_type='main', start_date=None, end_date=N
         opening_balance = Decimal('0.00')
         closing_balance = Decimal('0.00')
 
-    # Format user's full name
+    # User name
     first_name = getattr(user, 'first_name', '') or ''
     last_name = getattr(user, 'last_name', '') or ''
-    user_full_name = f"{first_name} {last_name}".strip()
-    if not user_full_name:
-        user_full_name = user.email
+    user_full_name = f"{first_name} {last_name}".strip() or user.email
 
-    # Format dates for display
+    # Dates
     now_utc = datetime.now(timezone.utc)
-    statement_date = now_utc.strftime("%d %b %Y")  # e.g., "28 Jan 2026"
+    statement_date = now_utc.strftime("%d %b %Y")
     start_date_display = start_date.strftime("%d %b %Y") if start_date else None
     end_date_display = end_date.strftime("%d %b %Y") if end_date else None
 
-    # Render HTML template
+    # Render HTML
     html_string = render_to_string('wallet/statement.html', {
         'user': user,
         'user_full_name': user_full_name,
@@ -124,7 +119,7 @@ def generate_statement_pdf(user, wallet_type='main', start_date=None, end_date=N
         'end_date_display': end_date_display,
     })
 
-    # Generate PDF
+    # Generate PDF bytes
     font_config = FontConfiguration()
     pdf_bytes = HTML(string=html_string).write_pdf(
         font_config=font_config,
@@ -132,9 +127,23 @@ def generate_statement_pdf(user, wallet_type='main', start_date=None, end_date=N
         metadata={
             'title': f'Qezzy {wallet_type.title()} Wallet Statement',
             'author': 'Qezzy Kenya',
-            'subject': f'Account statement for {user_full_name}',
-            'creator': 'Qezzy Backend System',
         }
     )
 
+    # 🔒 Apply password protection if requested
+    if password:
+        reader = PdfReader(BytesIO(pdf_bytes))
+        writer = PdfWriter()
+
+        for page in reader.pages:
+            writer.add_page(page)
+
+        writer.encrypt(password)
+
+        encrypted_buffer = BytesIO()
+        writer.write(encrypted_buffer)
+        encrypted_buffer.seek(0)
+        return encrypted_buffer
+
+    # Return unencrypted PDF
     return BytesIO(pdf_bytes)

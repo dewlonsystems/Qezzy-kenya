@@ -20,6 +20,7 @@ psycopg2-binary==2.9.11
 pyasn1==0.6.1
 pycparser==2.23
 pydyf==0.12.1
+pypdf-6.6.2
 pyphen==0.17.2
 python-decouple==3.8
 python-jose==3.5.0
