@@ -175,6 +175,29 @@ const WalletPage = () => {
     }
   };
 
+  // ✅ NEW: Handle emailing the statement
+  const handleEmailStatement = async (
+    walletType: 'main' | 'referral',
+    startDate: string | null,
+    endDate: string | null
+  ) => {
+    try {
+      showToast('Sending statement to your email...', 'info');
+
+      await api.post('/wallets/statement/email/', {
+        wallet: walletType,
+        start_date: startDate,
+        end_date: endDate,
+      });
+
+      showToast('Statement emailed successfully!', 'success');
+    } catch (err: any) {
+      console.error('Failed to email statement:', err);
+      const message = err.response?.data?.error || 'Failed to send statement. Please try again.';
+      showToast(message, 'error');
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -773,7 +796,7 @@ const WalletPage = () => {
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* ✅ UPDATED: Three Action Buttons */}
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsStatementModalOpen(false)}
@@ -781,9 +804,25 @@ const WalletPage = () => {
                 >
                   Cancel
                 </button>
+                
                 <button
-                  onClick={() => {
-                    handleDownloadStatementWithRange(selectedWalletType, dateRange.start, dateRange.end);
+                  onClick={async () => {
+                    await handleEmailStatement(selectedWalletType, dateRange.start, dateRange.end);
+                    setIsStatementModalOpen(false);
+                  }}
+                  disabled={!dateRange.start || !dateRange.end}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium ${
+                    (!dateRange.start || !dateRange.end)
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:opacity-90'
+                  }`}
+                >
+                  Email
+                </button>
+
+                <button
+                  onClick={async () => {
+                    await handleDownloadStatementWithRange(selectedWalletType, dateRange.start, dateRange.end);
                     setIsStatementModalOpen(false);
                   }}
                   disabled={!dateRange.start || !dateRange.end}
