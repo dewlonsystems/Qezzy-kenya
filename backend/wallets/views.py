@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
 from .models import WalletTransaction
+from users.utils import send_statement_email
 
 
 class WalletOverviewView(APIView):
@@ -155,3 +156,33 @@ class WalletStatementPDFView(APIView):
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+    
+# wallets/views.py — ADD AT THE BOTTOM
+
+class EmailStatementView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        wallet_type = request.data.get('wallet', 'main')
+        start_date_str = request.data.get('start_date')  # YYYY-MM-DD
+        end_date_str = request.data.get('end_date')      # YYYY-MM-DD
+
+        if wallet_type not in ['main', 'referral']:
+            return Response({'error': 'Invalid wallet type'}, status=400)
+
+        from django.utils.dateparse import parse_date
+        start_date = parse_date(start_date_str) if start_date_str else None
+        end_date = parse_date(end_date_str) if end_date_str else None
+
+        from users.utils import send_statement_email
+        try:
+            send_statement_email(
+                user=user,
+                wallet_type=wallet_type,
+                start_date=start_date,
+                end_date=end_date
+            )
+            return Response({'message': 'Statement emailed successfully.'})
+        except Exception as e:
+            return Response({'error': 'Failed to send statement. Please try again.'}, status=500)
