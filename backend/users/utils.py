@@ -195,6 +195,7 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
 
 
 def send_task_assigned_email(user, task_title, reward, deadline):
+    print(f"[DEBUG] Preparing email for {user.email} about '{task_title}'")
     """
     Notify user when a new task is assigned.
     """
@@ -219,5 +220,6 @@ def send_task_assigned_email(user, task_title, reward, deadline):
 
     try:
         msg.send()
+        print(f"[DEBUG] Email sent successfully to {user.email}")
     except Exception as e:
         print(f"Failed to send task email to {user.email}: {e}")
