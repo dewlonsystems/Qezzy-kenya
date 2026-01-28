@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from users.models import User
 from referrals.models import ReferralTransaction
 from .models import OnboardingStep
+from users.utils import send_welcome_email
 
 # 🔥 Firebase token verification helper
 from jose import jwt
@@ -207,6 +208,7 @@ class PaymentDetailsView(APIView):
         if step.is_complete():
             user.is_onboarded = True
             user.save()
+            send_welcome_email(user)
 
         return Response({'message': 'Payment details saved successfully'})
 
