@@ -5,7 +5,6 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from users.models import User
 from jobs.models import SurveyCategory, SurveyQuestion, SurveyJob, DailyJobAssignment
-from users.utils import send_task_assigned_email  # 👈 NEW IMPORT
 from django.utils import timezone
 
 
@@ -89,9 +88,10 @@ class Command(BaseCommand):
                 )
 
             # 👇 SEND EMAIL FOR EACH ASSIGNED JOB
+            self.stdout.write(f"Preparing to send {len(generated_jobs)} email(s) to {user.email}")
             for job in generated_jobs:
                 try:
-                    # Set deadline: e.g., 72 hours from now
+                    from users.utils import send_task_assigned_email
                     deadline = timezone.now() + timezone.timedelta(hours=72)
                     send_task_assigned_email(
                         user=user,
@@ -99,9 +99,10 @@ class Command(BaseCommand):
                         reward=job.reward_kes,
                         deadline=deadline
                     )
+                    self.stdout.write(self.style.SUCCESS(f"    ✅ Email sent for '{job.title}'"))                                                         
                 except Exception as e:
                     self.stdout.write(
-                        self.style.WARNING(f"Failed to email {user.email} about job '{job.title}': {e}")
+                        self.style.ERROR(f"    ❌ Email failed for '{job.title}': {e}")
                     )
 
             self.stdout.write(
