@@ -1,7 +1,10 @@
+# admin.py
 from django.contrib import admin
 from django.db import transaction as db_transaction
 from django.contrib import messages
+from django.utils import timezone
 from .models import WithdrawalRequest, SystemSetting
+from .utils import notify_user_withdrawal_completed
 
 
 @admin.register(SystemSetting)
@@ -66,6 +69,15 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
                 tx = WalletTransaction.objects.select_for_update().get(pk=obj.linked_transaction_id)
                 tx.status = new_status
                 tx.save()  # Full save triggers balance update
+
+            # 👇 SEND EMAIL IF TRANSITIONED TO 'COMPLETED'
+            if new_status == 'completed' and old_status != 'completed':
+                # Ensure processed_at is set
+                if not obj.processed_at:
+                    obj.processed_at = timezone.now()
+                    obj.save(update_fields=['processed_at'])
+                # Send notification email
+                notify_user_withdrawal_completed(obj)
 
     def user_email(self, obj):
         return obj.user.email

@@ -13,6 +13,7 @@ from .daraja_payout import send_b2c_payment
 from wallets.utils import create_transaction
 from decimal import Decimal, InvalidOperation
 import json
+from users.utils import send_withdrawal_completed_email
 
 logger = logging.getLogger(__name__)
 
@@ -255,6 +256,18 @@ def daraja_b2c_result(request):
             if withdrawal.linked_transaction:
                 withdrawal.linked_transaction.status = 'completed'
                 withdrawal.linked_transaction.save(update_fields=['status'])
+
+            try:
+                destination = withdrawal.mobile_phone if withdrawal.method == 'mobile' else f"{withdrawal.bank_name} ({withdrawal.account_number})"
+                send_withdrawal_completed_email(
+                    user=withdrawal.user,
+                    amount=withdrawal.amount,
+                    method=withdrawal.method,
+                    destination=destination,
+                    processed_at=withdrawal.processed_at
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send withdrawal email to {withdrawal.user.email}: {e}")
             
             logger.info(f"B2C withdrawal {withdrawal.id} completed successfully. Transaction ID: {result.get('TransactionID')}")
         else:

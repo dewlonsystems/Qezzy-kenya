@@ -1,0 +1,114 @@
+<!-- templates/emails/withdrawal_completed.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Withdrawal Processed – Qezzy Kenya</title>
+  <style>
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-top: 4px solid #d4a017;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo {
+      font-weight: bold;
+      font-size: 28px;
+      color: #8B5E00;
+      letter-spacing: -0.5px;
+    }
+    .amount-box {
+      background-color: #fdf9f0;
+      border: 1px solid #f0e0c0;
+      border-radius: 6px;
+      padding: 20px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .amount-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .amount-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #c62828;
+      margin: 0;
+    }
+    .details {
+      margin: 20px 0;
+      padding: 12px;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .details div {
+      margin: 6px 0;
+    }
+    .details label {
+      display: inline-block;
+      width: 140px;
+      color: #666;
+      font-weight: 600;
+    }
+    .footer {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">Qezzy Kenya</div>
+      <h1 style="color: #8B5E00; font-size: 22px;">Withdrawal Processed</h1>
+    </div>
+
+    <p>Hi {{ first_name }},</p>
+
+    <p>Your withdrawal request has been successfully processed.</p>
+
+    <div class="amount-box">
+      <div class="amount-label">Amount Withdrawn</div>
+      <div class="amount-value">KES {{ amount }}</div>
+    </div>
+
+    <div class="details">
+      <div><label>Method:</label> {{ method_display }}</div>
+      <div><label>Destination:</label> {{ destination }}</div>
+      <div><label>Date Processed:</label> {{ processed_at }}</div>
+    </div>
+
+    {% if is_mobile %}
+      <p>The funds have been sent to your mobile number and should reflect in your M-Pesa wallet within minutes.</p>
+    {% else %}
+      <p>The funds have been sent to the bank account provided and should reflect within 24–48 hours.</p>
+    {% endif %}
+
+    <div class="footer">
+      <p>© {% now "Y" %} Qezzy Kenya. All rights reserved.<br>
+         Nairobi, Kenya | www.qezzykenya.company</p>
+    </div>
+  </div>
+</body>
+</html>
