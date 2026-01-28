@@ -3,7 +3,6 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from wallets.utils import generate_statement_pdf
 from datetime import datetime
 
 
@@ -97,6 +96,7 @@ def send_withdrawal_completed_email(user, amount, method, destination, processed
 
 
 def send_statement_email(user, wallet_type='main', start_date=None, end_date=None):
+    from wallets.utils import generate_statement_pdf
     """
     Generate a password-protected PDF statement and email it as an attachment.
     The password is NOT included in the email — only the logic to derive it.
@@ -193,7 +193,6 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
     except Exception as e:
         print(f"Failed to send statement email to {user.email}: {e}")
 
-# users/utils.py — ADD THIS FUNCTION
 
 def send_task_assigned_email(user, task_title, reward, deadline):
     """
