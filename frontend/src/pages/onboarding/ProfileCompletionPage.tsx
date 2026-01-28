@@ -66,11 +66,35 @@ const isValidHouseNumber = (value: string): boolean => /^[a-zA-Z0-9\s\-\/]+$/u.t
 const isValidZipCode = (value: string): boolean => /^\d{1,5}$/.test(value);
 const isValidTown = (value: string): boolean => /^[a-zA-Z\s]+$/u.test(value) && value.trim().length > 0;
 
+// Validation mapping
+const fieldValidators: Record<string, (value: string) => boolean> = {
+  first_name: isValidName,
+  last_name: isValidName,
+  phone_number: (v) => isValidPhoneNumber(v),
+  street: isValidStreet,
+  house_number: isValidHouseNumber,
+  zip_code: isValidZipCode,
+  town: isValidTown,
+  skills: isValidSkills,
+  referral_code: isValidReferralCode,
+};
+
+const fieldErrorMessages: Record<string, string> = {
+  first_name: 'Only letters, spaces, hyphens, or apostrophes are allowed.',
+  last_name: 'Only letters, spaces, hyphens, or apostrophes are allowed.',
+  phone_number: 'Phone must be 10 digits, starting with 07 or 01 (e.g., 0712345678).',
+  street: 'Only letters, numbers, spaces, or basic punctuation (.,#-) are allowed.',
+  house_number: 'Can contain letters, numbers, spaces, hyphens, or slashes.',
+  zip_code: 'Must be 1–5 digits (numbers only).',
+  town: 'Only letters and spaces are allowed.',
+  skills: 'Only letters, spaces, and commas are allowed.',
+  referral_code: 'Must be 1–8 alphanumeric characters.',
+};
+
 const ProfileCompletionPage = () => {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
 
-  // Determine if we have a referral from link
   const hasReferralFromLink = !!sessionStorage.getItem('referral_code');
 
   const [formData, setFormData] = useState({
@@ -92,46 +116,46 @@ const ProfileCompletionPage = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
+    let processedValue = value;
+
+    // For phone: allow formatting chars during typing but validate clean number
     if (name === 'phone_number') {
-      if (/^[0-9\s\-]*$/.test(value)) {
-        setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name]) {
-          setErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors[name];
-            return newErrors;
-          });
-        }
-      }
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-      if (errors[name]) {
-        setErrors(prev => {
-          const newErrors = { ...prev };
+      // Allow digits, spaces, hyphens for UX, but block other chars
+      if (!/^[0-9\s\-]*$/.test(value)) return;
+      processedValue = value;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+
+    // Real-time validation
+    const validator = fieldValidators[name];
+    if (validator) {
+      // Clean phone for validation logic
+      const cleanValue =
+        name === 'phone_number' ? processedValue.replace(/\D/g, '') : processedValue;
+
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        if (!validator(cleanValue)) {
+          newErrors[name] = fieldErrorMessages[name];
+        } else {
           delete newErrors[name];
-          return newErrors;
-        });
-      }
+        }
+        return newErrors;
+      });
     }
   };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!isValidName(formData.first_name)) newErrors.first_name = 'First name must contain only letters, spaces, hyphens, or apostrophes.';
-    if (!isValidName(formData.last_name)) newErrors.last_name = 'Last name must contain only letters, spaces, hyphens, or apostrophes.';
-
-    const cleanPhone = formData.phone_number.replace(/\D/g, '');
-    if (!isValidPhoneNumber(cleanPhone)) {
-      newErrors.phone_number = 'Phone must be 10 digits, starting with 07 or 01 (e.g., 0712345678).';
-    }
-
-    if (!isValidStreet(formData.street)) newErrors.street = 'Street must contain only letters, numbers, spaces, or basic punctuation (.,#-).';
-    if (!isValidHouseNumber(formData.house_number)) newErrors.house_number = 'House number can contain letters, numbers, spaces, hyphens, or slashes.';
-    if (!isValidZipCode(formData.zip_code)) newErrors.zip_code = 'ZIP code must be 1–5 digits (numbers only).';
-    if (!isValidTown(formData.town)) newErrors.town = 'Town must contain only letters and spaces.';
-    if (!isValidSkills(formData.skills)) newErrors.skills = 'Skills must contain only letters, spaces, and commas.';
-    if (!isValidReferralCode(formData.referral_code)) newErrors.referral_code = 'Referral code must be 1–8 alphanumeric characters.';
+    Object.entries(fieldValidators).forEach(([field, validator]) => {
+      const rawValue = formData[field as keyof typeof formData] as string;
+      const cleanValue = field === 'phone_number' ? rawValue.replace(/\D/g, '') : rawValue;
+      if (!validator(cleanValue)) {
+        newErrors[field] = fieldErrorMessages[field];
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -150,7 +174,10 @@ const ProfileCompletionPage = () => {
 
     try {
       const cleanPhone = formData.phone_number.replace(/\D/g, '');
-      const skills = formData.skills.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const skills = formData.skills
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
       const payload = {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
@@ -165,11 +192,13 @@ const ProfileCompletionPage = () => {
 
       await api.post('/onboarding/profile/', payload);
       await refreshUser();
-      sessionStorage.removeItem('referral_code'); // Clear after successful use
+      sessionStorage.removeItem('referral_code');
       navigate('/onboarding/payment');
     } catch (err: any) {
       console.error('Profile submission error:', err);
-      setGeneralError(err.response?.data?.error || 'Failed to save profile. Please try again.');
+      setGeneralError(
+        err.response?.data?.error || 'Failed to save profile. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -196,9 +225,7 @@ const ProfileCompletionPage = () => {
             <UserIcon className="w-8 h-8 text-amber-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800">Complete Your Profile</h1>
-          <p className="text-gray-600">
-            Tell us about yourself to personalize your experience
-          </p>
+          <p className="text-gray-600">Tell us about yourself to personalize your experience</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-lg">
@@ -212,7 +239,10 @@ const ProfileCompletionPage = () => {
             {/* Name Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label
+                  htmlFor="first_name"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+                >
                   <UserIcon className="w-4 h-4 text-gray-500" />
                   First Name *
                 </label>
@@ -232,7 +262,9 @@ const ProfileCompletionPage = () => {
                 )}
               </div>
               <div>
-                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Last Name *
+                </label>
                 <input
                   id="last_name"
                   name="last_name"
@@ -252,7 +284,10 @@ const ProfileCompletionPage = () => {
 
             {/* Phone */}
             <div>
-              <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <label
+                htmlFor="phone_number"
+                className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+              >
                 <PhoneIcon className="w-4 h-4 text-gray-500" />
                 Phone Number *
               </label>
@@ -277,7 +312,10 @@ const ProfileCompletionPage = () => {
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Address</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <label
+                    htmlFor="street"
+                    className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"
+                  >
                     <MapPinIcon className="w-4 h-4 text-gray-500" />
                     Street/Road *
                   </label>
@@ -297,7 +335,9 @@ const ProfileCompletionPage = () => {
                   )}
                 </div>
                 <div>
-                  <label htmlFor="house_number" className="block text-sm font-medium text-gray-700 mb-1">House Number *</label>
+                  <label htmlFor="house_number" className="block text-sm font-medium text-gray-700 mb-1">
+                    House Number *
+                  </label>
                   <input
                     id="house_number"
                     name="house_number"
@@ -316,7 +356,9 @@ const ProfileCompletionPage = () => {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <div>
-                  <label htmlFor="zip_code" className="block text-sm font-medium text-gray-700 mb-1">ZIP Code *</label>
+                  <label htmlFor="zip_code" className="block text-sm font-medium text-gray-700 mb-1">
+                    ZIP Code *
+                  </label>
                   <input
                     id="zip_code"
                     name="zip_code"
@@ -333,7 +375,9 @@ const ProfileCompletionPage = () => {
                   )}
                 </div>
                 <div>
-                  <label htmlFor="town" className="block text-sm font-medium text-gray-700 mb-1">Town *</label>
+                  <label htmlFor="town" className="block text-sm font-medium text-gray-700 mb-1">
+                    Town *
+                  </label>
                   <input
                     id="town"
                     name="town"
@@ -376,7 +420,10 @@ const ProfileCompletionPage = () => {
             {/* Referral Code */}
             <div className="relative">
               <div className="p-4 rounded-xl border border-amber-200 bg-amber-50">
-                <label htmlFor="referral_code" className="block text-sm font-medium text-amber-800 mb-2 flex items-center gap-2">
+                <label
+                  htmlFor="referral_code"
+                  className="block text-sm font-medium text-amber-800 mb-2 flex items-center gap-2"
+                >
                   <GiftIcon className="w-4 h-4 text-amber-600" />
                   Referral Code {hasReferralFromLink ? '(Applied)' : '(Optional)'}
                 </label>
@@ -389,15 +436,15 @@ const ProfileCompletionPage = () => {
                   id="referral_code"
                   name="referral_code"
                   type="text"
-                  placeholder={hasReferralFromLink ? "Referred by a friend" : "e.g., ABC12345"}
+                  placeholder={hasReferralFromLink ? 'Referred by a friend' : 'e.g., ABC12345'}
                   value={formData.referral_code}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:outline-none ${
                     hasReferralFromLink
                       ? 'bg-amber-100 border-amber-300 cursor-not-allowed'
                       : errors.referral_code
-                        ? 'border-red-500'
-                        : 'border-amber-300 focus:ring-amber-500'
+                      ? 'border-red-500'
+                      : 'border-amber-300 focus:ring-amber-500'
                   }`}
                   maxLength={8}
                   readOnly={hasReferralFromLink}
