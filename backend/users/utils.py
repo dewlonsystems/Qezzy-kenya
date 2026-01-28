@@ -3,18 +3,22 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
+from wallets.utils import generate_statement_pdf
+from datetime import datetime
+
 
 def send_welcome_email(user):
     """
-    Send a welcome email using an HTML template.
+    Sent immediately after onboarding completion.
+    Prompts user to activate account with KES 300.
     """
-    subject = "Welcome to Qezzy!"
+    subject = "Complete Your Qezzy Account Activation"
     context = {
         'first_name': user.first_name.title(),
     }
     
     html_content = render_to_string('emails/welcome_email.html', context)
-    text_content = strip_tags(html_content)  # Fallback for plain-text clients
+    text_content = strip_tags(html_content)
 
     msg = EmailMultiAlternatives(
         subject=subject,
@@ -27,12 +31,12 @@ def send_welcome_email(user):
     try:
         msg.send()
     except Exception as e:
-        # In production, use logging instead of print
-        print(f"Failed to send welcome email to {user.email}: {e}")
+        print(f"Failed to send activation prompt email to {user.email}: {e}")
+
 
 def send_welcome_aboard_email(user):
     """
-    Send 'Welcome Aboard' email after successful activation.
+    Sent after successful activation payment (account is now active).
     """
     subject = "Welcome Aboard! Your Qezzy Account Is Active"
     context = {
@@ -55,12 +59,12 @@ def send_welcome_aboard_email(user):
     except Exception as e:
         print(f"Failed to send welcome aboard email to {user.email}: {e}")
 
-def send_withdrawal_completed_email(user, amount, method, destination, processed_at):
-    from django.core.mail import EmailMultiAlternatives
-    from django.template.loader import render_to_string
-    from django.utils.html import strip_tags
-    from django.conf import settings
 
+def send_withdrawal_completed_email(user, amount, method, destination, processed_at):
+    """
+    Sent when a withdrawal (mobile or bank) is marked as completed.
+    Shows method-specific timing info.
+    """
     # Determine display values
     is_mobile = (method == 'mobile')
     method_display = 'M-Pesa' if is_mobile else 'Bank Transfer'
@@ -91,60 +95,52 @@ def send_withdrawal_completed_email(user, amount, method, destination, processed
     except Exception as e:
         print(f"Failed to send withdrawal email to {user.email}: {e}")
 
-# users/utils.py — ADD THIS
-
-from django.core.mail import EmailMultiAlternatives
-from django.conf import settings
-from wallets.utils import generate_statement_pdf
-from datetime import datetime
-
-# users/utils.py — inside send_statement_email
 
 def send_statement_email(user, wallet_type='main', start_date=None, end_date=None):
+    """
+    Generate a password-protected PDF statement and email it as an attachment.
+    The password is NOT included in the email — only the logic to derive it.
+    """
     try:
-        # 🔑 GENERATE PASSWORD: First 2 of last name (uppercase) + last 4 of phone
+        # 🔑 Generate password for PDF encryption (NOT sent in email)
         last_name = (getattr(user, 'last_name', '') or '').strip()
         phone = (getattr(user, 'phone_number', '') or '').strip()
 
         if not last_name or len(last_name) < 2:
-            # Fallback: use first 2 of email prefix
             email_prefix = user.email.split('@')[0] if '@' in user.email else user.email
             last_name_part = email_prefix[:2].upper()
         else:
             last_name_part = last_name[:2].upper()
 
-        if not phone or len(phone) < 4:
-            raise ValueError("User must have a valid phone number for statement password")
-
-        # Normalize phone: remove non-digits, ensure it ends with digits
         digits_only = ''.join(filter(str.isdigit, phone))
         if len(digits_only) < 4:
             raise ValueError("Phone number must contain at least 4 digits")
-
         phone_part = digits_only[-4:]
-        password = f"{last_name_part}{phone_part}"  # e.g., MU5678
+        password = f"{last_name_part}{phone_part}"
 
-        # Generate ENCRYPTED PDF
+        # Generate encrypted PDF
         pdf_buffer = generate_statement_pdf(
             user=user,
             wallet_type=wallet_type,
             start_date=start_date,
             end_date=end_date,
-            password=password  # 👈 PASS PASSWORD HERE
+            password=password
         )
 
         # Filename
         date_str = datetime.now().strftime("%Y%m%d")
         filename = f"Qezzy_{wallet_type}_Statement_{date_str}.pdf"
 
-        # Email body (now includes password instructions!)
+        # ✅ EMAIL BODY — DESCRIBE LOGIC, NEVER REVEAL PASSWORD
         subject = f"Your Qezzy {wallet_type.title()} Wallet Statement"
-        
+
         plain_body = (
             f"Hi {user.first_name.title()},\n\n"
-            "Your account statement is attached as a password-protected PDF.\n\n"
-            f"Password: {password}\n"
-            "(First 2 letters of your last name + last 4 digits of your phone number)\n\n"
+            "Your account statement is attached as a password-protected PDF for security.\n\n"
+            "To open it, use a password formed from:\n"
+            "- The first two letters of your last name (in uppercase), and\n"
+            "- The last four digits of your registered phone number.\n\n"
+            "Example: If your name is Agnes Muma and phone is 0712345678, your password is MU5678.\n\n"
             "Thank you for using Qezzy!\n\n"
             "— The Qezzy Team"
         )
@@ -159,17 +155,21 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
             
             <p>Hi {user.first_name.title()},</p>
             
-            <p>Your {wallet_type} wallet statement is attached as a <strong>password-protected PDF</strong>.</p>
+            <p>Your {wallet_type} wallet statement is attached as a <strong>password-protected PDF</strong> for your security.</p>
 
-            <div style="background-color: #fdf9f0; border: 1px solid #f0e0c0; border-radius: 6px; padding: 16px; margin: 20px 0; text-align: center;">
-              <div style="font-size: 18px; font-weight: bold; color: #8B5E00; margin-bottom: 8px;">PDF Password</div>
-              <div style="font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #c62828;">{password}</div>
-              <div style="color: #666; font-size: 14px; margin-top: 8px;">
-                (First 2 letters of your last name + last 4 digits of your phone number)
-              </div>
+            <div style="background-color: #fdf9f0; border: 1px solid #f0e0c0; border-radius: 6px; padding: 16px; margin: 20px 0;">
+              <p><strong>How to open the PDF:</strong></p>
+              <p>Your password is a combination of:</p>
+              <ul style="margin: 12px 0 12px 20px; padding-left: 0;">
+                <li>The <strong>first two letters of your last name</strong> (in uppercase)</li>
+                <li>The <strong>last four digits of your registered phone number</strong></li>
+              </ul>
+              <p style="font-style: italic; color: #666; margin-top: 12px;">
+                Example: If your name is <em>Agnes Muma</em> and phone is <em>0712345678</em>, your password is <strong>MU5678</strong>.
+              </p>
             </div>
 
-            <p>This ensures only you can access your financial details.</p>
+            <p>Only you can access this document — keep it secure.</p>
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
               © {datetime.now().year} Qezzy Kenya. All rights reserved.<br>
@@ -179,6 +179,7 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
         </div>
         """
 
+        # Create and send email with attachment
         msg = EmailMultiAlternatives(
             subject=subject,
             body=plain_body,
