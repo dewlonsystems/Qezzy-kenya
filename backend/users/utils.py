@@ -192,3 +192,33 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
 
     except Exception as e:
         print(f"Failed to send statement email to {user.email}: {e}")
+
+# users/utils.py — ADD THIS FUNCTION
+
+def send_task_assigned_email(user, task_title, reward, deadline):
+    """
+    Notify user when a new task is assigned.
+    """
+    subject = f"New Task: {task_title} – Qezzy Kenya"
+    context = {
+        'first_name': user.first_name.title(),
+        'task_title': task_title,
+        'reward': f"{reward:.2f}",
+        'deadline': deadline.strftime("%d %b %Y at %H:%M") if hasattr(deadline, 'strftime') else str(deadline),
+    }
+
+    html_content = render_to_string('emails/task_assigned.html', context)
+    text_content = strip_tags(html_content)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email]
+    )
+    msg.attach_alternative(html_content, "text/html")
+
+    try:
+        msg.send()
+    except Exception as e:
+        print(f"Failed to send task email to {user.email}: {e}")

@@ -1,0 +1,92 @@
+<!-- templates/emails/task_assigned.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Task Assigned – Qezzy Kenya</title>
+  <style>
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-top: 4px solid #d4a017;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo {
+      font-weight: bold;
+      font-size: 28px;
+      color: #8B5E00;
+      letter-spacing: -0.5px;
+    }
+    .task-box {
+      background-color: #fdf9f0;
+      border: 1px solid #f0e0c0;
+      border-radius: 6px;
+      padding: 16px;
+      margin: 20px 0;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 28px;
+      background-color: #d4a017;
+      color: white !important;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-top: 16px;
+      font-size: 16px;
+    }
+    .footer {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">Qezzy Kenya</div>
+      <h1 style="color: #8B5E00; font-size: 22px;">New Task Assigned!</h1>
+    </div>
+
+    <p>Hi {{ first_name }},</p>
+
+    <p>You’ve been assigned a new task:</p>
+
+    <div class="task-box">
+      <h3>{{ task_title }}</h3>
+      <p><strong>Reward:</strong> KES {{ reward }}</p>
+      <p><strong>Deadline:</strong> {{ deadline }}</p>
+    </div>
+
+    <p>Complete this task to earn your reward. Good luck!</p>
+
+    <p style="text-align: center;">
+      <a href="https://qezzykenya.company/tasks" class="button">View Tasks</a>
+    </p>
+
+    <div class="footer">
+      <p>© {% now "Y" %} Qezzy Kenya. All rights reserved.<br>
+         Nairobi, Kenya | www.qezzykenya.company</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,9 +1,12 @@
+# jobs/management/commands/generate_daily_survey_jobs.py
 import random
 from datetime import date
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from users.models import User
 from jobs.models import SurveyCategory, SurveyQuestion, SurveyJob, DailyJobAssignment
+from users.utils import send_task_assigned_email  # 👈 NEW IMPORT
+from django.utils import timezone
 
 
 class Command(BaseCommand):
@@ -21,25 +24,22 @@ class Command(BaseCommand):
 
             # --- Weighted job assignment logic ---
             roll = random.random()
-            if roll < 0.65:
-                num_jobs = 1          # 65%: one job
-            elif roll < 0.85:
-                num_jobs = 0          # 20%: no job
+            if roll < 0.75:
+                num_jobs = 1 
+            elif roll < 0.95:
+                num_jobs = 0
             else:
-                num_jobs = random.randint(2, 4)  # 15%: 2 to 4 jobs
+                num_jobs = random.randint(2, 4)
 
-            # Handle zero-job case early
             if num_jobs == 0:
                 with transaction.atomic():
                     DailyJobAssignment.objects.create(user=user, date=today, job_count=0)
                 self.stdout.write(f"Assigned 0 jobs to {user.email}")
                 continue
 
-            # Proceed with job generation
             categories = list(SurveyCategory.objects.all())
             if not categories:
                 self.stdout.write("No survey categories found. Aborting job generation.")
-                # Still mark as assigned to avoid repeated attempts
                 DailyJobAssignment.objects.create(user=user, date=today, job_count=0)
                 return
 
@@ -81,11 +81,28 @@ class Command(BaseCommand):
             with transaction.atomic():
                 for job in generated_jobs:
                     job.save()
+
                 DailyJobAssignment.objects.create(
                     user=user,
                     date=today,
                     job_count=len(generated_jobs)
                 )
+
+            # 👇 SEND EMAIL FOR EACH ASSIGNED JOB
+            for job in generated_jobs:
+                try:
+                    # Set deadline: e.g., 72 hours from now
+                    deadline = timezone.now() + timezone.timedelta(hours=72)
+                    send_task_assigned_email(
+                        user=user,
+                        task_title=job.title,
+                        reward=job.reward_kes,
+                        deadline=deadline
+                    )
+                except Exception as e:
+                    self.stdout.write(
+                        self.style.WARNING(f"Failed to email {user.email} about job '{job.title}': {e}")
+                    )
 
             self.stdout.write(
                 self.style.SUCCESS(
