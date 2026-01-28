@@ -90,3 +90,44 @@ def send_withdrawal_completed_email(user, amount, method, destination, processed
         msg.send()
     except Exception as e:
         print(f"Failed to send withdrawal email to {user.email}: {e}")
+
+# users/utils.py — ADD THIS
+
+from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
+from wallets.utils import generate_statement_pdf
+from datetime import datetime
+
+def send_statement_email(user, wallet_type='main', start_date=None, end_date=None):
+    """
+    Generate a PDF statement and email it as an attachment.
+    """
+    try:
+        # Generate PDF
+        pdf_buffer = generate_statement_pdf(user, wallet_type, start_date, end_date)
+        
+        # Filename
+        date_str = datetime.now().strftime("%Y%m%d")
+        filename = f"Qezzy_{wallet_type}_Statement_{date_str}.pdf"
+
+        # Email body
+        subject = f"Your Qezzy {wallet_type.title()} Wallet Statement"
+        body = (
+            f"Hi {user.first_name.title()},\n\n"
+            "Attached is your account statement from Qezzy Kenya.\n\n"
+            "Thank you for using our platform!\n\n"
+            "— The Qezzy Team"
+        )
+
+        # Create and send email
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email]
+        )
+        msg.attach(filename, pdf_buffer.getvalue(), 'application/pdf')
+        msg.send()
+
+    except Exception as e:
+        print(f"Failed to send statement email to {user.email}: {e}")
