@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import type { SupportTicket } from '../types';
+import { auth } from '../firebase'; 
 
 // ====== TYPED SVG ICONS ======
 const ArrowLeftIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
@@ -271,9 +272,13 @@ const SupportPage = () => {
     const connectWebSocket = async () => {
       try {
         // Get Firebase ID token
-        const token = await (window as any).auth.currentUser.getIdToken();
-        const API_URL = import.meta.env.VITE_API_URL || 'https://api.qezzykenya.company';
-        const wsUrl = `${API_URL.replace('http', 'ws')}/ws/support/?token=${token}`;
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          throw new Error('No authenticated user');
+        }
+        const token = await currentUser.getIdToken(); 
+        const API_URL = (import.meta.env.VITE_API_URL || 'https://api.qezzykenya.company').trim(); 
+        const wsUrl = `${API_URL.replace(/^http/, 'ws')}/ws/support/?token=${token}`;
         
         ws = new WebSocket(wsUrl);
         wsRef.current = ws;
