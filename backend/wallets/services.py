@@ -2,7 +2,7 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from .models import WalletTransaction
-from withdraws.models import WithdrawalRequest
+from withdrawals.models import WithdrawalRequest
 
 
 def reverse_completed_withdrawal(withdrawal_request, reversed_by_user, reason=""):
