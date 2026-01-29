@@ -1,4 +1,4 @@
-# withdrawals/views.py
+# withdraws/views.py
 import logging
 from datetime import date
 from django.db import transaction
@@ -64,7 +64,6 @@ class WithdrawalRequestView(APIView):
 
             # Enforce business rules
             today = date.today()
-            now = timezone.now()
 
             if wallet_type == 'main':
                 if today.day != 5:
@@ -79,15 +78,7 @@ class WithdrawalRequestView(APIView):
                 if existing:
                     return Response({'error': 'Withdrawal already requested this month'}, status=400)
 
-            # elif wallet_type == 'referral':
-                # last_withdrawal = WithdrawalRequest.objects.filter(
-                    # user=user,
-                    # wallet_type='referral',
-                    # status__in=['pending', 'completed'],
-                    # created_at__gte=now - timezone.timedelta(hours=24)
-               # ).first()
-                # if last_withdrawal:
-                    # return Response({'error': 'Referral withdrawal allowed once every 24 hours'}, status=400)
+            # ✅ REMOVED: 24-hour rule for referral wallet
 
             # Get payout details
             if method == 'mobile':
@@ -124,25 +115,36 @@ class WithdrawalRequestView(APIView):
                     logger.info(f"B2C API Response for withdrawal {withdrawal.id}: {daraja_resp}")
 
                     if daraja_resp and 'ConversationID' in daraja_resp:
+                        # ✅ Success: M-Pesa accepted the request → mark as processing
                         withdrawal.daraja_conversation_id = daraja_resp['ConversationID']
                         withdrawal.originator_conversation_id = originator_id
-                        withdrawal.status = 'processing'  # Intermediate state
+                        withdrawal.status = 'processing'
                         withdrawal.save(update_fields=[
                             'daraja_conversation_id', 'originator_conversation_id', 'status'
                         ])
                         logger.info(f"Withdrawal {withdrawal.id} sent to M-Pesa")
                     else:
+                        # ❌ Immediate failure (e.g., invalid credentials, blocked number)
                         error_msg = daraja_resp.get('error', 'Unknown error') if daraja_resp else 'No response'
                         logger.error(f"B2C immediate failure: {error_msg}")
                         withdrawal.status = 'failed'
                         withdrawal.save(update_fields=['status'])
-                        return Response({'error': f'Payout failed: {error_msg}'}, status=400)
+                        return Response({'error': f'Payout rejected: {error_msg}'}, status=400)
 
                 except Exception as e:
-                    logger.error(f"Daraja exception: {str(e)}", exc_info=True)
-                    withdrawal.status = 'failed'
+                    # ⚠️ CRITICAL FIX: Do NOT mark as failed here!
+                    # M-Pesa may have received the request even if we got an exception.
+                    logger.error(f"Daraja exception for withdrawal {withdrawal.id}: {str(e)}", exc_info=True)
+                    
+                    # Keep as 'processing' — final state will come from callback
+                    withdrawal.status = 'processing'
                     withdrawal.save(update_fields=['status'])
-                    return Response({'error': 'Payout service error'}, status=500)
+                    
+                    return Response({
+                        'message': 'Withdrawal request accepted. Processing with M-Pesa...',
+                        'request_id': withdrawal.id,
+                        'status': 'processing'
+                    }, status=202)  # Accepted
 
         return Response({
             'message': 'Withdrawal request submitted',
@@ -169,7 +171,6 @@ class WithdrawalHistoryView(APIView):
                 'reference_code': w.reference_code,
                 'created_at': w.created_at.isoformat(),
                 'processed_at': w.processed_at.isoformat() if w.processed_at else None,
-                # Optional: check if reversed
                 'is_reversed': WalletTransaction.objects.filter(
                     linked_withdrawal=w,
                     transaction_type='withdrawal_reversal'
@@ -271,9 +272,11 @@ def daraja_b2c_timeout(request):
 
         if withdrawal:
             with transaction.atomic():
-                withdrawal.status = 'failed'
+                # ⚠️ Do NOT mark as failed immediately — could still succeed!
+                # For now, mark for manual review
+                withdrawal.status = 'needs_review'
                 withdrawal.save(update_fields=['status'])
-                logger.info(f"Withdrawal {withdrawal.id} marked failed due to timeout")
+                logger.info(f"Withdrawal {withdrawal.id} marked for review due to timeout")
 
         return HttpResponse("OK", status=200)
 
