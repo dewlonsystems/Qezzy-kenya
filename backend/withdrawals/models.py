@@ -71,7 +71,7 @@ class WithdrawalRequest(models.Model):
     originator_conversation_id = models.CharField(max_length=20, blank=True, null=True)
     daraja_conversation_id = models.CharField(max_length=50, blank=True, null=True)
     
-    # NEW FIELDS
+    # NEW FIELDS — keep unique=True in model
     reference_code = models.CharField(max_length=20, unique=True, blank=True)
     mpesa_receipt_number = models.CharField(max_length=50, blank=True)
     
@@ -94,7 +94,7 @@ class WithdrawalRequest(models.Model):
     def save(self, *args, **kwargs):
         # Auto-generate reference code if not set
         if not self.reference_code:
-            self.reference_code = "QWW" + uuid.uuid4().hex[:6].upper()
+            self.reference_code = "WDR" + uuid.uuid4().hex[:6].upper()
 
         self.full_clean()
 
