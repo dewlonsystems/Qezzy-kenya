@@ -129,7 +129,7 @@ class WithdrawalRequestView(APIView):
                     withdrawal.save(update_fields=['status'])
                     return Response({'error': f'Payout rejected: {error_msg}'}, status=400)
                 else:
-                    # Success or ambiguous → mark as processing
+                    # Success or ambiguous → mark as pending
                     conv_id = (
                         daraja_resp.get('ConversationID') or
                         daraja_resp.get('Response', {}).get('ConversationID') or
@@ -137,7 +137,7 @@ class WithdrawalRequestView(APIView):
                     )
                     withdrawal.daraja_conversation_id = conv_id
                     withdrawal.originator_conversation_id = originator_id
-                    withdrawal.status = 'processing'
+                    withdrawal.status = 'pending'
                     withdrawal.save(update_fields=[
                         'daraja_conversation_id', 'originator_conversation_id', 'status'
                     ])
@@ -145,15 +145,15 @@ class WithdrawalRequestView(APIView):
 
             except Exception as e:
                 logger.error(f"Daraja exception for withdrawal {withdrawal.id}: {str(e)}", exc_info=True)
-                # Assume M-Pesa received it → keep as processing
-                withdrawal.status = 'processing'
+                # Assume M-Pesa received it → keep as pending
+                withdrawal.status = 'pending'
                 withdrawal.save(update_fields=['status'])
 
             # ALWAYS return 202 for mobile after M-Pesa call
             return Response({
-                'message': 'Withdrawal request accepted. Processing with M-Pesa...',
+                'message': 'Withdrawal request accepted. Pending with M-Pesa...',
                 'request_id': withdrawal.id,
-                'status': 'processing'
+                'status': 'pending'
             }, status=202)
 
         # Bank withdrawals (unchanged)
