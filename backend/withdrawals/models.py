@@ -2,14 +2,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from users.models import User
-from wallets.models import WalletTransaction
 import uuid
 
 
 class SystemSetting(models.Model):
-    """
-    Global system settings that can be toggled via Django Admin
-    """
     key = models.CharField(max_length=100, unique=True)
     value = models.BooleanField(default=True)
     description = models.TextField(blank=True)
@@ -25,7 +21,6 @@ class SystemSetting(models.Model):
 
     @classmethod
     def withdrawals_enabled(cls):
-        """Check if withdrawals are enabled globally"""
         setting, created = cls.objects.get_or_create(
             key='withdrawals_enabled',
             defaults={
@@ -39,7 +34,6 @@ class SystemSetting(models.Model):
 class WithdrawalRequest(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('processing', 'Processing'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
     ]
@@ -61,28 +55,14 @@ class WithdrawalRequest(models.Model):
     bank_branch = models.CharField(max_length=100, blank=True)
     account_number = models.CharField(max_length=50, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    linked_transaction = models.OneToOneField(
-        WalletTransaction,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='withdrawal_request'
-    )
     originator_conversation_id = models.CharField(max_length=20, blank=True, null=True)
     daraja_conversation_id = models.CharField(max_length=50, blank=True, null=True)
-    
-    # NEW FIELDS — keep unique=True in model
-    reference_code = models.CharField(max_length=20, unique=True, blank=True)  
+    reference_code = models.CharField(max_length=20, unique=True, blank=True)
     mpesa_receipt_number = models.CharField(max_length=50, blank=True)
-    
     request_date = models.DateField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._original_status = self.status
 
     def clean(self):
         if self.method == 'mobile' and not self.mobile_phone:
@@ -92,28 +72,24 @@ class WithdrawalRequest(models.Model):
                 raise ValidationError('Bank details incomplete')
 
     def save(self, *args, **kwargs):
-        # Auto-generate reference code if not set
         if not self.reference_code:
             self.reference_code = "WDR" + uuid.uuid4().hex[:6].upper()
 
         self.full_clean()
 
-        status_changed = self.status != self._original_status
-        is_new = self.pk is None
+        # Only allow status change from 'pending' → 'completed' or 'failed' (once)
+        if self.pk:
+            original = WithdrawalRequest.objects.get(pk=self.pk)
+            if original.status != 'pending' and self.status != original.status:
+                raise ValidationError("Status cannot be changed after completion or failure.")
 
-        if status_changed and self.status == 'completed':
+        if self.status == 'completed' and self.processed_at is None:
             from django.utils import timezone
             self.processed_at = timezone.now()
-        elif status_changed and self.status != 'completed':
+        elif self.status != 'completed':
             self.processed_at = None
 
         super().save(*args, **kwargs)
-        self._original_status = self.status
-
-        if not is_new and status_changed and self.linked_transaction_id:
-            tx = WalletTransaction.objects.get(pk=self.linked_transaction_id)
-            tx.status = self.status
-            tx.save()
 
     def __str__(self):
         return f"{self.user.email} - {self.amount} ({self.status})"
