@@ -1,4 +1,5 @@
 # wallets/views.py
+
 from decimal import Decimal
 from datetime import datetime, timezone
 from django.http import HttpResponse
@@ -19,7 +20,6 @@ class WalletOverviewView(APIView):
     def get(self, request):
         user = request.user
 
-        # Get latest transaction for each wallet (all are valid)
         main_tx = WalletTransaction.objects.filter(user=user, wallet_type='main').order_by('-created_at').first()
         main_balance = main_tx.running_balance if main_tx else Decimal('0.00')
 
@@ -42,7 +42,6 @@ class WalletTransactionsView(APIView):
         if wallet_type not in ['main', 'referral']:
             return Response({'error': 'Invalid wallet type'}, status=400)
 
-        # ✅ NO MORE status filter — all transactions are valid facts
         transactions = WalletTransaction.objects.filter(
             user=user,
             wallet_type=wallet_type
@@ -56,7 +55,7 @@ class WalletTransactionsView(APIView):
                 'transaction_type': tx.transaction_type,
                 'amount': float(tx.amount),
                 'running_balance': float(tx.running_balance),
-                # ❌ Remove 'status' — it no longer exists
+                'status': tx.status,
                 'description': tx.description,
                 'created_at': tx.created_at.isoformat()
             })
@@ -73,15 +72,16 @@ class WalletStatementPDFView(APIView):
         if wallet_type not in ['main', 'referral']:
             return Response({'error': 'Invalid wallet type'}, status=400)
 
-        start_date_str = request.query_params.get('start_date')
-        end_date_str = request.query_params.get('end_date')
+        start_date_str = request.query_params.get('start_date')  # YYYY-MM-DD
+        end_date_str = request.query_params.get('end_date')      # YYYY-MM-DD
 
-        # ✅ Remove status='completed' filter
         transactions_qs = WalletTransaction.objects.filter(
             user=user,
-            wallet_type=wallet_type
+            wallet_type=wallet_type,
+            status='completed'
         ).order_by('created_at')
 
+        # Parse and filter by date range
         start_date = parse_date(start_date_str) if start_date_str else None
         end_date = parse_date(end_date_str) if end_date_str else None
 
@@ -97,6 +97,7 @@ class WalletStatementPDFView(APIView):
             prior_tx = WalletTransaction.objects.filter(
                 user=user,
                 wallet_type=wallet_type,
+                status='completed',
                 created_at__lt=first_tx.created_at
             ).order_by('-created_at', '-id').first()
 
@@ -106,18 +107,21 @@ class WalletStatementPDFView(APIView):
             opening_balance = Decimal('0.00')
             closing_balance = Decimal('0.00')
 
-        # ... rest of PDF logic unchanged ...
+        # Format user's full name
         first_name = getattr(user, 'first_name', '') or ''
         last_name = getattr(user, 'last_name', '') or ''
         user_full_name = f"{first_name} {last_name}".strip()
         if not user_full_name:
             user_full_name = user.email
 
+        # Format display dates
         now_utc = datetime.now(timezone.utc)
-        statement_date = now_utc.strftime("%d %b %Y")
+        statement_date = now_utc.strftime("%d %b %Y")  # e.g., "27 Jan 2026"
+
         start_date_display = start_date.strftime("%d %b %Y") if start_date else None
         end_date_display = end_date.strftime("%d %b %Y") if end_date else None
 
+        # Render HTML template
         html_string = render_to_string('wallet/statement.html', {
             'user': user,
             'user_full_name': user_full_name,
@@ -130,10 +134,11 @@ class WalletStatementPDFView(APIView):
             'end_date_display': end_date_display,
         })
 
+        # Generate PDF with metadata and font support
         font_config = FontConfiguration()
         html = HTML(string=html_string)
         pdf_file = html.write_pdf(
-            stylesheets=[],
+            stylesheets=[],  # Add CSS files here if needed, e.g. [CSS(settings.STATICFILES_DIRS[0] + '/css/statement.css')]
             font_config=font_config,
             presentational_hints=True,
             metadata={
@@ -146,11 +151,13 @@ class WalletStatementPDFView(APIView):
             }
         )
 
+        # Prepare HTTP response
         filename = f"Qezzy_{wallet_type}_statement_{now_utc.strftime('%Y%m%d')}.pdf"
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
-
+    
+# wallets/views.py — ADD AT THE BOTTOM
 
 class EmailStatementView(APIView):
     permission_classes = [IsAuthenticated]
@@ -158,8 +165,8 @@ class EmailStatementView(APIView):
     def post(self, request):
         user = request.user
         wallet_type = request.data.get('wallet', 'main')
-        start_date_str = request.data.get('start_date')
-        end_date_str = request.data.get('end_date')
+        start_date_str = request.data.get('start_date')  # YYYY-MM-DD
+        end_date_str = request.data.get('end_date')      # YYYY-MM-DD
 
         if wallet_type not in ['main', 'referral']:
             return Response({'error': 'Invalid wallet type'}, status=400)
@@ -168,6 +175,7 @@ class EmailStatementView(APIView):
         start_date = parse_date(start_date_str) if start_date_str else None
         end_date = parse_date(end_date_str) if end_date_str else None
 
+        from users.utils import send_statement_email
         try:
             send_statement_email(
                 user=user,
