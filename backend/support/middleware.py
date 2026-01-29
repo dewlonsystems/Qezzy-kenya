@@ -15,19 +15,19 @@ def get_user_from_firebase_token(token):
         
         result = FirebaseAuthentication().authenticate(fake_request)
         if result is None:
-            print("❌ Auth failed: FirebaseAuthentication returned None")
+            print("Auth failed: FirebaseAuthentication returned None")
             return None
             
         user, _ = result
         if user and not getattr(user, 'is_closed', False):
-            print(f"✅ Auth success: {user.email}")
+            print(f"Auth success: {user.email}")
             return user
         else:
-            print("❌ Auth failed: user is closed or invalid")
+            print("Auth failed: user is closed or invalid")
             return None
             
     except Exception as e:
-        print(f"❌ Auth exception: {e}")
+        print(f"Auth exception: {e}")
         return None
 
 class FirebaseTokenAuthMiddleware:
@@ -48,7 +48,7 @@ class FirebaseTokenAuthMiddleware:
 
         # If no user, close connection
         if scope["user"] is None:
-            print("❌ No user — closing WebSocket")
+            print("No user — closing WebSocket")
             from channels.exceptions import DenyConnection
             raise DenyConnection("Authentication failed")
 

@@ -1,10 +1,9 @@
-# jobs/models.py
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import User
 from decimal import Decimal
 
-# ====== Survey Building Blocks ======
+
 class SurveyCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
@@ -31,7 +30,6 @@ class SurveyQuestion(models.Model):
         ordering = ['id']
 
 
-# ====== User-Specific Survey Job ======
 class SurveyJob(models.Model):
     STATUS_CHOICES = [
         ('open', 'Open'),
@@ -45,11 +43,11 @@ class SurveyJob(models.Model):
     title = models.CharField(max_length=255)
     reward_kes = models.DecimalField(max_digits=10, decimal_places=2)
     question_count = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
-    selected_question_ids = models.JSONField()  # e.g., [12, 45, 67]
+    selected_question_ids = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
-    reward_paid = models.BooleanField(default=False)  # Prevents duplicate payouts
+    reward_paid = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.title} for {self.user.email} ({self.status})"
@@ -60,17 +58,15 @@ class SurveyJob(models.Model):
         verbose_name_plural = "Jobs"
 
 
-# ====== User Submission ======
 class SurveyResponse(models.Model):
     job = models.OneToOneField(SurveyJob, on_delete=models.CASCADE, related_name='response')
-    answers = models.JSONField()  # {question_id: "user answer"}
+    answers = models.JSONField()
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Response to {self.job.title}"
 
 
-# ====== Daily Assignment Tracker ======
 class DailyJobAssignment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
@@ -80,19 +76,14 @@ class DailyJobAssignment(models.Model):
         unique_together = ('user', 'date')
 
 
-
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from wallets.models import WalletTransaction
 
+
 @receiver(post_save, sender=SurveyJob)
 def create_wallet_transaction_on_completion(sender, instance, **kwargs):
-    """
-    Create a 'task_earning' WalletTransaction when a job is marked as 'completed',
-    but only if it hasn't been paid already.
-    """
     if instance.status == 'completed' and not instance.reward_paid:
-        # Get the latest main wallet balance for this user
         last_main_tx = WalletTransaction.objects.filter(
             user=instance.user,
             wallet_type='main'
@@ -101,7 +92,6 @@ def create_wallet_transaction_on_completion(sender, instance, **kwargs):
         previous_balance = last_main_tx.running_balance if last_main_tx else Decimal('0.00')
         new_balance = previous_balance + instance.reward_kes
 
-        # Create the transaction
         WalletTransaction.objects.create(
             user=instance.user,
             wallet_type='main',
@@ -113,6 +103,5 @@ def create_wallet_transaction_on_completion(sender, instance, **kwargs):
             description=f"Payment for survey job: {instance.title} (ID: {instance.id})"
         )
 
-        # Mark as paid to prevent duplicate payments
         instance.reward_paid = True
         instance.save(update_fields=['reward_paid'])

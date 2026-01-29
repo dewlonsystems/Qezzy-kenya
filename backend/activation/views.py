@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny  # ← Added AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import ActivationPayment
 from .daraja import generate_stk_push, normalize_phone
 from users.models import User
@@ -37,13 +37,11 @@ class InitiateActivationView(APIView):
         if not raw_phone:
             return Response({'error': 'Phone number required'}, status=400)
 
-        # Normalize phone
         try:
             phone = normalize_phone(raw_phone)
         except ValueError as e:
             return Response({'error': str(e)}, status=400)
 
-        # Prevent duplicate pending/completed payments
         existing_payment = ActivationPayment.objects.filter(user=user).first()
         if existing_payment:
             if existing_payment.status == 'completed':
@@ -51,7 +49,6 @@ class InitiateActivationView(APIView):
             if existing_payment.status == 'pending':
                 logger.info(f"Retrying STK for user {user.email} with existing pending payment")
 
-        # Create or update
         payment, created = ActivationPayment.objects.get_or_create(
             user=user,
             defaults={
@@ -65,7 +62,6 @@ class InitiateActivationView(APIView):
             payment.status = 'pending'
             payment.save()
 
-        # Trigger STK push
         daraja_response = generate_stk_push(
             phone_number=phone,
             amount=300,
@@ -77,7 +73,6 @@ class InitiateActivationView(APIView):
             logger.error(f"STK Push failed for {user.email}: {error_msg}")
             return Response({'error': 'Failed to initiate payment'}, status=500)
 
-        # Save Daraja IDs
         payment.checkout_request_id = daraja_response['CheckoutRequestID']
         payment.merchant_request_id = daraja_response.get('MerchantRequestID', '')
         payment.save()
@@ -90,11 +85,7 @@ class InitiateActivationView(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class DarajaCallbackView(APIView):
-    """
-    Receives async callback from Safaricom Daraja.
-    Must be publicly accessible (no auth) and CSRF-exempt.
-    """
-    permission_classes = [AllowAny]  # ✅ CRITICAL: Allow unauthenticated POST
+    permission_classes = [AllowAny]
 
     def post(self, request):
         data = request.data
@@ -112,7 +103,6 @@ class DarajaCallbackView(APIView):
             payment = ActivationPayment.objects.get(checkout_request_id=checkout_id)
 
             if result_code == 0:
-                # Success
                 callback_metadata = result.get('CallbackMetadata', {}).get('Item', [])
                 receipt = None
                 trans_date = None
@@ -126,7 +116,6 @@ class DarajaCallbackView(APIView):
                         trans_date = str(value)
 
                 with transaction.atomic():
-                    # Activate user
                     user = payment.user
                     user.is_active = True
                     user.save()
@@ -136,7 +125,6 @@ class DarajaCallbackView(APIView):
                     except Exception as e:
                         logger.warning(f"Failed to send welcome aboard email to {user.email}: {e}")
 
-                    # Update payment
                     payment.status = 'completed'
                     payment.mpesa_receipt_number = receipt
                     if trans_date:
@@ -144,7 +132,6 @@ class DarajaCallbackView(APIView):
                         payment.transaction_date = datetime.strptime(trans_date, '%Y%m%d%H%M%S')
                     payment.save()                    
                    
-                    # Handle referral bonus
                     if user.referred_by:
                         try:
                             ref_trans = ReferralTransaction.objects.get(
@@ -165,21 +152,20 @@ class DarajaCallbackView(APIView):
                                 description=f"Referral bonus for {user.email}"
                             )
                         except ReferralTransaction.DoesNotExist:
-                            pass  # No pending bonus
+                            pass
 
-                return HttpResponse('OK')  # Safaricom expects 'OK' (200)
+                return HttpResponse('OK')
 
             else:
-                # Payment failed
                 result_desc = result.get('ResultDesc', 'Unknown error')
                 logger.warning(f"STK failed for {checkout_id}: {result_desc}")
                 payment.status = 'failed'
                 payment.save()
-                return HttpResponse('OK')  # Still return OK to avoid retries
+                return HttpResponse('OK')
 
         except ActivationPayment.DoesNotExist:
             logger.error(f"Callback for unknown CheckoutRequestID: {checkout_id}")
-            return HttpResponse('OK')  # Safaricom requires 200 even for unknown
+            return HttpResponse('OK')
         except Exception as e:
             logger.error(f"Unexpected error in Daraja callback: {str(e)}", exc_info=True)
             return HttpResponse('ERROR', status=500)

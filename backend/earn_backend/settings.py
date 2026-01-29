@@ -1,4 +1,3 @@
-# settings.py
 import os
 from pathlib import Path
 from decouple import config
@@ -6,7 +5,6 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 AUTH_USER_MODEL = 'users.User'
 
-# Security
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
@@ -14,10 +12,9 @@ if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
-        '13.60.202.95',               # EC2 public IP
-        'qezzy-kenya.duckdns.org',    # DuckDNS domain
+        '13.60.202.95',
+        'qezzy-kenya.duckdns.org',
         'api.qezzykenya.company',
-
     ]
 
 INSTALLED_APPS = [
@@ -78,7 +75,6 @@ CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
 }
 
-# Database (Supabase)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -90,11 +86,10 @@ DATABASES = {
         'OPTIONS': {
             'connect_timeout': 10,
             'options': '-c search_path=private,public'
-        },            
+        },
     }
 }
 
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -111,7 +106,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Firebase
 FIREBASE_PROJECT_ID = config('FIREBASE_PROJECT_ID')
 
 REST_FRAMEWORK = {
@@ -124,7 +118,6 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'users.exceptions.custom_exception_handler',
 }
 
-# CORS
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
@@ -138,7 +131,7 @@ else:
 if not DEBUG:
     SECURE_SSL_REDIRECT = False
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_HSTS_SECONDS = 31536000 
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SESSION_COOKIE_SECURE = True
@@ -146,27 +139,22 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-
-
-
 from django.db import connection
 from django.db.backends.signals import connection_created
 from django.dispatch import receiver
 
 @receiver(connection_created)
 def setup_search_path(sender, connection, **kwargs):
-    """Force search_path on every new DB connection"""
     with connection.cursor() as cursor:
         cursor.execute("SET search_path TO private, public;")
 
-PAYMENTS_ENABLED = True       
+PAYMENTS_ENABLED = True
 UA_PARSER_CACHE = True
 
-# Email Configuration (using Zoho or another SMTP provider)
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST')
 EMAIL_PORT = config('EMAIL_PORT', cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # e.g., noreply@qezzykenya.company
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Qezzy <noreply@qezzykenya.company>')

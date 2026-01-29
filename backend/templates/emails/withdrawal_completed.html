@@ -93,11 +93,25 @@
       <div class="amount-value">KES {{ amount }}</div>
     </div>
 
+    <!-- Basic transaction details -->
     <div class="details">
       <div><label>Method:</label> {{ method_display }}</div>
       <div><label>Destination:</label> {{ destination }}</div>
       <div><label>Date Processed:</label> {{ processed_at }}</div>
     </div>
+
+    <!-- Enhanced details: receipt, reference, and recipient -->
+    {% if reference_code or receipt_number %}
+      <div class="details">
+        {% if is_mobile and receipt_number %}
+          <div><label>M-Pesa Receipt No.:</label> {{ receipt_number }}</div>
+          <div><label>Credited to:</label> {{ recipient_name }}</div>
+        {% endif %}
+        {% if reference_code %}
+          <div><label>Our Reference:</label> {{ reference_code }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
 
     {% if is_mobile %}
       <p>The funds have been sent to your mobile number and should reflect in your M-Pesa wallet within minutes.</p>

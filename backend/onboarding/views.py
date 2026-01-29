@@ -1,4 +1,3 @@
-# backend/onboarding/views.py
 import secrets
 import string
 from django.db import transaction
@@ -11,14 +10,13 @@ from referrals.models import ReferralTransaction
 from .models import OnboardingStep
 from users.utils import send_welcome_email
 
-# 🔥 Firebase token verification helper
 from jose import jwt
 import requests
 from django.conf import settings
 import time
 
+
 def verify_firebase_token(token):
-    """Verify Firebase ID token and return email and firebase_uid"""
     try:
         resp = requests.get('https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com')
         keys = resp.json()
@@ -138,7 +136,6 @@ class PaymentDetailsView(APIView):
     permission_classes = []
 
     def _get_user_from_token(self, request):
-        """Helper to get user from Firebase token"""
         auth_header = request.META.get('HTTP_AUTHORIZATION')
         if not auth_header or not auth_header.startswith('Bearer '):
             raise ValidationError('Authentication required')
@@ -152,13 +149,11 @@ class PaymentDetailsView(APIView):
             raise ValidationError('Invalid token or user not found')
 
     def _validate_and_save(self, user, data):
-        """Shared logic to validate and save payment details"""
         payout_method = data.get('payout_method')
 
         if payout_method not in ['mobile', 'bank']:
             raise ValidationError('Invalid payout method')
 
-        # Clear both methods to ensure clean state
         user.payout_method = payout_method
         user.payout_phone = ''
         user.payout_bank_name = ''
@@ -184,7 +179,6 @@ class PaymentDetailsView(APIView):
         return user
 
     def post(self, request):
-        """For initial onboarding payment setup"""
         try:
             user = self._get_user_from_token(request)
         except ValidationError as e:
@@ -213,7 +207,6 @@ class PaymentDetailsView(APIView):
         return Response({'message': 'Payment details saved successfully'})
 
     def patch(self, request):
-        """For editing payment details after onboarding"""
         try:
             user = self._get_user_from_token(request)
         except ValidationError as e:

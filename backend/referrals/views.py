@@ -8,29 +8,25 @@ from .models import ReferralTransaction
 class ReferralTransactionsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        # ✅ Use select_related to avoid N+1 and ensure referred_user is fetched in one query
+    def get(self, request):        
         transactions = ReferralTransaction.objects.filter(
             referrer=request.user
         ).select_related('referred_user').order_by('-created_at')
         
         data = []
-        for t in transactions:
-            # ✅ Safely handle case where referred_user might be missing (though shouldn't happen)
+        for t in transactions:            
             try:
                 referred = t.referred_user
                 if referred is None:
-                    continue  # skip orphaned records
+                    continue
             except Exception:
-                continue  # skip if user was deleted
-
+                continue
             data.append({
                 'referred_user_email': referred.email,
                 'amount': float(t.amount),
                 'status': t.status,
                 'created_at': t.created_at.isoformat(),
-                'completed_at': t.completed_at.isoformat() if t.completed_at else None,
-                # ✅ Now safe to access
+                'completed_at': t.completed_at.isoformat() if t.completed_at else None,                
                 'referred_user_is_active': referred.is_active,
                 'referred_user_is_onboarded': referred.is_onboarded,
                 'referred_user_is_closed': referred.is_closed,

@@ -10,7 +10,7 @@ class ActivationPayment(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='activation_payment')
     phone_number = models.CharField(max_length=15)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=300.00)
-    checkout_request_id = models.CharField(max_length=100, blank=True)  # From Daraja
+    checkout_request_id = models.CharField(max_length=100, blank=True)  
     merchant_request_id = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     mpesa_receipt_number = models.CharField(max_length=50, blank=True)

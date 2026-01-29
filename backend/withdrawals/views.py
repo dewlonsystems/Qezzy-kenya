@@ -1,3 +1,4 @@
+# withdrawals/views.py
 import logging
 from datetime import date
 from django.db import transaction
@@ -29,7 +30,7 @@ class WithdrawalRequestView(APIView):
         if user.is_closed:
             return Response({'error': 'Account closed'}, status=403)
 
-        # ✅ NEW: Check if withdrawals are enabled globally
+        # ✅ Check if withdrawals are enabled globally
         if not SystemSetting.withdrawals_enabled():
             return Response({
                 'error': 'Withdrawals are temporarily disabled. Please try again later.'
@@ -160,7 +161,6 @@ class WithdrawalRequestView(APIView):
                     linked_tx.status = 'failed'
                     linked_tx.save(update_fields=['status'])
                     
-                    # ✅ RETURN ERROR TO USER - Critical fix
                     return Response({
                         'error': f'Payout failed: {error_msg}',
                         'request_id': withdrawal.id,
@@ -175,7 +175,6 @@ class WithdrawalRequestView(APIView):
                 linked_tx.status = 'failed'
                 linked_tx.save(update_fields=['status'])
                 
-                # ✅ RETURN ERROR TO USER - Critical fix
                 return Response({
                     'error': 'Payout service error',
                     'request_id': withdrawal.id,
@@ -233,6 +232,7 @@ def daraja_b2c_result(request):
         result_desc = result.get('ResultDesc', 'No description')
         conversation_id = result.get('ConversationID')
         originator_id = result.get('OriginatorConversationID')
+        transaction_id = result.get('TransactionID', '')  # ← M-Pesa receipt number
 
         # Find the withdrawal using either ID
         withdrawal = None
@@ -250,7 +250,10 @@ def daraja_b2c_result(request):
             # Success
             withdrawal.status = 'completed'
             withdrawal.processed_at = timezone.now()
-            withdrawal.save(update_fields=['status', 'processed_at'])
+            withdrawal.mpesa_receipt_number = transaction_id  # ← SAVE RECEIPT
+            withdrawal.save(update_fields=[
+                'status', 'processed_at', 'mpesa_receipt_number'
+            ])
 
             # Now mark the linked transaction as completed → triggers balance deduction
             if withdrawal.linked_transaction:
@@ -259,17 +262,25 @@ def daraja_b2c_result(request):
 
             try:
                 destination = withdrawal.mobile_phone if withdrawal.method == 'mobile' else f"{withdrawal.bank_name} ({withdrawal.account_number})"
+                user = withdrawal.user
+                recipient_name = (
+                    f"{user.first_name} {user.last_name}".strip()
+                    or user.email
+                )
                 send_withdrawal_completed_email(
-                    user=withdrawal.user,
+                    user=user,
                     amount=withdrawal.amount,
                     method=withdrawal.method,
                     destination=destination,
-                    processed_at=withdrawal.processed_at
+                    processed_at=withdrawal.processed_at,
+                    receipt_number=transaction_id,
+                    reference_code=withdrawal.reference_code,
+                    recipient_name=recipient_name
                 )
             except Exception as e:
                 logger.warning(f"Failed to send withdrawal email to {withdrawal.user.email}: {e}")
             
-            logger.info(f"B2C withdrawal {withdrawal.id} completed successfully. Transaction ID: {result.get('TransactionID')}")
+            logger.info(f"B2C withdrawal {withdrawal.id} completed successfully. Transaction ID: {transaction_id}")
         else:
             # Failure
             withdrawal.status = 'failed'

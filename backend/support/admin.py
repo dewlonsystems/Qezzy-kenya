@@ -5,7 +5,7 @@ from .models import SupportTicket, SupportMessage
 class SupportMessageInline(admin.TabularInline):
     model = SupportMessage
     extra = 1
-    fields = ('message',)  # Only message is editable
+    fields = ('message',)
     readonly_fields = ('sender', 'is_admin', 'created_at')
     can_delete = False
 
@@ -31,8 +31,7 @@ class SupportTicketAdmin(admin.ModelAdmin):
         """
         instances = formset.save(commit=False)
         for instance in instances:
-            if not instance.pk:  # New message
-                # Resolve the lazy user object
+            if not instance.pk:                
                 instance.sender = request.user._wrapped if hasattr(request.user, '_wrapped') else request.user
                 instance.is_admin = True
                 instance.save()

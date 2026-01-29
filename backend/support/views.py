@@ -1,16 +1,11 @@
-# support/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.shortcuts import get_object_or_404
 from .models import SupportTicket, SupportMessage
 
-# ======================
-# USER VIEWS
-# ======================
 
 class SupportTicketListView(APIView):
-    """List all tickets for the authenticated user"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -33,7 +28,6 @@ class SupportTicketListView(APIView):
 
 
 class CreateSupportTicketView(APIView):
-    """Create a new support ticket"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -70,7 +64,6 @@ class CreateSupportTicketView(APIView):
 
 
 class TicketConversationView(APIView):
-    """View conversation and reply (user-only)"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, ticket_id):
@@ -121,12 +114,7 @@ class TicketConversationView(APIView):
         return Response({'message': 'Reply sent'})
 
 
-# ======================
-# ADMIN VIEWS
-# ======================
-
 class AdminTicketListView(APIView):
-    """List ALL tickets (admin only)"""
     permission_classes = [IsAdminUser]
 
     def get(self, request):
@@ -149,7 +137,6 @@ class AdminTicketListView(APIView):
 
 
 class AdminTicketReplyView(APIView):
-    """Admin reply to any ticket"""
     permission_classes = [IsAdminUser]
 
     def post(self, request, ticket_id):
@@ -166,7 +153,6 @@ class AdminTicketReplyView(APIView):
             message=message_text
         )
 
-        # Update ticket status
         if ticket.status in ['open', 'closed']:
             ticket.status = 'in_progress'
         ticket.save()

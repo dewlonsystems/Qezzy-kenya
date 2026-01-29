@@ -1,12 +1,11 @@
+# withdrawals/models.py
 from django.db import models
 from django.core.exceptions import ValidationError
 from users.models import User
 from wallets.models import WalletTransaction
+import uuid
 
 
-# ==============================
-# NEW: System Settings Model
-# ==============================
 class SystemSetting(models.Model):
     """
     Global system settings that can be toggled via Django Admin
@@ -71,6 +70,11 @@ class WithdrawalRequest(models.Model):
     )
     originator_conversation_id = models.CharField(max_length=20, blank=True, null=True)
     daraja_conversation_id = models.CharField(max_length=50, blank=True, null=True)
+    
+    # NEW FIELDS
+    reference_code = models.CharField(max_length=20, unique=True, blank=True)
+    mpesa_receipt_number = models.CharField(max_length=50, blank=True)
+    
     request_date = models.DateField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -88,6 +92,10 @@ class WithdrawalRequest(models.Model):
                 raise ValidationError('Bank details incomplete')
 
     def save(self, *args, **kwargs):
+        # Auto-generate reference code if not set
+        if not self.reference_code:
+            self.reference_code = "QWW" + uuid.uuid4().hex[:6].upper()
+
         self.full_clean()
 
         status_changed = self.status != self._original_status

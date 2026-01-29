@@ -59,10 +59,20 @@ def send_welcome_aboard_email(user):
         print(f"Failed to send welcome aboard email to {user.email}: {e}")
 
 
-def send_withdrawal_completed_email(user, amount, method, destination, processed_at):
+def send_withdrawal_completed_email(
+    user,
+    amount,
+    method,
+    destination,
+    processed_at,
+    receipt_number=None,
+    reference_code=None,
+    recipient_name=None
+):
     """
     Sent when a withdrawal (mobile or bank) is marked as completed.
-    Shows method-specific timing info.
+    Shows method-specific timing info and includes M-Pesa receipt (if applicable)
+    and internal reference code for user records.
     """
     # Determine display values
     is_mobile = (method == 'mobile')
@@ -76,6 +86,10 @@ def send_withdrawal_completed_email(user, amount, method, destination, processed
         'destination': destination,
         'processed_at': processed_at.strftime("%d %b %Y at %H:%M"),
         'is_mobile': is_mobile,
+        # New fields for enhanced transaction transparency
+        'receipt_number': receipt_number,
+        'reference_code': reference_code,
+        'recipient_name': recipient_name or "your account",
     }
 
     html_content = render_to_string('emails/withdrawal_completed.html', context)

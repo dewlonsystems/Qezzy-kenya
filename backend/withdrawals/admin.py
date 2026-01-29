@@ -60,6 +60,10 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
                 messages.warning(request, "Completed mobile withdrawals cannot be reverted.")
                 return  # Do not save
 
+            # Ensure reference_code exists (important for old records)
+            if not obj.reference_code:
+                obj.save(update_fields=['reference_code'])  # Triggers model's save() → generates code
+
             # Save the withdrawal request
             super().save_model(request, obj, form, change)
 
@@ -76,7 +80,7 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
                 if not obj.processed_at:
                     obj.processed_at = timezone.now()
                     obj.save(update_fields=['processed_at'])
-                # Send notification email
+                # Send notification email using unified utility
                 notify_user_withdrawal_completed(obj)
 
     def user_email(self, obj):
