@@ -1,4 +1,4 @@
-# withdraws/views.py
+# withdrawals/views.py
 import logging
 from datetime import date
 from django.db import transaction

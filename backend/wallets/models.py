@@ -27,7 +27,7 @@ class WalletTransaction(models.Model):
     running_balance = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.TextField(blank=True)
     linked_withdrawal = models.ForeignKey(
-        'withdraws.WithdrawalRequest',
+        'withdrawals.WithdrawalRequest',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

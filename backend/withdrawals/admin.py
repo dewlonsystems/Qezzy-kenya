@@ -1,4 +1,4 @@
-# withdraws/admin.py
+# withdrawals/admin.py
 from django.contrib import admin
 from django.db import transaction as db_transaction
 from django.contrib import messages
