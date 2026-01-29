@@ -121,8 +121,7 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
     reverse_withdrawal.short_description = "Reverse selected completed withdrawals"
 
     def user_email(self, obj):
-        return obj.user.email
-    
+        return obj.user.email    
 
     user_email.short_description = 'User'
     user_email.admin_order_field = 'user__email'
