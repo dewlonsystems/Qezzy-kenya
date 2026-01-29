@@ -1,4 +1,4 @@
-# withdraws/views.py
+# withdrawals/views.py
 import logging
 from datetime import date
 from django.db import transaction
@@ -180,7 +180,7 @@ class WithdrawalHistoryView(APIView):
 
 
 # ==============================
-# Daraja B2C Callback Handlers
+# Daraja B2C Callback Handlers (FIXED)
 # ==============================
 
 @csrf_exempt
@@ -203,19 +203,24 @@ def daraja_b2c_result(request):
             withdrawal = WithdrawalRequest.objects.filter(daraja_conversation_id=conversation_id).first()
 
         if not withdrawal:
-            logger.warning(f"No withdrawal found for callback. Originator: {originator_id}")
+            logger.warning(f"No withdrawal found for callback. Originator: {originator_id}, ConvID: {conversation_id}")
             return HttpResponse("OK", status=200)
 
-        with transaction.atomic():
-            if result_code == 0:
-                # ✅ Success: create debit transaction
+        # 🔑 CRITICAL FIX: Handle success/failure WITHOUT atomic block coupling status + wallet debit
+        if result_code == 0:
+            # STEP 1: IMMUTABLY MARK WITHDRAWAL COMPLETED (M-Pesa paid - non-negotiable)
+            try:
                 withdrawal.status = 'completed'
                 withdrawal.processed_at = timezone.now()
                 withdrawal.mpesa_receipt_number = transaction_id
-                withdrawal.save(update_fields=[
-                    'status', 'processed_at', 'mpesa_receipt_number'
-                ])
+                withdrawal.save(update_fields=['status', 'processed_at', 'mpesa_receipt_number'])
+                logger.info(f"Withdrawal {withdrawal.id} marked COMPLETED (M-Pesa paid)")
+            except Exception as e:
+                logger.critical(f"CRITICAL: Could not update withdrawal {withdrawal.id} status despite M-Pesa success! Error: {e}", exc_info=True)
+                return HttpResponse("Error", status=500)
 
+            # STEP 2: ATTEMPT WALLET DEBIT (best-effort with critical alert on failure)
+            try:
                 WalletTransaction.objects.create(
                     user=withdrawal.user,
                     wallet_type=withdrawal.wallet_type,
@@ -224,30 +229,43 @@ def daraja_b2c_result(request):
                     description=f"M-Pesa withdrawal successful. Receipt: {transaction_id}",
                     linked_withdrawal=withdrawal
                 )
+                logger.info(f"Withdrawal {withdrawal.id} wallet debited successfully")
+            except Exception as tx_error:
+                # 🚨 EMERGENCY ALERT: M-Pesa paid but wallet not debited. Requires MANUAL INTERVENTION.
+                logger.critical(
+                    f"🚨 WALLET DEBIT FAILED FOR COMPLETED WITHDRAWAL! "
+                    f"User: {withdrawal.user.email} | Withdrawal ID: {withdrawal.id} | "
+                    f"Amount: {withdrawal.amount} | M-Pesa Receipt: {transaction_id} | "
+                    f"Error: {str(tx_error)} | ACTION REQUIRED: Manually debit wallet and investigate race condition."
+                )
+                # DO NOT revert status - money left the system. Alert must trigger admin action.
 
-                try:
-                    destination = withdrawal.mobile_phone
-                    user = withdrawal.user
-                    recipient_name = f"{user.first_name} {user.last_name}".strip() or user.email
-                    send_withdrawal_completed_email(
-                        user=user,
-                        amount=withdrawal.amount,
-                        method=withdrawal.method,
-                        destination=destination,
-                        processed_at=withdrawal.processed_at,
-                        receipt_number=transaction_id,
-                        reference_code=withdrawal.reference_code,
-                        recipient_name=recipient_name
-                    )
-                except Exception as e:
-                    logger.warning(f"Email send failed: {e}")
+            # STEP 3: Send completion email (best-effort)
+            try:
+                destination = withdrawal.mobile_phone
+                user = withdrawal.user
+                recipient_name = f"{user.first_name} {user.last_name}".strip() or user.email
+                send_withdrawal_completed_email(
+                    user=user,
+                    amount=withdrawal.amount,
+                    method=withdrawal.method,
+                    destination=destination,
+                    processed_at=withdrawal.processed_at,
+                    receipt_number=transaction_id,
+                    reference_code=withdrawal.reference_code,
+                    recipient_name=recipient_name
+                )
+            except Exception as e:
+                logger.warning(f"Email send failed for withdrawal {withdrawal.id}: {e}")
 
-                logger.info(f"Withdrawal {withdrawal.id} completed. TXN: {transaction_id}")
-            else:
-                # ❌ Failure
+        else:
+            # ❌ Failure: Safe to update status (no money moved)
+            try:
                 withdrawal.status = 'failed'
                 withdrawal.save(update_fields=['status'])
-                logger.error(f"Withdrawal {withdrawal.id} failed. Code: {result_code}")
+                logger.error(f"Withdrawal {withdrawal.id} failed. Code: {result_code}, Desc: {result.get('ResultDesc', 'N/A')}")
+            except Exception as e:
+                logger.error(f"Failed to update withdrawal {withdrawal.id} to failed status: {e}")
 
         return HttpResponse("OK", status=200)
 
@@ -272,8 +290,6 @@ def daraja_b2c_timeout(request):
 
         if withdrawal:
             with transaction.atomic():
-                # ⚠️ Do NOT mark as failed immediately — could still succeed!
-                # For now, mark for manual review
                 withdrawal.status = 'needs_review'
                 withdrawal.save(update_fields=['status'])
                 logger.info(f"Withdrawal {withdrawal.id} marked for review due to timeout")

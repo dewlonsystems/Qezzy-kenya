@@ -7,6 +7,9 @@ from django.core.exceptions import ValidationError
 from .models import WithdrawalRequest, SystemSetting
 from wallets.services import reverse_completed_withdrawal
 from .utils import notify_user_withdrawal_completed
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(SystemSetting)
@@ -85,9 +88,51 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
             obj.processed_at = timezone.now()
             obj.save(update_fields=['processed_at'])
 
-        # Send email on completion
+        # 🔑 WALLET DEBIT LOGIC FOR COMPLETED WITHDRAWALS (BANK OR MPESA)
         if new_status == 'completed':
-            notify_user_withdrawal_completed(obj)
+            from wallets.models import WalletTransaction
+            
+            # IDEMPOTENCY CHECK: Prevent duplicate debits if admin clicks twice
+            existing_tx = WalletTransaction.objects.filter(
+                linked_withdrawal=obj,
+                transaction_type='withdrawal'
+            ).exists()
+            
+            if not existing_tx:
+                try:
+                    # ATTEMPT WALLET DEBIT
+                    WalletTransaction.objects.create(
+                        user=obj.user,
+                        wallet_type=obj.wallet_type,
+                        transaction_type='withdrawal',
+                        amount=obj.amount,
+                        description=f"Withdrawal approved via admin. Method: {obj.method}. Ref: {obj.reference_code or obj.id}",
+                        linked_withdrawal=obj
+                    )
+                    logger.info(f"Wallet debited for withdrawal {obj.id} (admin approval)")
+                except Exception as e:
+                    # 🚨 CRITICAL ALERT: Admin approved but wallet not debited
+                    error_details = (
+                        f"User: {obj.user.email} | Withdrawal ID: {obj.id} | "
+                        f"Amount: {obj.amount} | Method: {obj.method} | "
+                        f"Error: {str(e)}"
+                    )
+                    logger.critical(
+                        f"🚨 ADMIN-APPROVED WITHDRAWAL WALLET DEBIT FAILED! {error_details} | "
+                        f"ACTION REQUIRED: Manually debit wallet immediately."
+                    )
+                    messages.error(
+                        request,
+                        f"⚠️ APPROVED BUT WALLET DEBIT FAILED! Contact tech team NOW. Details logged. {str(e)}"
+                    )
+            else:
+                logger.info(f"Wallet transaction already exists for withdrawal {obj.id} (idempotency)")
+
+            # SEND NOTIFICATION AFTER WALLET ATTEMPT (user should know status regardless of debit success)
+            try:
+                notify_user_withdrawal_completed(obj)
+            except Exception as e:
+                logger.warning(f"Failed to notify user for withdrawal {obj.id}: {e}")
 
     def reverse_withdrawal(self, request, queryset):
         """
