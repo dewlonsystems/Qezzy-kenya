@@ -79,15 +79,15 @@ class WithdrawalRequestView(APIView):
                 if existing:
                     return Response({'error': 'Withdrawal already requested this month'}, status=400)
 
-            elif wallet_type == 'referral':
-                last_withdrawal = WithdrawalRequest.objects.filter(
-                    user=user,
-                    wallet_type='referral',
-                    status__in=['pending', 'completed'],
-                    created_at__gte=now - timezone.timedelta(hours=24)
-                ).first()
-                if last_withdrawal:
-                    return Response({'error': 'Referral withdrawal allowed once every 24 hours'}, status=400)
+            # elif wallet_type == 'referral':
+                # last_withdrawal = WithdrawalRequest.objects.filter(
+                    # user=user,
+                    # wallet_type='referral',
+                    # status__in=['pending', 'completed'],
+                    # created_at__gte=now - timezone.timedelta(hours=24)
+               # ).first()
+                # if last_withdrawal:
+                    # return Response({'error': 'Referral withdrawal allowed once every 24 hours'}, status=400)
 
             # Get payout details
             if method == 'mobile':
