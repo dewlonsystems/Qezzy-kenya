@@ -76,6 +76,7 @@ class DailyJobAssignment(models.Model):
         unique_together = ('user', 'date')
 
 
+# === SIGNALS ===
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from wallets.models import WalletTransaction
@@ -84,24 +85,13 @@ from wallets.models import WalletTransaction
 @receiver(post_save, sender=SurveyJob)
 def create_wallet_transaction_on_completion(sender, instance, **kwargs):
     if instance.status == 'completed' and not instance.reward_paid:
-        last_main_tx = WalletTransaction.objects.filter(
-            user=instance.user,
-            wallet_type='main'
-        ).order_by('-created_at').first()
-
-        previous_balance = last_main_tx.running_balance if last_main_tx else Decimal('0.00')
-        new_balance = previous_balance + instance.reward_kes
-
+        # Let WalletTransaction's save() method handle running_balance automatically
         WalletTransaction.objects.create(
             user=instance.user,
             wallet_type='main',
             transaction_type='task_earning',
-            source='system',
             amount=instance.reward_kes,
-            running_balance=new_balance,
-            status='completed',
             description=f"Payment for survey job: {instance.title} (ID: {instance.id})"
         )
-
-        instance.reward_paid = True
-        instance.save(update_fields=['reward_paid'])
+        # Use update() to avoid triggering another post_save signal
+        SurveyJob.objects.filter(pk=instance.pk).update(reward_paid=True)
