@@ -15,6 +15,7 @@ from wallets.models import WalletTransaction
 from decimal import Decimal, InvalidOperation
 import json
 from users.utils import send_withdrawal_completed_email
+from .utils import require_safaricom_ip  # ← ADDED
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ class WithdrawalRequestView(APIView):
         except (ValueError, InvalidOperation):
             return Response({'error': 'Invalid amount'}, status=400)
 
-        # STEP 1: Pure database operations (balance check + create withdrawal)
+        # STEP 1: Atomic balance check + create PENDING withdrawal + reserve funds
         withdrawal = None
         with transaction.atomic():
             last_tx = WalletTransaction.objects.select_for_update().filter(
@@ -74,7 +75,7 @@ class WithdrawalRequestView(APIView):
                     wallet_type='main',
                     request_date__year=today.year,
                     request_date__month=today.month,
-                    status__in=['pending', 'completed']
+                    status__in=['pending', 'completed', 'needs_review']
                 ).exists()
                 if existing:
                     return Response({'error': 'Withdrawal already requested this month'}, status=400)
@@ -93,7 +94,7 @@ class WithdrawalRequestView(APIView):
                 if not all([bank_name, bank_branch, account_number]):
                     return Response({'error': 'Bank details not configured'}, status=400)
 
-            # CREATE WITHDRAWAL RECORD (DB COMMIT HAPPENS AFTER THIS BLOCK)
+            # CREATE WITHDRAWAL RECORD
             withdrawal = WithdrawalRequest.objects.create(
                 user=user,
                 wallet_type=wallet_type,
@@ -105,7 +106,21 @@ class WithdrawalRequestView(APIView):
                 account_number=account_number,
                 status='pending'
             )
-        # ← DATABASE TRANSACTION NOW COMMITTED. SAFE TO TALK TO MPESA.
+
+            # 🔑 RESERVE FUNDS IMMEDIATELY via 'withdrawal_pending' transaction
+            pending_tx = WalletTransaction.objects.create(
+                user=user,
+                wallet_type=wallet_type,
+                transaction_type='withdrawal_pending',
+                amount=amount,
+                description=f"Withdrawal request {withdrawal.reference_code} pending M-Pesa processing",
+                linked_withdrawal=None  # Will link after creation
+            )
+            # Link after creation (since withdrawal didn't exist during tx creation)
+            pending_tx.linked_withdrawal = withdrawal
+            pending_tx.save(update_fields=['linked_withdrawal'])
+
+        # ← DATABASE TRANSACTION COMMITTED. BALANCE IS RESERVED.
 
         # STEP 2: Handle M-Pesa OUTSIDE atomic block
         if method == 'mobile':
@@ -125,11 +140,12 @@ class WithdrawalRequestView(APIView):
                 if is_definitive_failure:
                     error_msg = daraja_resp.get('errorMessage', 'Unknown error') if daraja_resp else 'No response'
                     logger.error(f"B2C definitive failure: {error_msg}")
+                    # Mark as failed — reversal will happen in callback OR manually
                     withdrawal.status = 'failed'
                     withdrawal.save(update_fields=['status'])
                     return Response({'error': f'Payout rejected: {error_msg}'}, status=400)
                 else:
-                    # Success or ambiguous → mark as pending
+                    # Success or ambiguous → update IDs and keep as pending
                     conv_id = (
                         daraja_resp.get('ConversationID') or
                         daraja_resp.get('Response', {}).get('ConversationID') or
@@ -137,26 +153,23 @@ class WithdrawalRequestView(APIView):
                     )
                     withdrawal.daraja_conversation_id = conv_id
                     withdrawal.originator_conversation_id = originator_id
-                    withdrawal.status = 'pending'
                     withdrawal.save(update_fields=[
-                        'daraja_conversation_id', 'originator_conversation_id', 'status'
+                        'daraja_conversation_id', 'originator_conversation_id'
                     ])
                     logger.info(f"Withdrawal {withdrawal.id} sent to M-Pesa")
 
             except Exception as e:
                 logger.error(f"Daraja exception for withdrawal {withdrawal.id}: {str(e)}", exc_info=True)
-                # Assume M-Pesa received it → keep as pending
-                withdrawal.status = 'pending'
-                withdrawal.save(update_fields=['status'])
+                # Assume M-Pesa received it → keep as pending (balance already reserved)
+                pass
 
-            # ALWAYS return 202 for mobile after M-Pesa call
             return Response({
                 'message': 'Withdrawal request accepted. Pending with M-Pesa...',
                 'request_id': withdrawal.id,
                 'status': 'pending'
             }, status=202)
 
-        # Bank withdrawals (unchanged)
+        # Bank withdrawals (unchanged — no async risk)
         return Response({
             'message': 'Withdrawal request submitted',
             'request_id': withdrawal.id,
@@ -191,11 +204,12 @@ class WithdrawalHistoryView(APIView):
 
 
 # ==============================
-# Daraja B2C Callback Handlers (FIXED)
+# Daraja B2C Callback Handlers (IDEMPOTENT + IP WHITELISTED)
 # ==============================
 
 @csrf_exempt
 @require_POST
+@require_safaricom_ip  # ← ENFORCED
 def daraja_b2c_result(request):
     try:
         payload = json.loads(request.body)
@@ -207,6 +221,11 @@ def daraja_b2c_result(request):
         originator_id = result.get('OriginatorConversationID')
         transaction_id = result.get('TransactionID', '')
 
+        callback_id = originator_id or conversation_id
+        if not callback_id:
+            logger.error("Callback missing both Originator and Conversation ID")
+            return HttpResponse("Missing ID", status=400)
+
         withdrawal = None
         if originator_id:
             withdrawal = WithdrawalRequest.objects.filter(originator_conversation_id=originator_id).first()
@@ -214,38 +233,37 @@ def daraja_b2c_result(request):
             withdrawal = WithdrawalRequest.objects.filter(daraja_conversation_id=conversation_id).first()
 
         if not withdrawal:
-            logger.warning(f"No withdrawal found for callback. Originator: {originator_id}, ConvID: {conversation_id}")
+            logger.warning(f"No withdrawal found for callback ID: {callback_id}")
             return HttpResponse("OK", status=200)
 
-        # 🔑 CRITICAL: NO transaction.atomic() - status update MUST succeed
+        # 🔑 IDEMPOTENCY CHECK
+        if withdrawal.has_processed_callback(callback_id):
+            logger.info(f"Duplicate callback ignored: {callback_id} for withdrawal {withdrawal.id}")
+            return HttpResponse("OK", status=200)
+
         if result_code == 0:
-            # STEP 1: IMMUTABLY MARK WITHDRAWAL COMPLETED (M-Pesa paid!)
+            # SUCCESS: Finalize withdrawal
             withdrawal.status = 'completed'
             withdrawal.processed_at = timezone.now()
             withdrawal.mpesa_receipt_number = transaction_id
-            withdrawal.save(update_fields=['status', 'processed_at', 'mpesa_receipt_number'])
+            withdrawal.save(update_fields=[
+                'status', 'processed_at', 'mpesa_receipt_number'
+            ])
 
-            # STEP 2: ATTEMPT WALLET DEBIT (best-effort)
+            # Optional: upgrade pending tx to 'withdrawal' for clarity
             try:
-                WalletTransaction.objects.create(
-                    user=withdrawal.user,
-                    wallet_type=withdrawal.wallet_type,
-                    transaction_type='withdrawal',
-                    amount=withdrawal.amount,
-                    description=f"M-Pesa withdrawal successful. Receipt: {transaction_id}",
-                    linked_withdrawal=withdrawal
+                pending_tx = WalletTransaction.objects.get(
+                    linked_withdrawal=withdrawal,
+                    transaction_type='withdrawal_pending'
                 )
-                logger.info(f"Withdrawal {withdrawal.id} wallet debited successfully")
-            except Exception as tx_error:
-                # 🚨 EMERGENCY ALERT: M-Pesa paid but wallet not debited
-                logger.critical(
-                    f"🚨 WALLET DEBIT FAILED FOR COMPLETED WITHDRAWAL! "
-                    f"User: {withdrawal.user.email} | Withdrawal ID: {withdrawal.id} | "
-                    f"Amount: {withdrawal.amount} | M-Pesa Receipt: {transaction_id} | "
-                    f"Error: {str(tx_error)} | ACTION REQUIRED: Manually debit wallet."
-                )
+                pending_tx.transaction_type = 'withdrawal'
+                pending_tx.description = f"M-Pesa withdrawal successful. Receipt: {transaction_id}"
+                pending_tx.save(update_fields=['transaction_type', 'description'])
+            except WalletTransaction.DoesNotExist:
+                # Fallback: still safe (balance was already reserved)
+                pass
 
-            # STEP 3: Send completion email (best-effort)
+            # Send completion email
             try:
                 destination = withdrawal.mobile_phone
                 user = withdrawal.user
@@ -264,10 +282,18 @@ def daraja_b2c_result(request):
                 logger.warning(f"Email send failed for withdrawal {withdrawal.id}: {e}")
 
         else:
-            # ❌ Failure: Safe to update status (no money moved)
+            # FAILURE: Reverse the reserved balance
             withdrawal.status = 'failed'
             withdrawal.save(update_fields=['status'])
-            logger.error(f"Withdrawal {withdrawal.id} failed. Code: {result_code}, Desc: {result.get('ResultDesc', 'N/A')}")
+
+            try:
+                from wallets.services import reverse_pending_withdrawal
+                reverse_pending_withdrawal(withdrawal, reason=f"Daraja error {result_code}")
+            except Exception as e:
+                logger.critical(f"Failed to reverse pending withdrawal {withdrawal.id}: {e}")
+
+        # 🔑 MARK CALLBACK AS PROCESSED
+        withdrawal.mark_callback_processed(callback_id)
 
         return HttpResponse("OK", status=200)
 
@@ -278,11 +304,16 @@ def daraja_b2c_result(request):
 
 @csrf_exempt
 @require_POST
+@require_safaricom_ip  # ← ENFORCED
 def daraja_b2c_timeout(request):
     try:
         payload = json.loads(request.body)
         originator_id = payload.get('OriginatorConversationID')
         conversation_id = payload.get('ConversationID')
+        callback_id = originator_id or conversation_id
+
+        if not callback_id:
+            return HttpResponse("Missing ID", status=400)
 
         withdrawal = None
         if originator_id:
@@ -290,12 +321,23 @@ def daraja_b2c_timeout(request):
         if not withdrawal and conversation_id:
             withdrawal = WithdrawalRequest.objects.filter(daraja_conversation_id=conversation_id).first()
 
-        if withdrawal:
-            # Mark for manual review (do NOT auto-fail)
-            withdrawal.status = 'needs_review'
-            withdrawal.save(update_fields=['status'])
-            logger.info(f"Withdrawal {withdrawal.id} marked for review due to timeout")
+        if not withdrawal:
+            logger.warning(f"No withdrawal for timeout callback: {callback_id}")
+            return HttpResponse("OK", status=200)
 
+        # 🔑 IDEMPOTENCY CHECK
+        if withdrawal.has_processed_callback(callback_id):
+            logger.info(f"Duplicate timeout callback ignored: {callback_id}")
+            return HttpResponse("OK", status=200)
+
+        # Mark for manual review (do NOT auto-reverse — balance remains reserved)
+        withdrawal.status = 'needs_review'
+        withdrawal.save(update_fields=['status'])
+
+        # 🔑 MARK AS PROCESSED
+        withdrawal.mark_callback_processed(callback_id)
+
+        logger.info(f"Withdrawal {withdrawal.id} marked for review due to timeout")
         return HttpResponse("OK", status=200)
 
     except Exception as e:

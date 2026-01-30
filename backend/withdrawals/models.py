@@ -36,6 +36,7 @@ class WithdrawalRequest(models.Model):
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
+        ('needs_review', 'Needs Review'),  # ← Added for timeout handling
     ]
     METHOD_CHOICES = [
         ('mobile', 'Mobile Transfer'),
@@ -64,6 +65,12 @@ class WithdrawalRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # 🔑 NEW: For idempotent callback processing
+    processed_callbacks = models.JSONField(
+        default=list,
+        help_text="List of OriginatorConversationID or ConversationID already processed"
+    )
+
     def clean(self):
         if self.method == 'mobile' and not self.mobile_phone:
             raise ValidationError('Mobile phone required for mobile withdrawal')
@@ -77,11 +84,12 @@ class WithdrawalRequest(models.Model):
 
         self.full_clean()
 
-        # Only allow status change from 'pending' → 'completed' or 'failed' (once)
+        # Only allow status change from 'pending' → final state (once)
         if self.pk:
             original = WithdrawalRequest.objects.get(pk=self.pk)
-            if original.status != 'pending' and self.status != original.status:
-                raise ValidationError("Status cannot be changed after completion or failure.")
+            if original.status not in ['pending', 'needs_review']:
+                if self.status != original.status:
+                    raise ValidationError("Status cannot be changed after completion or failure.")
 
         if self.status == 'completed' and self.processed_at is None:
             from django.utils import timezone
@@ -90,6 +98,17 @@ class WithdrawalRequest(models.Model):
             self.processed_at = None
 
         super().save(*args, **kwargs)
+
+    # 🔑 IDEMPOTENCY HELPER METHODS
+    def has_processed_callback(self, callback_id):
+        """Check if a callback ID has already been processed."""
+        return bool(callback_id and callback_id in self.processed_callbacks)
+
+    def mark_callback_processed(self, callback_id):
+        """Safely add a callback ID to the processed list."""
+        if callback_id and callback_id not in self.processed_callbacks:
+            self.processed_callbacks.append(callback_id)
+            self.save(update_fields=['processed_callbacks'])
 
     def __str__(self):
         return f"{self.user.email} - {self.amount} ({self.status})"

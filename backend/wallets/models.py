@@ -12,6 +12,7 @@ class WalletTransaction(models.Model):
         ('referral_bonus', 'Referral Bonus'),
         ('activation_payment', 'Activation Payment'),
         ('withdrawal', 'Withdrawal'),
+        ('withdrawal_pending', 'Withdrawal Pending'),  # ← ADDED
         ('withdrawal_reversal', 'Withdrawal Reversal'),
         ('admin_adjustment', 'Admin Adjustment'),
     ]
@@ -46,7 +47,7 @@ class WalletTransaction(models.Model):
 
     def _get_balance_impact(self):
         """Return net effect on balance: positive = credit, negative = debit."""
-        if self.transaction_type == 'withdrawal':
+        if self.transaction_type in ['withdrawal', 'withdrawal_pending']:  # ← UPDATED
             return -self.amount
         else:
             # Includes: task_earning, referral_bonus, activation_payment,
