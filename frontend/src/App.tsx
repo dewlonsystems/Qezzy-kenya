@@ -33,7 +33,7 @@ import JobsProtectedRoute from './components/JobsProtectedRoute';
 import OnboardingProtectedRoute from './components/OnboardingProtectedRoute';
 
 // 🔴 MAINTENANCE FLAG — SET TO true TO ENABLE
-const IS_UNDER_MAINTENANCE = true; // ← Toggle this!
+const IS_UNDER_MAINTENANCE = false; // ← Toggle this!
 
 // Referral tracker (unchanged)
 function useReferralTracker() {
