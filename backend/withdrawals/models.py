@@ -65,10 +65,10 @@ class WithdrawalRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # 🔑 NEW: For idempotent callback processing
+    # 🔑 For idempotent callback processing
     processed_callbacks = models.JSONField(
         default=list,
-        null=True,
+        blank=True
         help_text="List of OriginatorConversationID or ConversationID already processed"
     )
 
@@ -83,9 +83,13 @@ class WithdrawalRequest(models.Model):
         if not self.reference_code:
             self.reference_code = "WDR" + uuid.uuid4().hex[:6].upper()
 
+        # 🔑 CRITICAL FIX: Ensure processed_callbacks is a list before validation
+        if self.processed_callbacks is None:
+            self.processed_callbacks = []
+
         self.full_clean()
 
-        # Only allow status change from 'pending' → final state (once)
+        # Only allow status change from 'pending'/'needs_review' → final state
         if self.pk:
             original = WithdrawalRequest.objects.get(pk=self.pk)
             if original.status not in ['pending', 'needs_review']:
