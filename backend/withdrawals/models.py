@@ -68,6 +68,7 @@ class WithdrawalRequest(models.Model):
     # 🔑 NEW: For idempotent callback processing
     processed_callbacks = models.JSONField(
         default=list,
+        null=True,
         help_text="List of OriginatorConversationID or ConversationID already processed"
     )
 
