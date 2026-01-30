@@ -114,13 +114,8 @@ class WithdrawalRequestView(APIView):
                 transaction_type='withdrawal_pending',
                 amount=amount,
                 description=f"Withdrawal request {withdrawal.reference_code} pending M-Pesa processing",
-                linked_withdrawal=None  # Will link after creation
-            )
-            # Link after creation (since withdrawal didn't exist during tx creation)
-            pending_tx.linked_withdrawal = withdrawal
-            pending_tx.save(update_fields=['linked_withdrawal'])
-
-        # ← DATABASE TRANSACTION COMMITTED. BALANCE IS RESERVED.
+                linked_withdrawal=withdrawal
+            )  
 
         # STEP 2: Handle M-Pesa OUTSIDE atomic block
         if method == 'mobile':
