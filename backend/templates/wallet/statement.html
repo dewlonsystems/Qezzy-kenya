@@ -229,11 +229,23 @@
                     <td>{{ tx.description|default:tx.get_transaction_type_display }}</td>
                     <td>{{ tx.get_transaction_type_display }}</td>
                     <td class="amount">
-                        {% if tx.transaction_type == 'withdrawal' or tx.transaction_type == 'activation_payment' %}
-                            <span class="debit">-{{ tx.amount|floatformat:2 }}</span>
+                        {% if tx.transaction_type == 'withdrawal' and tx.linked_withdrawal %}
+                            <span class="debit">
+                                -{{ tx.linked_withdrawal.amount|floatformat:2 }}
+                                </span>
+                        {% elif tx.transaction_type == 'activation_payment' %}
+                            <span class="debit">
+                                -{{ tx.amount|floatformat:2 }}
+                                </span>
+                        {% elif tx.transaction_type == 'withdrawal_reversal' %}
+                        <span class="credit">
+                            {{ tx.amount|floatformat:2 }}
+                            </span>                        
                         {% else %}
-                            <span class="credit">{{ tx.amount|floatformat:2 }}</span>
-                        {% endif %}
+                        <span class="credit">
+                            {{ tx.amount|floatformat:2 }}
+                            </span>
+                        {% endif %}                       
                     </td>
                     <td class="amount">{{ tx.running_balance|floatformat:2 }}</td>
                 </tr>

@@ -46,7 +46,9 @@ class WalletTransactionsView(APIView):
         transactions = WalletTransaction.objects.filter(
             user=user,
             wallet_type=wallet_type
-        ).order_by('-created_at')[:100]
+        ).exclude(
+            transaction_type='withdrawal_pending'
+        ).order_by('created_at', 'id')
 
         data = []
         for tx in transactions:
