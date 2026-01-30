@@ -1,9 +1,12 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { ToastProvider } from './contexts/ToastContext'; // 👈 NEW
+import { ToastProvider } from './contexts/ToastContext';
 import { useEffect } from 'react';
-import { GlobalToastHandler } from './components/GlobalToastHandler'; // 👈 NEW
+import { GlobalToastHandler } from './components/GlobalToastHandler';
+
+// 👇 NEW: Import MaintenancePage
+import MaintenancePage from './pages/MaintenancePage';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -29,7 +32,10 @@ import BasicProtectedRoute from './components/BasicProtectedRoute';
 import JobsProtectedRoute from './components/JobsProtectedRoute';
 import OnboardingProtectedRoute from './components/OnboardingProtectedRoute';
 
-// 🔑 NEW: Custom hook to capture referral code
+// 🔴 MAINTENANCE FLAG — SET TO true TO ENABLE
+const IS_UNDER_MAINTENANCE = true; // ← Toggle this!
+
+// Referral tracker (unchanged)
 function useReferralTracker() {
   const location = useLocation();
 
@@ -38,19 +44,18 @@ function useReferralTracker() {
     const refCode = urlParams.get('ref');
     if (refCode) {
       sessionStorage.setItem('referral_code', refCode);
-      // Clean URL: remove ?ref=... from browser history
       window.history.replaceState({}, document.title, location.pathname + location.hash);
     }
-  }, [location.search]); // Re-run if search params change
+  }, [location.search]);
 }
 
-// Wrapper component that uses the tracker
+// Main app content (only rendered if NOT under maintenance)
 function AppContent() {
   useReferralTracker();
 
   return (
     <>
-      <GlobalToastHandler /> {/* 👈 Shows login/account-closed toasts */}
+      <GlobalToastHandler />
       <Routes>
         {/* ===== PUBLIC ROUTES ===== */}
         <Route path="/" element={<LandingPage />} />
@@ -92,11 +97,22 @@ function AppContent() {
   );
 }
 
+// Root App component
 function App() {
+  // If under maintenance, show ONLY the maintenance page — no providers needed
+  if (IS_UNDER_MAINTENANCE) {
+    return (
+      <Router>
+        <MaintenancePage />
+      </Router>
+    );
+  }
+
+  // Otherwise, render full app with auth & toast providers
   return (
     <Router>
       <AuthProvider>
-        <ToastProvider> {/* 👈 Wrap entire app in toast provider */}
+        <ToastProvider>
           <AppContent />
         </ToastProvider>
       </AuthProvider>
