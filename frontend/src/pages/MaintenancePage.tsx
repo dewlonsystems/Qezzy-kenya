@@ -1,8 +1,6 @@
 // src/pages/MaintenancePage.tsx
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
-// Google Fonts: Inter (same as LoginPage)
 const InterFontLink = () => (
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
@@ -11,20 +9,17 @@ const InterFontLink = () => (
 );
 
 const MaintenancePage = () => {
-  const navigate = useNavigate();
-
-  // Optional: prevent back navigation during maintenance
+  // Optional: block back/forward navigation during maintenance
   useEffect(() => {
-    const preventBack = () => {
+    const handlePopState = () => {
       window.history.pushState(null, '', window.location.href);
     };
 
-    // Push a state to block back button
     window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', preventBack);
+    window.addEventListener('popstate', handlePopState);
 
     return () => {
-      window.removeEventListener('popstate', preventBack);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
@@ -40,7 +35,7 @@ const MaintenancePage = () => {
             </span>
           </div>
 
-          {/* Icon (optional) */}
+          {/* Icon */}
           <div className="flex justify-center mb-6">
             <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
               <svg
@@ -59,7 +54,7 @@ const MaintenancePage = () => {
             </div>
           </div>
 
-          {/* Main Heading */}
+          {/* Heading */}
           <h1 className="text-2xl font-bold text-gray-800 mb-4">
             Scheduled Maintenance
           </h1>
@@ -77,7 +72,6 @@ const MaintenancePage = () => {
             We’re doing this to make your experience even better. We sincerely apologize for any inconvenience.
           </p>
 
-          {/* Optional: Auto-refresh suggestion */}
           <p className="text-xs text-gray-500 italic">
             The site will be back shortly. You can refresh this page in a few minutes.
           </p>
