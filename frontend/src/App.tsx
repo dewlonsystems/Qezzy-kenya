@@ -4,11 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { useEffect } from 'react';
 import { GlobalToastHandler } from './components/GlobalToastHandler';
-
-// 👇 NEW: Import MaintenancePage
 import MaintenancePage from './pages/MaintenancePage';
-
-// Pages
 import LoginPage from './pages/LoginPage';
 import ProfileCompletionPage from './pages/onboarding/ProfileCompletionPage';
 import PaymentDetailsPage from './pages/onboarding/PaymentDetailsPage';
@@ -26,16 +22,11 @@ import PrivacyPage from './pages/PrivacyPage';
 import CookiesPage from './pages/CookiesPage';
 import NotFound from './pages/NotFoundPage';
 import AboutPage from './pages/AboutPage';
-
-// Route guards
 import BasicProtectedRoute from './components/BasicProtectedRoute';
 import JobsProtectedRoute from './components/JobsProtectedRoute';
 import OnboardingProtectedRoute from './components/OnboardingProtectedRoute';
 
-// 🔴 MAINTENANCE FLAG — SET TO true TO ENABLE
-const IS_UNDER_MAINTENANCE = false; // ← Toggle this!
-
-// Referral tracker (unchanged)
+const IS_UNDER_MAINTENANCE = false;
 function useReferralTracker() {
   const location = useLocation();
 
@@ -49,7 +40,6 @@ function useReferralTracker() {
   }, [location.search]);
 }
 
-// Main app content (only rendered if NOT under maintenance)
 function AppContent() {
   useReferralTracker();
 
@@ -97,9 +87,8 @@ function AppContent() {
   );
 }
 
-// Root App component
 function App() {
-  // If under maintenance, show ONLY the maintenance page — no providers needed
+
   if (IS_UNDER_MAINTENANCE) {
     return (
       <Router>
@@ -107,8 +96,7 @@ function App() {
       </Router>
     );
   }
-
-  // Otherwise, render full app with auth & toast providers
+ 
   return (
     <Router>
       <AuthProvider>
