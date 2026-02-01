@@ -670,6 +670,17 @@ const LandingPage = () => {
             </div>
             <div className="pt-8 border-t border-gray-800 text-center text-gray-400">
               <p>© {new Date().getFullYear()} Qezzy Kenya. All rights reserved.</p>
+              <p className="mt-2">
+                Powered by{' '}
+                <a
+                  href="https://dewlons.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-400 hover:text-amber-300 transition-colors hover:underline"
+                >
+                  Dewlon Systems                  
+                </a>
+              </p>
             </div>
           </div>
         </footer>
