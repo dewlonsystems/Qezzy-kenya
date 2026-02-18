@@ -26,7 +26,7 @@ import BasicProtectedRoute from './components/BasicProtectedRoute';
 import JobsProtectedRoute from './components/JobsProtectedRoute';
 import OnboardingProtectedRoute from './components/OnboardingProtectedRoute';
 
-const IS_UNDER_MAINTENANCE = true;
+const IS_UNDER_MAINTENANCE = false;
 function useReferralTracker() {
   const location = useLocation();
 
