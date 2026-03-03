@@ -113,7 +113,7 @@ const PrivacyPolicy = () => {
                   <strong>With your consent</strong>: e.g., when you submit a task that requires sharing data with a partner
                 </li>
                 <li>
-                  <strong>Service providers</strong>: Firebase (authentication), Safaricom (M-Pesa Daraja API), and Supabase (database)
+                  <strong>Service providers</strong>: Google, Safaricom, and Global Partner Companies
                 </li>
                 <li>
                   <strong>Legal compliance</strong>: To meet obligations under Kenyan law, including AML and tax reporting
@@ -131,7 +131,7 @@ const PrivacyPolicy = () => {
               </p>
               <ul className="list-disc list-inside space-y-1 text-gray-700 mt-2">
                 <li>Encryption of data in transit (HTTPS) and at rest</li>
-                <li>Secure authentication via Firebase</li>
+                <li>Secure authentication via Google</li>
                 <li>Regular security audits and access controls</li>
               </ul>
               <p className="leading-relaxed mt-3">
