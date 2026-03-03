@@ -39,7 +39,7 @@ const PrivacyPolicy = () => {
             <section>
               <h2 className="text-2xl font-semibold text-gray-800 mb-4">1. Introduction</h2>
               <p className="leading-relaxed">
-                Welcome to <strong>Qezzy Kenya</strong> ("we," "our," or "us"). We are committed to protecting your personal information and your right to privacy. 
+                Welcome to Qezzy Kenya. We are committed to protecting your personal information and your right to privacy. 
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform to complete tasks, earn money, and manage your account.
               </p>
               <p className="leading-relaxed mt-3">
