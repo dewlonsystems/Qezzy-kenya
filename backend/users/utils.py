@@ -11,9 +11,16 @@ def send_welcome_email(user):
     Sent immediately after onboarding completion.
     Prompts user to activate account with KES 300.
     """
+    # ✅ Skip if user opted out of promotional emails
+    if hasattr(user, 'receive_promotional_emails') and not user.receive_promotional_emails:
+        print(f"⏭️ Skipped welcome email to {user.email} (opted out of promotional)")
+        return
+        
     subject = "Complete Your Qezzy Account Activation"
     context = {
         'first_name': user.first_name.title(),
+        # ✅ Add preferences link for future management
+        'preferences_url': user.get_preferences_url() if hasattr(user, 'get_preferences_url') else None,
     }
     
     html_content = render_to_string('emails/welcome_email.html', context)
@@ -37,9 +44,15 @@ def send_welcome_aboard_email(user):
     """
     Sent after successful activation payment (account is now active).
     """
+    # ✅ Skip if user opted out of promotional emails
+    if hasattr(user, 'receive_promotional_emails') and not user.receive_promotional_emails:
+        print(f"⏭️ Skipped welcome aboard email to {user.email} (opted out of promotional)")
+        return
+        
     subject = "Welcome Aboard! Your Qezzy Account Is Active"
     context = {
         'first_name': user.first_name.title(),
+        'preferences_url': user.get_preferences_url() if hasattr(user, 'get_preferences_url') else None,
     }
     
     html_content = render_to_string('emails/welcome_aboard.html', context)
@@ -73,6 +86,8 @@ def send_withdrawal_completed_email(
     Sent when a withdrawal (mobile or bank) is marked as completed.
     Shows method-specific timing info and includes M-Pesa receipt (if applicable)
     and internal reference code for user records.
+    
+    ✅ ALWAYS SEND: This is a transactional email (not promotional).
     """
     # Determine display values
     is_mobile = (method == 'mobile')
@@ -90,6 +105,8 @@ def send_withdrawal_completed_email(
         'receipt_number': receipt_number,
         'reference_code': reference_code,
         'recipient_name': recipient_name or "your account",
+        # ✅ Add preferences link (users can still manage other email types)
+        'preferences_url': user.get_preferences_url() if hasattr(user, 'get_preferences_url') else None,
     }
 
     html_content = render_to_string('emails/withdrawal_completed.html', context)
@@ -114,7 +131,14 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
     """
     Generate a password-protected PDF statement and email it as an attachment.
     The password is NOT included in the email — only the logic to derive it.
+    
+    ✅ Respects user.receive_statement_emails preference.
     """
+    # ✅ Skip if user opted out of statement emails
+    if hasattr(user, 'receive_statement_emails') and not user.receive_statement_emails:
+        print(f"⏭️ Skipped statement email to {user.email} (opted out of statements)")
+        return
+        
     try:
         # 🔑 Generate password for PDF encryption (NOT sent in email)
         last_name = (getattr(user, 'last_name', '') or '').strip()
@@ -147,6 +171,9 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
 
         # ✅ EMAIL BODY — DESCRIBE LOGIC, NEVER REVEAL PASSWORD
         subject = f"Your Qezzy {wallet_type.title()} Wallet Statement"
+        
+        # ✅ Add preferences URL to context
+        preferences_url = user.get_preferences_url() if hasattr(user, 'get_preferences_url') else None
 
         plain_body = (
             f"Hi {user.first_name.title()},\n\n"
@@ -157,6 +184,7 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
             "Example: If your name is Agnes Muma and phone is 0712345678, your password is MU5678.\n\n"
             "Thank you for using Qezzy!\n\n"
             "— The Qezzy Team"
+            + (f"\n\nManage email preferences: {preferences_url}" if preferences_url else "")
         )
 
         html_body = f"""
@@ -184,6 +212,8 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
             </div>
 
             <p>Only you can access this document — keep it secure.</p>
+            
+            {f'<p style="margin-top:20px;font-size:12px;"><a href="{preferences_url}" style="color:#d4a017;">Manage email preferences</a></p>' if preferences_url else ''}
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
               © {datetime.now().year} Qezzy Kenya. All rights reserved.<br>
@@ -209,16 +239,32 @@ def send_statement_email(user, wallet_type='main', start_date=None, end_date=Non
 
 
 def send_task_assigned_email(user, task_title, reward, deadline):
-    print(f"[DEBUG] Preparing email for {user.email} about '{task_title}'")
     """
     Notify user when a new task is assigned.
+    
+    ✅ Respects user.receive_task_notifications preference.
+    ✅ Includes preferences/unsubscribe links in email.
     """
+    print(f"[DEBUG] Preparing email for {user.email} about '{task_title}'")
+    
+    # ✅ CHECK: Skip if user opted out of task notifications
+    if hasattr(user, 'receive_task_notifications') and not user.receive_task_notifications:
+        print(f"⏭️ Skipped task email to {user.email} (opted out of task notifications)")
+        return
+    
     subject = f"New Task: {task_title} – Qezzy Kenya"
+    
+    # ✅ Add preferences and unsubscribe URLs to context
+    preferences_url = user.get_preferences_url() if hasattr(user, 'get_preferences_url') else None
+    unsubscribe_url = f"{preferences_url}?auto_unsubscribe=task_notifications" if preferences_url else None
+    
     context = {
         'first_name': user.first_name.title(),
         'task_title': task_title,
         'reward': f"{reward:.2f}",
         'deadline': deadline.strftime("%d %b %Y at %H:%M") if hasattr(deadline, 'strftime') else str(deadline),
+        'preferences_url': preferences_url,  # ← NEW
+        'unsubscribe_url': unsubscribe_url,  # ← NEW
     }
 
     html_content = render_to_string('emails/task_assigned.html', context)

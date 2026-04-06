@@ -151,6 +151,7 @@ def setup_search_path(sender, connection, **kwargs):
 PAYMENTS_ENABLED = True
 UA_PARSER_CACHE = True
 
+FRONTEND_URL = "https://qezzykenya.company"
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST')
 EMAIL_PORT = config('EMAIL_PORT', cast=int)

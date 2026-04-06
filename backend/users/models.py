@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from .managers import UserManager
+import secrets  # 🆕 Added for secure token generation
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -36,6 +37,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # 🆕 EMAIL PREFERENCE FIELDS
+    receive_task_notifications = models.BooleanField(default=True, help_text="Receive emails about new task assignments")
+    receive_promotional_emails = models.BooleanField(default=True, help_text="Receive promotional and update emails")
+    receive_statement_emails = models.BooleanField(default=True, help_text="Receive account statement emails")
+    email_preferences_token = models.CharField(max_length=64, blank=True, null=True, unique=True, help_text="Secure token for email preference links")
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
@@ -48,3 +55,19 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.is_closed = True
         self.is_active = False
         self.save()
+
+    # 🆕 EMAIL PREFERENCE HELPER METHODS
+    def generate_email_token(self):
+        """Generate a secure token for email preference links if one doesn't exist."""
+        if not self.email_preferences_token:
+            self.email_preferences_token = secrets.token_urlsafe(32)
+            self.save(update_fields=['email_preferences_token'])
+        return self.email_preferences_token
+
+    def get_preferences_url(self):
+        """Get the full URL for managing email preferences."""
+        from django.conf import settings
+        token = self.generate_email_token()
+        # Uses FRONTEND_URL from settings, falls back to your production domain
+        domain = getattr(settings, 'FRONTEND_URL', 'https://qezzykenya.company')
+        return f"{domain}/email-preferences/{token}/"

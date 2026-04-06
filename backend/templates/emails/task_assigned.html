@@ -58,6 +58,29 @@
       border-top: 1px solid #eee;
       padding-top: 20px;
     }
+    /* ✅ NEW: Preferences footer styles */
+    .preferences-footer {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #f0e0c0;
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+    }
+    .preferences-footer a {
+      color: #d4a017;
+      text-decoration: none;
+    }
+    .preferences-footer a:hover {
+      text-decoration: underline;
+    }
+    .preferences-footer .separator {
+      color: #ccc;
+      margin: 0 6px;
+    }
+    .preferences-footer .unsubscribe {
+      color: #999;
+    }
   </style>
 </head>
 <body>
@@ -69,7 +92,7 @@
 
     <p>Hi {{ first_name }},</p>
 
-    <p>You’ve been assigned a new task:</p>
+    <p>You've been assigned a new task:</p>
 
     <div class="task-box">
       <h3>{{ task_title }}</h3>
@@ -82,6 +105,20 @@
     <p style="text-align: center;">
       <a href="https://qezzykenya.company/jobs" class="button">View Tasks</a>
     </p>
+
+    <!-- ✅ NEW: Email Preferences Footer -->
+    {% if preferences_url %}
+    <div class="preferences-footer">
+      <p style="margin: 0 0 8px 0;">
+        You're receiving this because you have task notifications enabled.
+      </p>
+      <p style="margin: 0;">
+        <a href="{{ preferences_url }}">Manage email preferences</a>
+        <span class="separator">|</span>
+        <a href="{{ unsubscribe_url }}" class="unsubscribe">Unsubscribe from task emails</a>
+      </p>
+    </div>
+    {% endif %}
 
     <div class="footer">
       <p>© {% now "Y" %} Qezzy Kenya. All rights reserved.<br>
