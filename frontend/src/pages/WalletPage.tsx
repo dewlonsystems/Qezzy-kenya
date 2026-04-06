@@ -702,20 +702,26 @@ const WalletPage = () => {
                         }`}>
                           {display.sign}KES {display.value.toFixed(2)}
                         </p>
-                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
-                          tx.status === 'completed'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : tx.status === 'pending'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-red-100 text-red-700'
-                        }`}>
-                            {tx.status === 'completed' ? (
-                              <CheckCircleIcon className="w-3 h-3" />
-                            ) : (
-                              <ClockIcon className="w-3 h-3" />
-                            )}
-                            {tx.status}
-                        </span>
+                        {(() => {
+                          const isPending = tx.transaction_type === 'withdrawal_pending';
+                          const status = isPending ? 'pending' : 'completed';
+                          const statusLabel = isPending ? 'Pending' : 'Completed';
+
+                          return (
+                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                              status === 'completed'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {status === 'completed' ? (
+                                <CheckCircleIcon className="w-3 h-3" />
+                              ) : (
+                                <ClockIcon className="w-3 h-3" />
+                              )}
+                              {statusLabel}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
