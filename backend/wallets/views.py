@@ -52,13 +52,18 @@ class WalletTransactionsView(APIView):
 
         data = []
         for tx in transactions:
+            # ✅ Add is_debit flag matching model's _get_balance_impact() logic
+            # Debits: withdrawal, withdrawal_pending (reduce wallet balance)
+            # Credits: everything else (task_earning, referral_bonus, activation_payment, etc.)
+            is_debit = tx.transaction_type in ['withdrawal', 'withdrawal_pending']
+            
             data.append({
                 'id': tx.id,
                 'wallet_type': tx.wallet_type,
                 'transaction_type': tx.transaction_type,
                 'amount': float(tx.amount),
                 'running_balance': float(tx.running_balance),
-                # ❌ Remove 'status' — it no longer exists
+                'is_debit': is_debit,  # ← NEW: explicit debit/credit flag
                 'description': tx.description,
                 'created_at': tx.created_at.isoformat()
             })
@@ -92,7 +97,12 @@ class WalletStatementPDFView(APIView):
         if end_date:
             transactions_qs = transactions_qs.filter(created_at__date__lte=end_date)
 
-        transactions = list(transactions_qs)
+        # ✅ Build transactions list with is_debit flag for template
+        transactions = []
+        for tx in transactions_qs:
+            # Match model's _get_balance_impact(): only these reduce balance
+            tx.is_debit = tx.transaction_type in ['withdrawal', 'withdrawal_pending']
+            transactions.append(tx)
 
         if transactions:
             first_tx = transactions[0]
@@ -126,7 +136,7 @@ class WalletStatementPDFView(APIView):
             'wallet_type': wallet_type,
             'opening_balance': opening_balance,
             'closing_balance': closing_balance,
-            'transactions': transactions,
+            'transactions': transactions,  # ← Now includes is_debit attribute
             'statement_date': statement_date,
             'start_date_display': start_date_display,
             'end_date_display': end_date_display,

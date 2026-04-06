@@ -197,11 +197,11 @@
                     {% elif end_date_display %}
                         Until {{ end_date_display }}
                     {% else %}
-                        All Completed Transactions
+                        All Transactions
                     {% endif %}
                 </div>
                 <div><label>Wallet:</label> {{ wallet_type|capfirst }} Wallet</div>
-                <div><label>Phone:</label> {{ user.phone_number|default:"—"}} </div>
+                <div><label>Phone:</label> {{ user.phone_number|default:"—" }} </div>
                 <div><label>Email:</label> {{ user.email }}</div>
                 <div><label>Statement Date:</label> {{ statement_date }}</div>
             </div>
@@ -229,30 +229,18 @@
                     <td>{{ tx.description|default:tx.get_transaction_type_display }}</td>
                     <td>{{ tx.get_transaction_type_display }}</td>
                     <td class="amount">
-                        {% if tx.transaction_type == 'withdrawal' and tx.linked_withdrawal %}
-                            <span class="debit">
-                                -{{ tx.linked_withdrawal.amount|floatformat:2 }}
-                                </span>
-                        {% elif tx.transaction_type == 'activation_payment' %}
-                            <span class="debit">
-                                -{{ tx.amount|floatformat:2 }}
-                                </span>
-                        {% elif tx.transaction_type == 'withdrawal_reversal' %}
-                        <span class="credit">
-                            {{ tx.amount|floatformat:2 }}
-                            </span>                        
+                        {% if tx.is_debit %}
+                            <span class="debit">-{{ tx.amount|floatformat:2 }}</span>
                         {% else %}
-                        <span class="credit">
-                            {{ tx.amount|floatformat:2 }}
-                            </span>
-                        {% endif %}                       
+                            <span class="credit">+{{ tx.amount|floatformat:2 }}</span>
+                        {% endif %}
                     </td>
                     <td class="amount">{{ tx.running_balance|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
                 <tr>
                     <td colspan="5" style="text-align:center; color:#7f8c8d; font-style:italic;">
-                        No completed transactions in this period
+                        No transactions in this period
                     </td>
                 </tr>
                 {% endfor %}
@@ -263,7 +251,7 @@
             </tbody>
         </table>
 
-        <!-- Simplified Footer -->
+        <!-- Footer -->
         <div class="footer">
             <p>This is a computer-generated statement and does not require a signature.</p>
         </div>
