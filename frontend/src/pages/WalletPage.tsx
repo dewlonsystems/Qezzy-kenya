@@ -76,8 +76,8 @@ const ArrowLeftIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) =
 
 // ✅ Helper: determine display sign, color, and direction from transaction_type
 const getDisplayAmount = (tx: Transaction) => {
-  const value = Math.abs(tx.amount);
-  if (tx.transaction_type === 'withdrawal' || tx.transaction_type === 'activation_payment') {
+  const value = Math.abs(typeof tx.amount === 'number' ? tx.amount : parseFloat(tx.amount));
+  if (['withdrawal', 'withdrawal_pending'].includes(tx.transaction_type)) {
     return { sign: '-', value, isCredit: false };
   }
   return { sign: '+', value, isCredit: true };
@@ -309,7 +309,7 @@ const WalletPage = () => {
     if (tx.transaction_type === 'referral_bonus') {
       return <UsersIcon className="w-5 h-5" />;
     }
-    if (tx.transaction_type === 'withdrawal' || tx.transaction_type === 'activation_payment') {
+    if (['withdrawal', 'withdrawal_pending'].includes(tx.transaction_type)) {
       return <ArrowUpIcon className="w-5 h-5" />; // Money going out
     }
     return <ArrowDownIcon className="w-5 h-5" />; // Money coming in
@@ -318,7 +318,7 @@ const WalletPage = () => {
   // ✅ Updated: Use transaction_type to determine color
   const getTransactionColor = (tx: Transaction) => {
     if (tx.transaction_type === 'referral_bonus') return 'bg-orange-100 text-orange-600';
-    if (tx.transaction_type === 'withdrawal' || tx.transaction_type === 'activation_payment') {
+    if (['withdrawal', 'withdrawal_pending'].includes(tx.transaction_type)) {
       return 'bg-amber-100 text-amber-600';
     }
     return 'bg-emerald-100 text-emerald-600';
