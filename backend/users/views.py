@@ -1,7 +1,7 @@
 # users/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny  # 🆕 Added AllowAny
 from django.core.exceptions import ValidationError
 from .models import User
 
@@ -178,3 +178,138 @@ class CloseAccountView(APIView):
 
         user.close_account()
         return Response({'message': 'Account closed successfully. All data retained.'})
+
+
+# =============================================================================
+# 🆕 EMAIL PREFERENCES API ENDPOINTS (Token-based, no login required)
+# =============================================================================
+
+class EmailPreferencesView(APIView):
+    """
+    GET: Fetch email preferences for a user via secure token.
+    PATCH: Update email preferences for a user via secure token.
+    
+    Permission: AllowAny (token-based auth, not session auth)
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, token):
+        """Fetch current preferences for the token."""
+        try:
+            user = User.objects.get(email_preferences_token=token)
+            return Response({
+                'email': user.email,
+                'receive_task_notifications': user.receive_task_notifications,
+                'receive_promotional_emails': user.receive_promotional_emails,
+                'receive_statement_emails': user.receive_statement_emails,
+            })
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid or expired preference token'}, status=404)
+    
+    def patch(self, request, token):
+        """Update preferences for the token."""
+        try:
+            user = User.objects.get(email_preferences_token=token)
+            
+            # Fields that can be updated
+            updatable_fields = [
+                'receive_task_notifications',
+                'receive_promotional_emails', 
+                'receive_statement_emails'
+            ]
+            
+            updated_fields = []
+            
+            # Update only fields that were provided in the request
+            for field in updatable_fields:
+                if field in request.data:
+                    value = request.data[field]
+                    # Ensure boolean type
+                    if isinstance(value, str):
+                        value = value.lower() in ('true', '1', 'yes', 'on')
+                    setattr(user, field, bool(value))
+                    updated_fields.append(field)
+            
+            if updated_fields:
+                user.save(update_fields=updated_fields + ['updated_at'])
+            
+            return Response({
+                'message': 'Preferences updated successfully',
+                'receive_task_notifications': user.receive_task_notifications,
+                'receive_promotional_emails': user.receive_promotional_emails,
+                'receive_statement_emails': user.receive_statement_emails,
+            })
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid or expired preference token'}, status=404)
+        except Exception as e:
+            return Response({'error': 'Failed to update preferences'}, status=500)
+
+
+class EmailUnsubscribeView(APIView):
+    """
+    POST: One-click unsubscribe for specific email types.
+    
+    Usage: POST /api/users/email-preferences/unsubscribe/{email_type}/
+    Body: { "token": "secure_token_from_email" }
+    
+    email_type options: 'task', 'promotional', 'statement', 'all'
+    
+    Permission: AllowAny (token-based auth, not session auth)
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request, email_type):
+        token = request.data.get('token')
+        if not token:
+            return Response({'error': 'Preference token is required'}, status=400)
+        
+        try:
+            user = User.objects.get(email_preferences_token=token)
+            
+            # Map email_type to model fields
+            unsubscribe_map = {
+                'task': 'receive_task_notifications',
+                'promotional': 'receive_promotional_emails',
+                'statement': 'receive_statement_emails',
+            }
+            
+            if email_type == 'all':
+                # Unsubscribe from all marketing emails
+                user.receive_task_notifications = False
+                user.receive_promotional_emails = False
+                user.receive_statement_emails = False
+                fields_to_update = [
+                    'receive_task_notifications',
+                    'receive_promotional_emails',
+                    'receive_statement_emails',
+                    'updated_at'
+                ]
+                message = 'Unsubscribed from all marketing emails'
+                
+            elif email_type in unsubscribe_map:
+                # Unsubscribe from specific type
+                field = unsubscribe_map[email_type]
+                setattr(user, field, False)
+                fields_to_update = [field, 'updated_at']
+                
+                labels = {
+                    'task': 'task assignment emails',
+                    'promotional': 'promotional emails',
+                    'statement': 'statement emails',
+                }
+                message = f'Unsubscribed from {labels[email_type]}'
+                
+            else:
+                return Response({'error': 'Invalid email type'}, status=400)
+            
+            user.save(update_fields=fields_to_update)
+            
+            return Response({
+                'message': message,
+                'email': user.email,
+            })
+            
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid or expired preference token'}, status=404)
+        except Exception as e:
+            return Response({'error': 'Failed to process unsubscribe request'}, status=500)
