@@ -22,11 +22,15 @@ import PrivacyPage from './pages/PrivacyPage';
 import CookiesPage from './pages/CookiesPage';
 import NotFound from './pages/NotFoundPage';
 import AboutPage from './pages/AboutPage';
+// 🆕 Import the new Email Preferences page
+import EmailPreferencesPage from './pages/EmailPreferencesPage';
 import BasicProtectedRoute from './components/BasicProtectedRoute';
 import JobsProtectedRoute from './components/JobsProtectedRoute';
 import OnboardingProtectedRoute from './components/OnboardingProtectedRoute';
 
+
 const IS_UNDER_MAINTENANCE = false;
+
 function useReferralTracker() {
   const location = useLocation();
 
@@ -54,6 +58,8 @@ function AppContent() {
         <Route path="/cookies" element={<CookiesPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/about" element={<AboutPage />} />
+        {/* 🆕 Email Preferences (token-based, no login required) */}
+        <Route path="/email-preferences/:token" element={<EmailPreferencesPage />} />
 
         {/* ===== ONBOARDING ROUTES ===== */}
         <Route element={<OnboardingProtectedRoute />}>
