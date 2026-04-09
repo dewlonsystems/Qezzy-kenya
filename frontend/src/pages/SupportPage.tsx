@@ -285,6 +285,12 @@ const SupportPage = () => {
 
         ws.onopen = () => {
           console.log('WebSocket connected for support');
+          if (activeTicket) {
+            ws.send(JSON.stringify({
+              action: "join_ticket",
+              ticket_id: activeTicket,
+            }));
+          }
         };
 
         ws.onmessage = (event) => {
