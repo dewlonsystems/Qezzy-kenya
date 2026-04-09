@@ -285,7 +285,7 @@ const SupportPage = () => {
 
         ws.onopen = () => {
           console.log('WebSocket connected for support');
-          if (activeTicket) {
+          if (activeTicket && ws) {
             ws.send(JSON.stringify({
               action: "join_ticket",
               ticket_id: activeTicket,
