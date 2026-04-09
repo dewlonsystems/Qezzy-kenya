@@ -11,9 +11,8 @@ from support.middleware import FirebaseTokenAuthMiddleware
 import support.routing
 
 application = ProtocolTypeRouter({
-    "HTTP": get_asgi_application(),
+    "http": get_asgi_application(),  # ← MUST be lowercase "http"
     "websocket": FirebaseTokenAuthMiddleware(
         URLRouter(support.routing.websocket_urlpatterns)
     ),
 })
-
