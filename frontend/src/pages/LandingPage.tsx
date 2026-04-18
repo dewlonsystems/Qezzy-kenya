@@ -2,691 +2,657 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
-// Inline SVG Icon Components
-const CheckIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+/* ─── SVG Icons ────────────────────────────────────────── */
+const ArrowRight = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);
+const Check = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
-
-const WalletIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-  </svg>
-);
-
-const TaskIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <path d="m9 12 2 2 4-4" />
-  </svg>
-);
-
-const UsersIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-
-const ShieldIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-    <path d="m9 12 2 2 4-4" />
-  </svg>
-);
-
-const PhoneIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-    <path d="M12 18h.01" />
-  </svg>
-);
-
-const CoinIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-    <circle cx="12" cy="12" r="8" />
-    <path d="M12 8v8" />
-    <path d="M8 12h8" />
-  </svg>
-);
-
-const ArrowRightIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <path d="M5 12h14" />
-    <path d="m12 5 7 7-7 7" />
-  </svg>
-);
-
-const StarIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-400">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
-
-const HeartIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-amber-500">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-  </svg>
-);
-
 const MenuIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="18" x2="21" y2="18" />
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="16" x2="15" y2="16" />
   </svg>
 );
-
 const CloseIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 
-const LandingPage = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
+/* ─── Styles ────────────────────────────────────────────── */
+const Styles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    :root {
+      --cream:  #fdf8f3;
+      --warm:   #f5ede0;
+      --amber:  #d97706;
+      --amb-d:  #92400e;
+      --amb-l:  #fbbf24;
+      --ink:    #1c1209;
+      --muted:  #6b5b45;
+      --border: #e8d9c5;
+    }
+
+    body { background: var(--cream); color: var(--ink); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+    a    { color: inherit; }
+
+    /* ══ NAV ══════════════════════════════════════════════ */
+    .nav {
+      position: fixed; inset: 0 0 auto 0; z-index: 200;
+      transition: background .3s, box-shadow .3s;
+    }
+    .nav.scrolled {
+      background: rgba(253,248,243,.96);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 1px 0 var(--border);
+    }
+    .nav-bar {
+      max-width: 1160px; margin: 0 auto;
+      padding: 0 20px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo       { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark  { width: 36px; height: 36px; border-radius: 9px; background: var(--amber); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces',serif; font-weight: 900; color: #fff; font-size: 17px; flex-shrink: 0; }
+    .logo-name  { font-family: 'Fraunces',serif; font-weight: 700; font-size: 19px; color: var(--ink); }
+    .nav-links  { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .nav-links a:hover { color: var(--amber); }
+    .nav-cta    { display: inline-flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 8px; background: var(--amber); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; transition: background .2s, transform .2s; }
+    .nav-cta:hover { background: var(--amb-d); transform: translateY(-1px); }
+    .nav-ham    { display: none; background: none; border: none; cursor: pointer; color: var(--ink); padding: 4px; line-height: 0; }
+
+    .nav-drawer { display: none; flex-direction: column; background: var(--cream); border-top: 1px solid var(--border); padding: 16px 20px 24px; gap: 0; }
+    .nav-drawer.open { display: flex; }
+    .nav-drawer a { display: block; padding: 13px 0; font-size: 15px; font-weight: 500; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--border); transition: color .2s; }
+    .nav-drawer a:hover { color: var(--amber); }
+    .nav-drawer a:last-of-type { border-bottom: none; }
+    .drawer-cta { margin-top: 16px; display: block; text-align: center; padding: 13px; border-radius: 9px; background: var(--amber); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; }
+
+    @media (max-width: 720px) { .nav-links { display: none; } .nav-ham { display: block; } }
+
+    /* ══ BUTTONS ══════════════════════════════════════════ */
+    .btn-amber { display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; border-radius: 9px; background: var(--amber); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; transition: background .2s, transform .2s; border: none; cursor: pointer; }
+    .btn-amber:hover { background: var(--amb-d); transform: translateY(-1px); }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 8px; padding: 13px 24px; border-radius: 9px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-size: 15px; font-weight: 500; text-decoration: none; transition: all .2s; cursor: pointer; }
+    .btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
+    .btn-white { display: inline-flex; align-items: center; gap: 8px; padding: 14px 30px; border-radius: 9px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none; transition: background .2s, transform .2s; }
+    .btn-white:hover { background: var(--warm); transform: translateY(-1px); }
+
+    /* ══ HERO ═════════════════════════════════════════════ */
+    .hero {
+      padding: 112px 20px 72px;
+      background:
+        radial-gradient(ellipse 70% 55% at 85% 25%, #fde68a40 0%, transparent 65%),
+        radial-gradient(ellipse 55% 65% at 5%  85%, #fed7aa30 0%, transparent 60%),
+        var(--cream);
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: ''; position: absolute; top: -80px; right: -100px;
+      width: 480px; height: 480px; border-radius: 50%;
+      background: conic-gradient(from 180deg, #fbbf2420, #fb923c20, #fbbf2400);
+      animation: slowspin 24s linear infinite; pointer-events: none;
+    }
+    @keyframes slowspin { to { transform: rotate(360deg); } }
+    @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    .hero-wrap { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 400px; gap: 72px; align-items: center; position: relative; z-index: 2; }
+
+    .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--amber); margin-bottom: 22px; }
+    .blink-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amb-l); animation: blink 2.2s ease-in-out infinite; }
+
+    .hero h1 { font-family: 'Fraunces',serif; font-size: clamp(40px,5.5vw,72px); font-weight: 900; line-height: 1.06; color: var(--ink); margin-bottom: 24px; }
+    .hero h1 em { font-style: italic; background: linear-gradient(135deg,var(--amber),#ea580c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    .hero-sub { font-size: 16px; line-height: 1.8; color: var(--muted); font-weight: 300; max-width: 480px; margin-bottom: 36px; }
+    .hero-btns { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .hero-trust { margin-top: 40px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .trust-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .ck { color: var(--amber); display: flex; }
+
+    /* hero panel */
+    .hero-panel { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 28px; box-shadow: 0 20px 55px -10px rgba(180,120,30,.16); }
+    .panel-tag  { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); background: #fef3c7; padding: 4px 10px; border-radius: 4px; margin-bottom: 18px; }
+    .p-big  { font-family: 'Fraunces',serif; font-size: 46px; font-weight: 900; line-height: 1; color: var(--ink); }
+    .p-unit { font-size: 13px; color: var(--muted); margin-top: 4px; margin-bottom: 4px; }
+    .p-hr   { height: 1px; background: var(--border); margin: 18px 0; }
+    .p-row  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .p-row:last-of-type { margin-bottom: 0; }
+    .p-lbl  { font-size: 13px; color: var(--muted); }
+    .p-val  { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .badge  { display: inline-flex; align-items: center; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+    .bg-g   { background: #d1fae5; color: #065f46; }
+    .bg-a   { background: #fef3c7; color: #92400e; }
+    .p-bar  { height: 5px; background: var(--warm); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+    .p-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg,var(--amb-l),var(--amber)); }
+    .p-cta  { margin-top: 20px; display: block; width: 100%; text-align: center; padding: 13px; border-radius: 9px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; transition: background .2s; }
+    .p-cta:hover { background: #2d1a08; }
+
+    @media (max-width: 960px) {
+      .hero-wrap  { grid-template-columns: 1fr; gap: 44px; }
+      .hero h1    { font-size: clamp(36px,7.5vw,54px); }
+      .hero-panel { max-width: 420px; }
+    }
+    @media (max-width: 600px) {
+      .hero       { padding: 88px 18px 52px; }
+      .hero h1    { font-size: clamp(30px,9vw,42px); }
+      .hero-sub   { font-size: 15px; }
+      .hero-panel { display: none; }
+      .hero-btns  { flex-direction: column; }
+      .hero-btns a, .hero-btns button { width: 100%; justify-content: center; text-align: center; }
+      .hero-trust { gap: 10px; margin-top: 28px; }
+    }
+
+    /* ══ MARQUEE ══════════════════════════════════════════ */
+    .marquee     { background: var(--ink); padding: 13px 0; overflow: hidden; }
+    .marquee-row { display: flex; white-space: nowrap; animation: ticker 30s linear infinite; }
+    .marquee-row:hover { animation-play-state: paused; }
+    .m-item      { display: inline-flex; align-items: center; gap: 22px; padding: 0 36px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); }
+    .m-dot       { color: #3d2a0f; font-size: 16px; }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* ══ SECTIONS (shared) ════════════════════════════════ */
+    .sec    { padding: 88px 20px; }
+    .sec-in { max-width: 1100px; margin: 0 auto; }
+    .lbl    { display: block; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; }
+    .ttl    { font-family: 'Fraunces',serif; font-size: clamp(28px,3.8vw,46px); font-weight: 900; line-height: 1.1; color: var(--ink); margin-bottom: 18px; }
+    .ttl em { font-style: italic; color: var(--amber); }
+    .body   { font-size: 15px; line-height: 1.8; color: var(--muted); font-weight: 300; max-width: 520px; }
+
+    @media (max-width: 600px) { .sec { padding: 60px 18px; } }
+
+    /* ══ FEATURES ═════════════════════════════════════════ */
+    .bg-white { background: #fff; }
+    .feat-layout { display: grid; grid-template-columns: 300px 1fr; gap: 72px; align-items: start; }
+    .feat-head   { position: sticky; top: 88px; }
+    .feat-item   { display: flex; align-items: flex-start; gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--border); }
+    .feat-item:first-child { border-top: 1px solid var(--border); }
+    .feat-n      { font-family: 'Fraunces',serif; font-size: 12px; font-weight: 400; color: var(--amber); min-width: 22px; margin-top: 3px; flex-shrink: 0; }
+    .feat-item h3 { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 5px; }
+    .feat-item p  { font-size: 13px; line-height: 1.75; color: var(--muted); font-weight: 300; }
+    @media (max-width: 760px) { .feat-layout { grid-template-columns: 1fr; gap: 36px; } .feat-head { position: static; } }
+
+    /* ══ STEPS ════════════════════════════════════════════ */
+    .bg-warm   { background: var(--warm); }
+    .steps-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-top: 52px; }
+    .step-card { background: #fff; border-radius: 14px; padding: 28px 24px; border: 1px solid var(--border); position: relative; overflow: hidden; transition: box-shadow .3s, transform .3s; }
+    .step-card:hover { box-shadow: 0 14px 36px -8px rgba(180,100,20,.15); transform: translateY(-4px); }
+    .step-card::before { content: attr(data-n); position: absolute; top: -14px; right: 12px; font-family: 'Fraunces',serif; font-size: 80px; font-weight: 900; color: #fde68a; line-height: 1; pointer-events: none; transition: color .3s; }
+    .step-card:hover::before { color: #fbbf24; }
+    .step-lbl  { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; display: block; }
+    .step-card h3 { font-family: 'Fraunces',serif; font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+    .step-card p  { font-size: 13px; line-height: 1.75; color: var(--muted); font-weight: 300; }
+    @media (max-width: 900px) { .steps-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 500px) { .steps-grid { grid-template-columns: 1fr; gap: 14px; } }
+
+    /* ══ ACTIVATION ═══════════════════════════════════════ */
+    .bg-ink { background: var(--ink); position: relative; overflow: hidden; }
+    .bg-ink::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 65% 80% at 8% 55%, #d9770620 0%, transparent 60%), radial-gradient(ellipse 55% 60% at 92% 20%, #ea580c18 0%, transparent 55%); pointer-events: none; }
+    .act-in { max-width: 720px; margin: 0 auto; text-align: center; position: relative; z-index: 2; }
+    .act-in .lbl { color: var(--amb-l); }
+    .act-in .ttl { color: #fff; }
+    .act-body { font-size: 15px; line-height: 1.85; color: #a78a6a; font-weight: 300; margin-bottom: 32px; }
+    .pills    { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin-bottom: 36px; }
+    .pill     { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 50px; border: 1px solid #3d2a0f; font-size: 12px; font-weight: 500; color: #c9a96e; }
+    .pill .ck { color: var(--amber); }
+
+    /* ══ TESTIMONIALS ═════════════════════════════════════ */
+    .bg-cream  { background: var(--cream); }
+    .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 52px; }
+    .testi-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px; transition: box-shadow .3s; }
+    .testi-card:hover { box-shadow: 0 10px 28px -6px rgba(180,100,20,.1); }
+    .stars    { display: flex; gap: 3px; margin-bottom: 16px; }
+    .star-chr { color: var(--amb-l); font-size: 15px; }
+    .testi-q  { font-family: 'Fraunces',serif; font-style: italic; font-size: 14px; line-height: 1.85; color: var(--ink); margin-bottom: 20px; }
+    .t-author { display: flex; align-items: center; gap: 11px; }
+    .avatar   { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,var(--amb-l),var(--amber)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .t-name   { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .t-loc    { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    @media (max-width: 760px) { .testi-grid { grid-template-columns: 1fr; } }
+
+    /* ══ REFERRAL ═════════════════════════════════════════ */
+    .ref-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
+    .chk-list   { list-style: none; margin: 24px 0 32px; display: flex; flex-direction: column; gap: 13px; }
+    .chk-list li { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; color: var(--muted); font-weight: 300; line-height: 1.6; }
+    .chk-icon   { width: 20px; height: 20px; border-radius: 50%; background: var(--amber); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+    .ref-card   { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 32px; box-shadow: 0 18px 44px -10px rgba(180,100,20,.12); }
+    .r-lbl      { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .r-big      { font-family: 'Fraunces',serif; font-size: 44px; font-weight: 900; line-height: 1; color: var(--ink); }
+    .r-sub      { font-size: 12px; color: var(--muted); margin-top: 4px; margin-bottom: 24px; }
+    .r-hr       { height: 1px; background: var(--border); margin-bottom: 20px; }
+    .code-box   { background: var(--warm); border: 1px dashed var(--border); border-radius: 10px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .code-lbl   { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .code-val   { font-family: 'Fraunces',serif; font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: .08em; margin-top: 3px; }
+    .copy-btn   { flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--amber); background: none; border: 1px solid var(--amber); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    .copy-btn:hover { background: var(--amber); color: #fff; }
+    @media (max-width: 760px) { .ref-layout { grid-template-columns: 1fr; gap: 36px; } }
+
+    /* ══ FAQ ══════════════════════════════════════════════ */
+    .faq-layout { display: grid; grid-template-columns: 260px 1fr; gap: 72px; align-items: start; }
+    .faq-head   { position: sticky; top: 88px; }
+    .faq-item   { border-bottom: 1px solid var(--border); }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-btn    { width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 20px 0; display: flex; justify-content: space-between; align-items: center; gap: 14px; font-size: 14px; font-weight: 600; color: var(--ink); font-family: 'DM Sans',sans-serif; transition: color .2s; }
+    .faq-btn:hover { color: var(--amber); }
+    .faq-arr    { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .3s; color: var(--muted); }
+    .faq-item.open .faq-arr { background: var(--amber); border-color: var(--amber); color: #fff; transform: rotate(90deg); }
+    .faq-body   { font-size: 13px; line-height: 1.85; color: var(--muted); font-weight: 300; max-height: 0; overflow: hidden; transition: max-height .4s ease, padding-bottom .3s ease; }
+    .faq-item.open .faq-body { max-height: 220px; padding-bottom: 18px; }
+    @media (max-width: 760px) { .faq-layout { grid-template-columns: 1fr; gap: 32px; } .faq-head { position: static; } }
+
+    /* ══ FINAL CTA ════════════════════════════════════════ */
+    .bg-deep { background: linear-gradient(135deg,#1c1209 0%,#2c1808 55%,#1c1209 100%); position: relative; overflow: hidden; }
+    .bg-deep::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 110%, #d9770612 0%, transparent 60%); pointer-events: none; }
+    .cta-in      { max-width: 660px; margin: 0 auto; text-align: center; position: relative; z-index: 2; }
+    .cta-in .lbl { color: var(--amb-l); }
+    .cta-in .ttl { color: #fff; }
+    .cta-sub     { font-size: 15px; line-height: 1.85; color: #a78a6a; font-weight: 300; margin-bottom: 32px; }
+    .cta-note    { font-size: 11px; color: #5b4020; margin-top: 16px; }
+    .cta-note span { color: #7a5c3a; }
+
+    /* ══ FOOTER ═══════════════════════════════════════════ */
+    footer      { background: var(--ink); padding: 56px 20px 32px; }
+    .foot-grid  { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 44px; padding-bottom: 44px; border-bottom: 1px solid #2d1f0a; }
+    .foot-brand p { font-size: 13px; line-height: 1.8; color: #7a5c3a; font-weight: 300; margin-top: 13px; }
+    footer h5   { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6b4f30; margin-bottom: 14px; }
+    footer ul   { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    footer ul li a, footer ul li span { font-size: 13px; color: #7a5c3a; text-decoration: none; transition: color .2s; }
+    footer ul li a:hover { color: var(--amb-l); }
+    .foot-btm   { max-width: 1100px; margin: 24px auto 0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #4b3515; flex-wrap: wrap; gap: 6px; }
+    .foot-btm a { color: #7a5c3a; text-decoration: none; }
+    .foot-btm a:hover { color: var(--amb-l); }
+    @media (max-width: 760px) { .foot-grid { grid-template-columns: 1fr 1fr; gap: 28px; } }
+    @media (max-width: 480px) { .foot-grid { grid-template-columns: 1fr; } .foot-btm { flex-direction: column; text-align: center; } }
+  `}</style>
+);
+
+/* ══════════════════════════════════════════════════════════
+   COMPONENT
+══════════════════════════════════════════════════════════ */
+export default function LandingPage() {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [openFaq,  setOpenFaq]  = useState<number | null>(null);
+  const [copied,   setCopied]   = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const h = () => setScrolled(window.scrollY > 36);
+    window.addEventListener('scroll', h, { passive: true });
+    return () => window.removeEventListener('scroll', h);
   }, []);
 
+  const copyCode = () => {
+    navigator.clipboard?.writeText('QEZZY2024');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  };
+
+  const toggleFaq = (i: number) => setOpenFaq(prev => (prev === i ? null : i));
+
+  /* data */
   const features = [
-    {
-      icon: <TaskIcon />,
-      title: "Complete Tasks",
-      description: "Access a variety of paid tasks tailored for the Kenyan market. Simple, straightforward, and rewarding."
-    },
-    {
-      icon: <WalletIcon />,
-      title: "Dual Wallet System",
-      description: "Manage your earnings with separate wallets for task income and referral bonuses."
-    },
-    {
-      icon: <PhoneIcon />,
-      title: "M-Pesa Integration",
-      description: "Seamless withdrawals directly to your M-Pesa or bank account. Fast, secure, reliable."
-    },
-    {
-      icon: <UsersIcon />,
-      title: "Referral Program",
-      description: "Earn KES 50 for every friend you refer who activates their account. Unlimited referrals!"
-    },
-    {
-      icon: <ShieldIcon />,
-      title: "Secure & Verified",
-      description: "Your data and earnings are protected with enterprise-grade security and Firebase authentication."
-    },
-    {
-      icon: <CoinIcon />,
-      title: "Instant Payouts",
-      description: "Mobile money withdrawals are processed automatically. Get paid when you want."
-    }
+    { title: 'Complete Tasks',         desc: 'A growing library of tasks built for the Kenyan market — flexible, straightforward, and rewarding on your schedule.' },
+    { title: 'Dual Wallet System',     desc: 'Task income and referral bonuses sit in separate wallets so you always know exactly where every shilling comes from.' },
+    { title: 'M-Pesa Withdrawals',     desc: 'Your money reaches you fast. Withdrawals go straight to M-Pesa or your bank with no extra steps.' },
+    { title: 'Referral Bonuses',       desc: 'Share your code. When a friend activates, a bonus drops into your referral wallet immediately — no cap, no fine print.' },
+    { title: 'Secure Authentication',  desc: 'Enterprise-grade Firebase security keeps your account and earnings protected around the clock.' },
+    { title: 'Automatic Processing',   desc: 'Mobile money withdrawals are handled automatically — no waiting for manual approvals, no guesswork.' },
   ];
 
   const steps = [
-    { step: "01", title: "Sign Up", description: "Create your free account in minutes using your email or phone number." },
-    { step: "02", title: "Complete Profile", description: "Fill in your details and payment information for seamless withdrawals." },
-    { step: "03", title: "Activate Account", description: "Make a one-time payment of KES 300 to unlock all earning features. This is a verification fee to filter spam users. The full amount is credited to your main account once activated, and can be withdrawn in the next payout date together with your earnings." },
-    { step: "04", title: "Start Earning", description: "Browse available tasks, complete them, and watch your wallet grow!" }
+    { n: '01', title: 'Create an Account',    desc: 'Sign up with your email or phone. It takes under two minutes and costs nothing.' },
+    { n: '02', title: 'Set Up Your Profile',  desc: 'Add your details and link your payment method so withdrawals are always ready.' },
+    { n: '03', title: 'Activate Your Access', desc: 'A small one-time fee unlocks all features. That exact amount is credited to your wallet.' },
+    { n: '04', title: 'Earn & Withdraw',      desc: 'Browse tasks, complete them at your pace, and withdraw whenever you like.' },
   ];
 
   const testimonials = [
-    {
-      name: "Sarah Njeri",
-      location: "Nairobi",
-      text: "Qezzy Kenya has changed my life! I earn extra income from home while taking care of my children. The M-Pesa withdrawals are so convenient.",
-      avatar: "SN"
-    },
-    {
-      name: "Richard Kenagwa",
-      location: "Kisii",
-      text: "I was skeptical at first, but after my first withdrawal, I knew this was legit. The referral program alone has earned me over KES 5,000!",
-      avatar: "RK"
-    },
-    {
-      name: "Grace Chebet",
-      location: "Eldoret",
-      text: "As a university student, Qezzy helps me pay for my expenses. The tasks are easy and the platform is very user-friendly.",
-      avatar: "GC"
-    }
+    { init: 'SN', name: 'Sarah Njeri',     loc: 'Nairobi',  q: 'I earn real money from home while caring for my kids. The M-Pesa withdrawals are so seamless — I was genuinely surprised by how smooth everything is.' },
+    { init: 'RK', name: 'Richard Kenagwa', loc: 'Kisii',    q: 'I was skeptical at first. Then my first withdrawal went through and I stopped doubting. The referral program has been very generous.' },
+    { init: 'GC', name: 'Grace Chebet',    loc: 'Eldoret',  q: 'As a student I needed something flexible. Qezzy fits perfectly around my lectures — the tasks are simple and the platform just works.' },
   ];
+
+  const faqs: { q: string; a: string }[] = [
+    { q: 'How do I withdraw my earnings?',    a: 'Withdrawals go directly to M-Pesa or your bank. Mobile money is processed automatically; bank transfers clear within 24–48 hours.' },
+    { q: 'Is the activation fee refundable?', a: "It's a one-time payment that grants lifetime access. The amount isn't returned as cash, but it's credited to your main wallet and fully withdrawable." },
+    { q: 'When can I make a withdrawal?',     a: 'Main wallet withdrawals open on the 5th of each month. Your referral wallet can be withdrawn every 24 hours.' },
+    { q: 'Are there hidden monthly charges?', a: 'None at all. Activation is a one-time payment. After that the platform is yours to use with no recurring fees.' },
+  ];
+
+  const marqueeItems = ['Complete Tasks', 'Refer Friends', 'Withdraw via M-Pesa', 'No Monthly Fees', 'Instant Processing'];
 
   return (
     <>
       <Helmet>
-        <title>Qezzy Kenya – Turn Spare Time Into Real Income</title>
-        <meta
-          name="description"
-          content="Join 10,000+ Kenyans earning money online. Complete simple tasks, refer friends, and withdraw instantly via M-Pesa."
-        />
+        <title>Qezzy Kenya — Turn Spare Time Into Real Income</title>
+        <meta name="description" content="Join thousands of Kenyans earning money online. Complete simple tasks, refer friends, and withdraw instantly via M-Pesa." />
         <link rel="canonical" href="https://qezzykenya.company/" />
       </Helmet>
 
-      <div className="min-h-screen bg-landing-cream font-inter overflow-x-hidden">
-        {/* Navigation */}
-        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrollY > 50 ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16 md:h-20">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
-                  <span className="text-white font-bold text-lg">Q</span>
-                </div>
-                <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-amber-600 to-amber-800 bg-clip-text text-transparent">
-                  Qezzy Kenya
-                </span>
-              </div>
+      <Styles />
 
-              {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center gap-8">
-                <a href="#features" className="text-landing-text hover:text-amber-600 transition-colors font-medium">Features</a>
-                <a href="#how-it-works" className="text-landing-text hover:text-amber-600 transition-colors font-medium">How It Works</a>
-                <a href="#testimonials" className="text-landing-text hover:text-amber-600 transition-colors font-medium">Reviews</a>
-                <Link to="/login" className="px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all duration-300">
-                  Get Started
-                </Link>
-              </div>
-
-              {/* Mobile Menu Button */}
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden p-2 text-landing-text">
-                {isMenuOpen ? <CloseIcon /> : <MenuIcon />}
-              </button>
-            </div>
+      {/* NAV */}
+      <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
+        <div className="nav-bar">
+          <Link to="/" className="logo" aria-label="Qezzy Kenya home">
+            <div className="logo-mark">Q</div>
+            <span className="logo-name">Qezzy Kenya</span>
+          </Link>
+          <div className="nav-links">
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#testimonials">Stories</a>
+            <Link to="/login" className="nav-cta">Get Started <ArrowRight /></Link>
           </div>
+          <button className="nav-ham" onClick={() => setMenuOpen(v => !v)} aria-label="Toggle menu">
+            {menuOpen ? <CloseIcon /> : <MenuIcon />}
+          </button>
+        </div>
+        <div className={`nav-drawer${menuOpen ? ' open' : ''}`}>
+          <a href="#features"     onClick={() => setMenuOpen(false)}>Features</a>
+          <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How It Works</a>
+          <a href="#testimonials" onClick={() => setMenuOpen(false)}>Stories</a>
+          <Link to="/login" className="drawer-cta" onClick={() => setMenuOpen(false)}>Get Started</Link>
+        </div>
+      </nav>
 
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="md:hidden bg-white/95 backdrop-blur-md border-t border-amber-100">
-              <div className="px-4 py-4 space-y-3">
-                <a href="#features" onClick={() => setIsMenuOpen(false)} className="block py-2 text-landing-text hover:text-amber-600 font-medium">Features</a>
-                <a href="#how-it-works" onClick={() => setIsMenuOpen(false)} className="block py-2 text-landing-text hover:text-amber-600 font-medium">How It Works</a>
-                <a href="#testimonials" onClick={() => setIsMenuOpen(false)} className="block py-2 text-landing-text hover:text-amber-600 font-medium">Reviews</a>
-                <Link to="/login" onClick={() => setIsMenuOpen(false)} className="block w-full py-3 text-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold shadow-lg">
-                  Get Started
-                </Link>
-              </div>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-wrap">
+          <div>
+            <div className="hero-eyebrow">
+              <span className="blink-dot" />
+              Trusted across Kenya
             </div>
-          )}
-        </nav>
-
-        {/* Hero Section */}
-        <section className="relative min-h-screen flex items-center justify-center pt-20 pb-12 px-4 overflow-hidden">
-          {/* Animated Background Elements */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-20 left-10 w-72 h-72 bg-amber-300/20 rounded-full blur-3xl animate-float" />
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-400/20 rounded-full blur-3xl animate-float-delayed" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-amber-200/30 to-transparent rounded-full" />
-          </div>
-
-          <div className="relative z-10 max-w-6xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-800 font-medium text-sm mb-8 animate-fade-in">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              Trusted by 10,000+ Kenyans
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-landing-heading leading-tight mb-6 animate-fade-in-up">
-              Turn Your{' '}
-              <span className="relative">
-                <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 bg-clip-text text-transparent">
-                  Spare Time
-                </span>
-                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none">
-                  <path d="M2 8.5C50 2 150 2 198 8.5" stroke="url(#underline-gradient)" strokeWidth="4" strokeLinecap="round"/>
-                  <defs>
-                    <linearGradient id="underline-gradient" x1="0" y1="0" x2="200" y2="0">
-                      <stop stopColor="#F59E0B"/>
-                      <stop offset="1" stopColor="#EA580C"/>
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </span>
-              <br />
-              Into Real{' '}
-              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                Income
-              </span>
+            <h1>
+              Your spare time<br />
+              deserves to be<br />
+              <em>paid for.</em>
             </h1>
-
-            {/* Subheadline */}
-            <p className="text-lg sm:text-xl md:text-2xl text-landing-muted max-w-3xl mx-auto mb-10 animate-fade-in-up animation-delay-200">
-              Join Kenya's fastest-growing task-earning platform. Complete simple tasks, 
-              refer friends, and withdraw your earnings instantly via M-Pesa.
+            <p className="hero-sub">
+              Qezzy is the task platform built for Kenyans.
+              Complete tasks on your schedule, refer people you know,
+              and withdraw straight to M-Pesa — no complexity, no waiting.
             </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in-up animation-delay-400">
-              <Link 
-                to="/login" 
-                className="group w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-white font-bold text-lg shadow-2xl shadow-amber-500/40 hover:shadow-amber-500/60 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                Start Earning Today
-                <ArrowRightIcon />
-              </Link>
-              <a 
-                href="#how-it-works" 
-                className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-landing-heading font-bold text-lg shadow-lg hover:shadow-xl border-2 border-amber-200 hover:border-amber-400 hover:-translate-y-1 transition-all duration-300"
-              >
-                See How It Works
-              </a>
+            <div className="hero-btns">
+              <Link to="/login" className="btn-amber">Start Earning <ArrowRight /></Link>
+              <a href="#how-it-works" className="btn-ghost">See how it works</a>
             </div>
-
-            {/* Trust Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-landing-muted animate-fade-in-up animation-delay-600">
-              <div className="flex items-center gap-2">
-                <CheckIcon />
-                <span className="text-sm font-medium">Free to Join</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckIcon />
-                <span className="text-sm font-medium">Instant M-Pesa Withdrawals</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckIcon />
-                <span className="text-sm font-medium">24/7 Support</span>
-              </div>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 animate-fade-in-up animation-delay-800">
-              {[
-                { value: "10K+", label: "Active Users" },
-                { value: "KES 2M+", label: "Paid Out" },
-                { value: "50K+", label: "Tasks Completed" },
-                { value: "4.9★", label: "User Rating" }
-              ].map((stat, index) => (
-                <div key={index} className="p-4 sm:p-6 rounded-2xl bg-white/80 backdrop-blur-sm shadow-lg border border-amber-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                  <div className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-landing-muted font-medium mt-1">{stat.label}</div>
-                </div>
-              ))}
+            <div className="hero-trust">
+              <span className="trust-item"><span className="ck"><Check /></span>Free to join</span>
+              <span className="trust-item"><span className="ck"><Check /></span>M-Pesa withdrawals</span>
+              <span className="trust-item"><span className="ck"><Check /></span>No monthly fees</span>
             </div>
           </div>
 
-          {/* Scroll Indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-            <div className="w-8 h-12 rounded-full border-2 border-amber-400 flex items-start justify-center pt-2">
-              <div className="w-1.5 h-3 rounded-full bg-amber-500 animate-scroll" />
+          {/* dashboard panel — hidden on mobile */}
+          <div className="hero-panel">
+            <span className="panel-tag">Live Snapshot</span>
+            <div className="p-big">10K</div>
+            <div className="p-unit">active earners across Kenya</div>
+            <div className="p-hr" />
+            <div className="p-row">
+              <span className="p-lbl">Tasks completed</span>
+              <span className="p-val">50,000+</span>
             </div>
+            <div className="p-bar"><div className="p-bar-fill" style={{ width: '76%' }} /></div>
+            <div className="p-row" style={{ marginTop: 14 }}>
+              <span className="p-lbl">Total paid out</span>
+              <span className="badge bg-g">↑ Growing</span>
+            </div>
+            <div className="p-row">
+              <span className="p-lbl">User rating</span>
+              <span className="badge bg-a">★ 4.9 / 5</span>
+            </div>
+            <div className="p-row">
+              <span className="p-lbl">Referral credit</span>
+              <span className="p-val">Per activation</span>
+            </div>
+            <Link to="/login" className="p-cta">Create free account →</Link>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-20 sm:py-32 px-4 bg-white">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-amber-100 text-amber-700 font-semibold text-sm mb-4">
-                Why Choose Qezzy
+      {/* MARQUEE */}
+      <div className="marquee" aria-hidden="true">
+        <div className="marquee-row">
+          {[...Array(4)].map((_, i) =>
+            marqueeItems.map((item, j) => (
+              <span key={`${i}-${j}`} className="m-item">
+                {item}<span className="m-dot"> · </span>
               </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-landing-heading mb-4">
-                Everything You Need to{' '}
-                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                  Succeed
-                </span>
-              </h2>
-              <p className="text-lg text-landing-muted max-w-2xl mx-auto">
-                We've built a platform that makes earning money online simple, secure, and accessible to everyone in Kenya.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {features.map((feature, index) => (
-                <div 
-                  key={index}
-                  className="group p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 hover:shadow-2xl hover:shadow-amber-200/50 hover:-translate-y-2 transition-all duration-500"
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-amber-500/30">
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-xl font-bold text-landing-heading mb-3">{feature.title}</h3>
-                  <p className="text-landing-muted leading-relaxed">{feature.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works Section */}
-        <section id="how-it-works" className="py-20 sm:py-32 px-4 bg-gradient-to-b from-amber-50 to-white">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-amber-100 text-amber-700 font-semibold text-sm mb-4">
-                Simple Process
-              </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-landing-heading mb-4">
-                Start Earning in{' '}
-                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                  4 Easy Steps
-                </span>
-              </h2>
-              <p className="text-lg text-landing-muted max-w-2xl mx-auto">
-                Getting started is quick and simple. Follow these steps and start earning within minutes.
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
-              {steps.map((step, index) => (
-                <div key={index} className="relative">
-                  <div className="p-6 sm:p-8 rounded-3xl bg-white shadow-xl border border-amber-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 h-full">
-                    <div className="text-5xl sm:text-6xl font-black bg-gradient-to-br from-amber-200 to-amber-400 bg-clip-text text-transparent mb-4">
-                      {step.step}
-                    </div>
-                    <h3 className="text-xl font-bold text-landing-heading mb-3">{step.title}</h3>
-                    <p className="text-landing-muted leading-relaxed">{step.description}</p>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className="hidden lg:block absolute top-1/2 -right-2 transform -translate-y-1/2 text-amber-300">
-                      <ArrowRightIcon />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center mt-12">
-              <Link 
-                to="/login" 
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg shadow-xl shadow-amber-500/30 hover:shadow-2xl hover:shadow-amber-500/40 hover:-translate-y-1 transition-all duration-300"
-              >
-                Get Started Now
-                <ArrowRightIcon />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Activation Banner */}
-        <section className="py-16 sm:py-24 px-4 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-full h-full" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
-          </div>
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-6">
-              Activate Your Account for Just{' '}
-              <span className="underline decoration-4 decoration-amber-200">KES 300</span>
-            </h2>
-            <p className="text-lg sm:text-xl text-amber-100 mb-8 max-w-2xl mx-auto">
-              A one-time verification fee unlocks unlimited earning potential. No hidden charges, no monthly fees. Activate once, earn forever.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 mb-8">
-              {["Lifetime Access", "All Features Unlocked", "Priority Support", "Referral Bonuses"].map((item, index) => (
-                <div key={index} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white font-medium">
-                  <CheckIcon />
-                  {item}
-                </div>
-              ))}
-            </div>
-            <Link 
-              to="/login" 
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-amber-600 font-bold text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300"
-            >
-              Activate Now
-              <ArrowRightIcon />
-            </Link>
-          </div>
-        </section>
-
-        {/* Testimonials Section */}
-        <section id="testimonials" className="py-20 sm:py-32 px-4 bg-white">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-amber-100 text-amber-700 font-semibold text-sm mb-4">
-                Success Stories
-              </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-landing-heading mb-4">
-                Loved by{' '}
-                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                  Thousands
-                </span>
-              </h2>
-              <p className="text-lg text-landing-muted max-w-2xl mx-auto">
-                Don't just take our word for it. Here's what our community members have to say.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-              {testimonials.map((testimonial, index) => (
-                <div 
-                  key={index}
-                  className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(5)].map((_, i) => <StarIcon key={i} />)}
-                  </div>
-                  <p className="text-landing-text leading-relaxed mb-6 text-lg">
-                    "{testimonial.text}"
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-bold shadow-md">
-                      {testimonial.avatar}
-                    </div>
-                    <div>
-                      <div className="font-bold text-landing-heading">{testimonial.name}</div>
-                      <div className="text-sm text-landing-muted">{testimonial.location}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Referral Section */}
-        <section className="py-20 sm:py-32 px-4 bg-gradient-to-br from-amber-100 via-amber-50 to-orange-50">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <span className="inline-block px-4 py-1.5 rounded-full bg-amber-200 text-amber-800 font-semibold text-sm mb-4">
-                  Referral Program
-                </span>
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-landing-heading mb-6">
-                  Earn{' '}
-                  <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                    KES 50
-                  </span>{' '}
-                  For Every Friend
-                </h2>
-                <p className="text-lg text-landing-muted mb-8 leading-relaxed">
-                  Share your unique referral code with friends and family. When they activate their account, 
-                  you receive KES 50 directly in your referral wallet. There's no limit to how many people you can refer!
-                </p>
-                <ul className="space-y-4 mb-8">
-                  {[
-                    "Unlimited referrals - no cap on earnings",
-                    "Instant credit upon friend's activation",
-                    "Withdraw referral earnings every 24 hours",
-                    "Track all your referrals in real-time"
-                  ].map((item, index) => (
-                    <li key={index} className="flex items-center gap-3 text-landing-text">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0">
-                        <CheckIcon />
-                      </div>
-                      <span className="font-medium">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link 
-                  to="/login" 
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg shadow-xl shadow-amber-500/30 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
-                >
-                  Start Referring
-                  <ArrowRightIcon />
-                </Link>
-              </div>
-              <div className="relative">
-                <div className="aspect-square rounded-3xl bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 p-8 shadow-2xl shadow-amber-500/30 transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                  <div className="w-full h-full rounded-2xl bg-white/95 backdrop-blur p-6 sm:p-8 flex flex-col justify-center">
-                    <div className="text-center">
-                      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center">
-                        <UsersIcon />
-                      </div>
-                      <div className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mb-2">
-                        KES 50
-                      </div>
-                      <div className="text-landing-muted font-medium mb-6">Per Successful Referral</div>
-                      <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-                        <div className="text-sm text-landing-muted mb-1">Your Referral Code</div>
-                        <div className="text-2xl font-mono font-bold text-landing-heading tracking-wider">
-                          QEZZY2024
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section className="py-20 sm:py-32 px-4 bg-white">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-16">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-amber-100 text-amber-700 font-semibold text-sm mb-4">
-                FAQ
-              </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-landing-heading mb-4">
-                Got{' '}
-                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                  Questions?
-                </span>
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              {[
-                { q: "How do I get paid?", a: "Withdraw your earnings instantly via M-Pesa or bank transfer. Mobile money withdrawals are processed automatically, while bank transfers are processed within 24-48 hours." },
-                { q: "Is the KES 300 activation fee refundable?", a: "The activation fee is a one-time payment that gives you lifetime access to all earning features. It is non-refundable but added to your wallet and can be withdrawn." },
-                { q: "How much can I earn?", a: "Your earnings depend on the tasks you complete and referrals you make. Active users earn between KES 5,000 - KES 50,000+ monthly." },
-                { q: "When can I withdraw my earnings?", a: "Main wallet withdrawals are available on the 5th of each month. Referral wallet withdrawals can be made every 24 hours." }
-              ].map((faq, index) => (
-                <div key={index} className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:shadow-lg transition-all duration-300">
-                  <h3 className="text-lg font-bold text-landing-heading mb-2">{faq.q}</h3>
-                  <p className="text-landing-muted leading-relaxed">{faq.a}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Final CTA Section */}
-        <section className="py-20 sm:py-32 px-4 bg-gradient-to-br from-landing-heading via-gray-900 to-landing-heading relative overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl" />
-          </div>
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 text-amber-400 font-medium text-sm mb-8">
-              <HeartIcon />
-              Join 10,000+ Happy Earners
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6">
-              Ready to Start Your{' '}
-              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                Earning Journey?
-              </span>
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-              Don't miss out on the opportunity to earn extra income from the comfort of your home. 
-              Sign up now and start earning today!
-            </p>
-            <Link 
-              to="/login" 
-              className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-landing-heading font-bold text-xl shadow-2xl shadow-amber-500/40 hover:shadow-amber-500/60 hover:-translate-y-1 transition-all duration-300"
-            >
-              Create Free Account
-              <ArrowRightIcon />
-            </Link>
-            <p className="text-gray-400 text-sm mt-6">
-              No credit card required • Free to join • Activate when ready
-            </p>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="py-12 px-4 bg-landing-heading">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">Q</span>
-                  </div>
-                  <span className="text-xl font-bold text-white">Qezzy Kenya</span>
-                </div>
-                <p className="text-gray-400 leading-relaxed">
-                  Kenya's premier task-earning platform. Complete tasks, earn money, and withdraw instantly.
-                </p>
-              </div>
-              <div>
-                <h4 className="text-white font-bold mb-4">Quick Links</h4>
-                <ul className="space-y-2">
-                  {["Home", "Features", "How It Works", "Reviews"].map((link) => (
-                    <li key={link}>
-                      <a href="#features" className="text-gray-400 hover:text-amber-400 transition-colors">{link}</a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-white font-bold mb-4">Legal</h4>
-                <ul className="space-y-2">
-                  <li>
-                    <Link to="/terms" className="text-gray-400 hover:text-amber-400 transition-colors">
-                      Terms of Service
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/privacy" className="text-gray-400 hover:text-amber-400 transition-colors">
-                      Privacy Policy
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/cookies" className="text-gray-400 hover:text-amber-400 transition-colors">
-                      Cookies Policy
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-white font-bold mb-4">Contact</h4>
-                <ul className="space-y-2 text-gray-400">
-                  <li>info@qezzykenya.company</li>
-                  <li>+254 728 722 700</li>
-                  <li>Nairobi, Kenya</li>
-                </ul>
-              </div>
-            </div>
-            <div className="pt-8 border-t border-gray-800 text-center text-gray-400">
-              <p>© {new Date().getFullYear()} Qezzy Kenya. All rights reserved.</p>
-              <p className="mt-2">
-                Powered by{' '}
-                <a
-                  href="https://dewlons.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-amber-400 hover:text-amber-300 transition-colors hover:underline"
-                >
-                  Dewlon Systems                  
-                </a>
-              </p>
-            </div>
-          </div>
-        </footer>
+            ))
+          )}
+        </div>
       </div>
+
+      {/* FEATURES */}
+      <section id="features" className="sec bg-white">
+        <div className="sec-in">
+          <div className="feat-layout">
+            <div className="feat-head">
+              <span className="lbl">What you get</span>
+              <h2 className="ttl">Built for <em>real</em><br />Kenyan earners</h2>
+              <p className="body">
+                Every feature on Qezzy exists to make earning simpler, safer,
+                and more rewarding — wherever you are in the country.
+              </p>
+            </div>
+            <div>
+              {features.map((f, i) => (
+                <div key={i} className="feat-item">
+                  <span className="feat-n">0{i + 1}</span>
+                  <div>
+                    <h3>{f.title}</h3>
+                    <p>{f.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" className="sec bg-warm">
+        <div className="sec-in">
+          <span className="lbl">Getting started</span>
+          <h2 className="ttl">Up and earning <em>in four steps</em></h2>
+          <div className="steps-grid">
+            {steps.map((s, i) => (
+              <div key={i} className="step-card" data-n={s.n}>
+                <span className="step-lbl">Step {s.n}</span>
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 44 }}>
+            <Link to="/login" className="btn-amber">Get started now <ArrowRight /></Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ACTIVATION */}
+      <section className="sec bg-ink">
+        <div className="act-in">
+          <span className="lbl">One-time activation</span>
+          <h2 className="ttl">Unlock everything.<br />Just once.</h2>
+          <p className="act-body">
+            A small one-time fee removes the barrier and opens every earning feature —
+            tasks, referrals, withdrawals. No subscription, no hidden renewal.
+            And the amount goes straight into your wallet.
+          </p>
+          <div className="pills">
+            {['Lifetime access', 'All features unlocked', 'Amount credited to wallet', 'Priority support'].map((p, i) => (
+              <span key={i} className="pill"><span className="ck"><Check /></span>{p}</span>
+            ))}
+          </div>
+          <Link to="/login" className="btn-white">Activate my account <ArrowRight /></Link>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section id="testimonials" className="sec bg-cream">
+        <div className="sec-in">
+          <span className="lbl">Real people, real results</span>
+          <h2 className="ttl">What our community says</h2>
+          <div className="testi-grid">
+            {testimonials.map((t, i) => (
+              <div key={i} className="testi-card">
+                <div className="stars">{[...Array(5)].map((_, j) => <span key={j} className="star-chr">★</span>)}</div>
+                <p className="testi-q">"{t.q}"</p>
+                <div className="t-author">
+                  <div className="avatar">{t.init}</div>
+                  <div>
+                    <div className="t-name">{t.name}</div>
+                    <div className="t-loc">{t.loc}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* REFERRAL */}
+      <section className="sec bg-warm">
+        <div className="sec-in">
+          <div className="ref-layout">
+            <div>
+              <span className="lbl">Referral program</span>
+              <h2 className="ttl">Every friend<br />you bring in <em>pays you.</em></h2>
+              <ul className="chk-list">
+                {[
+                  'No cap on the number of people you can refer',
+                  'Bonus credited the moment your friend activates',
+                  'Referral wallet withdrawable every 24 hours',
+                  'Track every referral in real time from your dashboard',
+                ].map((item, i) => (
+                  <li key={i}>
+                    <span className="chk-icon"><Check /></span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link to="/login" className="btn-amber">Start referring <ArrowRight /></Link>
+            </div>
+            <div className="ref-card">
+              <div className="r-lbl">Referral Bonus</div>
+              <div className="r-big">Per friend</div>
+              <div className="r-sub">credited on activation</div>
+              <div className="r-hr" />
+              <div className="code-box">
+                <div>
+                  <div className="code-lbl">Your referral code</div>
+                  <div className="code-val">QEZZY2024</div>
+                </div>
+                <button className="copy-btn" onClick={copyCode}>
+                  {copied ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="sec bg-white">
+        <div className="sec-in">
+          <div className="faq-layout">
+            <div className="faq-head">
+              <span className="lbl">FAQ</span>
+              <h2 className="ttl">Common questions</h2>
+              <p className="body" style={{ fontSize: 13, marginTop: 8 }}>
+                Not seeing your question?<br />
+                Email us at <strong>info@qezzykenya.company</strong>
+              </p>
+            </div>
+            <div>
+              {faqs.map((f, i) => (
+                <div key={i} className={`faq-item${openFaq === i ? ' open' : ''}`}>
+                  <button className="faq-btn" onClick={() => toggleFaq(i)}>
+                    {f.q}
+                    <span className="faq-arr"><ArrowRight /></span>
+                  </button>
+                  <div className="faq-body">{f.a}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="sec bg-deep">
+        <div className="cta-in">
+          <span className="lbl">Ready when you are</span>
+          <h2 className="ttl">Join thousands of Kenyans already <em>earning.</em></h2>
+          <p className="cta-sub">
+            Sign up for free, explore the platform, and activate when you're ready.
+            No pressure, no expiry — your account waits for you.
+          </p>
+          <Link to="/login" className="btn-white" style={{ fontSize: 15, padding: '15px 34px' }}>
+            Create free account <ArrowRight />
+          </Link>
+          <p className="cta-note">
+            <span>No credit card required</span>&ensp;·&ensp;
+            <span>Free to join</span>&ensp;·&ensp;
+            <span>Activate when ready</span>
+          </p>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer>
+        <div className="foot-grid">
+          <div className="foot-brand">
+            <div className="logo">
+              <div className="logo-mark">Q</div>
+              <span className="logo-name">Qezzy Kenya</span>
+            </div>
+            <p>Kenya's task-earning platform. Complete tasks, earn money, and withdraw instantly via M-Pesa.</p>
+          </div>
+          <div>
+            <h5>Navigate</h5>
+            <ul>
+              {['Home', 'Features', 'How It Works', 'Stories'].map(l => (
+                <li key={l}><a href="#features">{l}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h5>Legal</h5>
+            <ul>
+              <li><Link to="/terms">Terms of Service</Link></li>
+              <li><Link to="/privacy">Privacy Policy</Link></li>
+              <li><Link to="/cookies">Cookies Policy</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h5>Contact</h5>
+            <ul>
+              <li><span>info@qezzykenya.company</span></li>
+              <li><span>+254 728 722 700</span></li>
+              <li><span>Nairobi, Kenya</span></li>
+            </ul>
+          </div>
+        </div>
+        <div className="foot-btm">
+          <span>© {new Date().getFullYear()} Qezzy Kenya. All rights reserved.</span>
+          <span>Powered by <a href="https://dewlons.com" target="_blank" rel="noopener noreferrer">Dewlon Systems</a></span>
+        </div>
+      </footer>
     </>
   );
-};
-
-export default LandingPage;
+}
