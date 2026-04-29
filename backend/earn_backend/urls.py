@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/wallets/', include('wallets.urls')),
     path('api/withdrawals/', include('withdrawals.urls')),
     path('api/support/', include('support.urls')),
+    path('api/subscriptions/', include('subscriptions.urls')),
 ]

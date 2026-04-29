@@ -14,6 +14,8 @@ from jose import jwt
 import requests
 from django.conf import settings
 import time
+from datetime import timedelta
+from django.utils import timezone
 
 
 def verify_firebase_token(token):
@@ -34,6 +36,30 @@ def verify_firebase_token(token):
         return decoded_token['email'], decoded_token['sub']
     except Exception as e:
         raise ValidationError(f'Invalid token: {str(e)}')
+
+
+def auto_assign_free_subscription(user):
+    """
+    Assigns Free tier subscription after successful onboarding.
+    Wrapped in try/except to prevent onboarding failure if subscriptions app isn't ready.
+    """
+    try:
+        from subscriptions.models import SubscriptionPlan, UserSubscription
+        free_plan = SubscriptionPlan.objects.filter(name='free', is_active=True).first()
+        if free_plan and not UserSubscription.objects.filter(user=user, status='active').exists():
+            UserSubscription.objects.create(
+                user=user,
+                plan=free_plan,
+                status='active',
+                start_date=timezone.now(),
+                end_date=timezone.now() + timedelta(days=free_plan.duration_days),
+                is_trial=False,
+                auto_renew=False,
+            )
+    except Exception as e:
+        # Log warning but do not break onboarding flow
+        import logging
+        logging.getLogger('onboarding').warning(f"Failed to auto-assign Free subscription to {user.email}: {str(e)}")
 
 
 class ProfileCompletionView(APIView):
@@ -202,6 +228,10 @@ class PaymentDetailsView(APIView):
         if step.is_complete():
             user.is_onboarded = True
             user.save()
+            
+            # ✅ NEW: Auto-assign Free tier subscription on successful onboarding
+            auto_assign_free_subscription(user)
+            
             send_welcome_email(user)
 
         return Response({'message': 'Payment details saved successfully'})

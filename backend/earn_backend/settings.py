@@ -15,6 +15,8 @@ else:
         '13.60.202.95',
         'qezzy-kenya.duckdns.org',
         'api.qezzykenya.company',
+        'localhost',
+        '127.0.0.1',
     ]
 
 INSTALLED_APPS = [
@@ -36,6 +38,7 @@ INSTALLED_APPS = [
     'withdrawals',
     'support',
     'channels',
+    'subscriptions.apps.SubscriptionsConfig',
 ]
 
 MIDDLEWARE = [

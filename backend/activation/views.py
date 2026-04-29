@@ -1,177 +1,57 @@
-# activation/views.py
 import logging
-from django.db import transaction
 from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework import status
+
 from .models import ActivationPayment
-from .daraja import generate_stk_push, normalize_phone
-from users.models import User
-from referrals.models import ReferralTransaction
-from wallets.utils import create_transaction
-from django.conf import settings
-from users.utils import send_welcome_aboard_email
 
 logger = logging.getLogger(__name__)
 
 
 class InitiateActivationView(APIView):
+    """
+    DEPRECATED: Legacy activation endpoint.
+    Users now auto-assign to Free tier post-onboarding.
+    Redirects frontend to the new subscription selection flow.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
-
-        if not getattr(settings, 'PAYMENTS_ENABLED', True):
-            return Response({'error': 'Payments are temporarily disabled. Please try again later, or contact admin for manual account activation.'}, status=503)       
-
-        if user.is_active:
-            return Response({'error': 'Account already active'}, status=400)
-
-        if not user.is_onboarded:
-            return Response({'error': 'Complete onboarding first'}, status=400)
-
-        raw_phone = request.data.get('phone_number', '').strip()
-        if not raw_phone:
-            return Response({'error': 'Phone number required'}, status=400)
-
-        try:
-            phone = normalize_phone(raw_phone)
-        except ValueError as e:
-            return Response({'error': str(e)}, status=400)
-
-        existing_payment = ActivationPayment.objects.filter(user=user).first()
-        if existing_payment:
-            if existing_payment.status == 'completed':
-                return Response({'error': 'Activation already paid'}, status=400)
-            if existing_payment.status == 'pending':
-                logger.info(f"Retrying STK for user {user.email} with existing pending payment")
-
-        payment, created = ActivationPayment.objects.get_or_create(
-            user=user,
-            defaults={
-                'phone_number': phone,
-                'status': 'pending',
-                'amount': 300.00
-            }
-        )
-        if not created:
-            payment.phone_number = phone
-            payment.status = 'pending'
-            payment.save()
-
-        daraja_response = generate_stk_push(
-            phone_number=phone,
-            amount=300,
-            account_reference=user.email
-        )
-
-        if 'error' in daraja_response or 'CheckoutRequestID' not in daraja_response:
-            error_msg = daraja_response.get('error', 'Unknown Daraja error')
-            logger.error(f"STK Push failed for {user.email}: {error_msg}")
-            return Response({'error': 'Failed to initiate payment'}, status=500)
-
-        payment.checkout_request_id = daraja_response['CheckoutRequestID']
-        payment.merchant_request_id = daraja_response.get('MerchantRequestID', '')
-        payment.save()
-
+        logger.info(f"Legacy activation requested by {user.email}. Redirecting to new flow.")
         return Response({
-            'message': 'STK Push sent successfully',
-            'checkout_request_id': payment.checkout_request_id
-        })
+            'message': 'Upfront activation is no longer required. You are automatically on the Free plan.',
+            'redirect_to': '/api/subscriptions/plans/',
+            'note': 'Use /api/subscriptions/subscribe/ to upgrade to a paid tier.'
+        }, status=status.HTTP_200_OK)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class DarajaCallbackView(APIView):
-    permission_classes = [AllowAny]
+class SkipActivationView(APIView):
+    """
+    DEPRECATED: No longer blocks onboarding or main app access.
+    Returns success for backward compatibility with legacy frontend builds.
+    """
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        data = request.data
-        logger.info(f"Daraja callback received: {data}")
-
-        try:
-            result = data.get('Body', {}).get('stkCallback', {})
-            checkout_id = result.get('CheckoutRequestID')
-            result_code = result.get('ResultCode')
-
-            if not checkout_id:
-                logger.error("Missing CheckoutRequestID in callback")
-                return HttpResponse('ERROR', status=400)
-
-            payment = ActivationPayment.objects.get(checkout_request_id=checkout_id)
-
-            if result_code == 0:
-                callback_metadata = result.get('CallbackMetadata', {}).get('Item', [])
-                receipt = None
-                trans_date = None
-
-                for item in callback_metadata:
-                    name = item.get('Name')
-                    value = item.get('Value')
-                    if name == 'MpesaReceiptNumber':
-                        receipt = str(value)
-                    elif name == 'TransactionDate':
-                        trans_date = str(value)
-
-                with transaction.atomic():
-                    user = payment.user
-                    user.is_active = True
-                    user.save()
-
-                    try:
-                        send_welcome_aboard_email(user)
-                    except Exception as e:
-                        logger.warning(f"Failed to send welcome aboard email to {user.email}: {e}")
-
-                    payment.status = 'completed'
-                    payment.mpesa_receipt_number = receipt
-                    if trans_date:
-                        from datetime import datetime
-                        payment.transaction_date = datetime.strptime(trans_date, '%Y%m%d%H%M%S')
-                    payment.save()                    
-                   
-                    if user.referred_by:
-                        try:
-                            ref_trans = ReferralTransaction.objects.get(
-                                referrer=user.referred_by,
-                                referred_user=user,
-                                status='pending'
-                            )
-                            ref_trans.status = 'completed'
-                            ref_trans.completed_at = payment.transaction_date or payment.updated_at
-                            ref_trans.save()
-
-                            create_transaction(
-                                user=user.referred_by,
-                                wallet_type='referral',
-                                transaction_type='referral_bonus',
-                                amount=50.00,
-                                status='completed',
-                                description=f"Referral bonus for {user.email}"
-                            )
-                        except ReferralTransaction.DoesNotExist:
-                            pass
-
-                return HttpResponse('OK')
-
-            else:
-                result_desc = result.get('ResultDesc', 'Unknown error')
-                logger.warning(f"STK failed for {checkout_id}: {result_desc}")
-                payment.status = 'failed'
-                payment.save()
-                return HttpResponse('OK')
-
-        except ActivationPayment.DoesNotExist:
-            logger.error(f"Callback for unknown CheckoutRequestID: {checkout_id}")
-            return HttpResponse('OK')
-        except Exception as e:
-            logger.error(f"Unexpected error in Daraja callback: {str(e)}", exc_info=True)
-            return HttpResponse('ERROR', status=500)
+        user = request.user
+        logger.info(f"Legacy skip activation called by {user.email}.")
+        return Response({
+            'message': 'Activation skipped. You are on the Free plan.',
+            'current_tier': 'free',
+            'note': 'Access is now subscription-based.'
+        }, status=status.HTTP_200_OK)
 
 
 class ActivationStatusView(APIView):
+    """
+    Returns legacy activation status for historical reference.
+    Access control is now fully handled by the subscriptions app.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -179,25 +59,32 @@ class ActivationStatusView(APIView):
         try:
             payment = user.activation_payment
             data = {
-                'is_active': user.is_active,
-                'payment_status': payment.status,
-                'created_at': payment.created_at.isoformat(),
-                'completed_at': payment.transaction_date.isoformat() if payment.transaction_date else None,
-                'receipt': payment.mpesa_receipt_number or None
+                'legacy_activation_status': payment.status,
+                'payment_date': payment.transaction_date.isoformat() if payment.transaction_date else None,
+                'mpesa_receipt': payment.mpesa_receipt_number or None,
+                'note': 'Active access is managed by subscriptions. Check /api/subscriptions/status/.'
             }
         except ActivationPayment.DoesNotExist:
             data = {
-                'is_active': user.is_active,
-                'payment_status': 'not_initiated'
+                'legacy_activation_status': 'not_initiated',
+                'note': 'Active access is managed by subscriptions. Check /api/subscriptions/status/.'
             }
-        return Response(data)
+        return Response(data, status=status.HTTP_200_OK)
 
 
-class SkipActivationView(APIView):
-    permission_classes = [IsAuthenticated]
+@method_decorator(csrf_exempt, name='dispatch')
+class DarajaCallbackView(APIView):
+    """
+    DEPRECATED: Legacy callback handler for KES 300 activation.
+    New subscription payments use /api/subscriptions/callback/daraja/
+    Kept active to safely acknowledge historical/legacy Daraja retries.
+    """
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        user = request.user
-        if user.is_active:
-            return Response({'error': 'Already active'}, status=400)
-        return Response({'message': 'Activation skipped'})
+        data = request.data
+        checkout_id = data.get('Body', {}).get('stkCallback', {}).get('CheckoutRequestID', 'unknown')
+        logger.warning(f"Legacy Daraja callback received (ID: {checkout_id}). "
+                       f"New flow uses /api/subscriptions/callback/daraja/")
+        # Return OK to prevent Daraja from retrying indefinitely
+        return HttpResponse('OK')
