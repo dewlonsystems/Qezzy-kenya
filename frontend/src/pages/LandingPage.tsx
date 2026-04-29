@@ -209,7 +209,7 @@ function hoverOpacity() {
 
 export default function QezzyLanding() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeFaq, setActiveFaq]           = useState(null);
+  const [activeFaq, setActiveFaq]           = useState<number | null>(null);
   const [scrolled, setScrolled]             = useState(false);
 
   useEffect(() => {
