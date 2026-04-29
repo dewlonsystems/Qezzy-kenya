@@ -8,7 +8,7 @@ from users.models import User
 
 class WalletTransaction(models.Model):
     TRANSACTION_TYPES = [
-        ('task_earning', 'Task Earning'),
+        ('survey_earning', 'Survey Earning'),
         ('referral_bonus', 'Referral Bonus'),
         ('activation_payment', 'Activation Payment'),
         ('withdrawal', 'Withdrawal'),
@@ -50,7 +50,7 @@ class WalletTransaction(models.Model):
         if self.transaction_type in ['withdrawal', 'withdrawal_pending']:  # ← UPDATED
             return -self.amount
         else:
-            # Includes: task_earning, referral_bonus, activation_payment,
+            # Includes: survey_earning, referral_bonus, activation_payment,
             # admin_adjustment, withdrawal_reversal
             return self.amount
 

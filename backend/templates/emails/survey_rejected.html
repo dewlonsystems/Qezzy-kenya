@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Survey Feedback – Qezzy Kenya</title>
+  <style>
+    body { font-family: Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
+    .container { background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-top: 4px solid #d4a017; }
+    .header { text-align: center; margin-bottom: 24px; }
+    .logo { font-weight: bold; font-size: 28px; color: #8B5E00; letter-spacing: -0.5px; }
+    .feedback-badge { display: inline-block; background-color: #dc3545; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; margin-bottom: 16px; }
+    .feedback-box { background-color: #fff5f5; border: 1px solid #ffcdd2; border-radius: 6px; padding: 16px; margin: 20px 0; }
+    .feedback-box strong { color: #c62828; }
+    .button { display: inline-block; padding: 12px 28px; background-color: #d4a017; color: white !important; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 16px; font-size: 16px; }
+    .button-secondary { display: inline-block; padding: 10px 20px; background-color: #f0e0c0; color: #8B5E00 !important; text-decoration: none; border-radius: 4px; font-weight: 500; margin: 8px 4px; font-size: 14px; }
+    .footer { font-size: 14px; color: #666; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+    .preferences-footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid #f0e0c0; font-size: 12px; color: #777; text-align: center; }
+    .preferences-footer a { color: #d4a017; text-decoration: none; }
+    .preferences-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">Qezzy Kenya</div>
+      <h1 style="color: #8B5E00; font-size: 22px;">Survey Feedback 📝</h1>
+    </div>
+
+    <p>Hi {{ first_name }},</p>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+      <span class="feedback-badge">⚠️ Needs Revision</span>
+    </div>
+
+    <p>Your submission for <strong>"{{ survey_name }}"</strong> was reviewed but requires some adjustments before approval.</p>
+
+    <div class="feedback-box">
+      <p style="margin: 0 0 8px 0;"><strong>Admin Feedback:</strong></p>
+      <p style="margin: 0; font-style: italic; color: #555;">"{{ rejection_reason }}"</p>
+    </div>
+
+    <p style="margin-top: 24px;">Don't worry — this is normal! Here's what to do next:</p>
+    <ol style="padding-left: 20px; margin-bottom: 24px;">
+      <li>Review the feedback above carefully</li>
+      <li>Go to your dashboard and reopen the survey</li>
+      <li>Update your answers based on the guidance</li>
+      <li>Resubmit for final review</li>
+    </ol>
+
+    <p style="margin-top: 24px;"><strong>💡 Pro Tip:</strong> Most rejections are due to incomplete answers or format issues. Double-check required fields and question types before resubmitting.</p>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="https://qezzykenya.company/surveys" class="button">Resubmit Now</a>
+      <br>
+      <a href="https://qezzykenya.company/support" class="button-secondary">Need Help? Contact Support</a>
+    </div>
+
+    {% if preferences_url %}
+    <div class="preferences-footer">
+      <p style="margin: 0 0 8px 0;">You're receiving this because you submitted a survey on Qezzy Kenya.</p>
+      <p style="margin: 0;">
+        <a href="{{ preferences_url }}">Manage email preferences</a>
+        <span class="separator">|</span>
+        <a href="{{ unsubscribe_url }}" style="color: #999;">Unsubscribe from survey updates</a>
+      </p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+      <p>© {% now "Y" %} Qezzy Kenya. All rights reserved.<br>Nairobi, Kenya | www.qezzykenya.company</p>
+    </div>
+  </div>
+</body>
+</html>

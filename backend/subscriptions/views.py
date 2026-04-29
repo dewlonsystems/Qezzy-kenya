@@ -28,7 +28,7 @@ from .utils import (
     generate_receipt_pdf,
     get_active_subscription,
 )
-from activation.daraja import generate_stk_push, normalize_phone
+from .daraja import generate_stk_push, normalize_phone
 from users.utils import send_welcome_aboard_email
 
 logger = logging.getLogger(__name__)
@@ -330,7 +330,7 @@ class SubscriptionCallbackView(APIView):
                         ).exclude(id=subscription.id).exists()
                         if not has_paid_before:
                             try:
-                                send_welcome_aboard_email(user)
+                                send_welcome_aboard_email(user, subscription)
                             except Exception as e:
                                 logger.warning(f"Failed to send welcome email to {user.email}: {e}")
 

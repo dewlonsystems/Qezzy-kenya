@@ -1,10 +1,9 @@
-<!-- templates/emails/welcome_aboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome Aboard, {{ first_name }}!</title>
+  <title>Welcome to {{ plan_name }}, {{ first_name }}!</title>
   <style>
     body {
       font-family: Helvetica, Arial, sans-serif;
@@ -29,25 +28,53 @@
     .logo {
       font-weight: bold;
       font-size: 28px;
-      color: #8B5E00; /* Dark amber */
+      color: #8B5E00;
       letter-spacing: -0.5px;
+    }
+    .tier-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #d4a017, #8B5E00);
+      color: white;
+      padding: 8px 24px;
+      border-radius: 24px;
+      font-weight: bold;
+      font-size: 16px;
+      margin: 12px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .checkmark {
       font-size: 48px;
-      color: #2e7d32; /* Green — matches your statement credit color */
+      color: #2e7d32;
       text-align: center;
-      margin: 20px 0;
+      margin: 16px 0;
     }
     .content {
       font-size: 16px;
       margin-bottom: 24px;
     }
-    .highlight {
+    .benefits-box {
       background-color: #fdf9f0;
-      border-left: 3px solid #d4a017;
+      border: 1px solid #f0e0c0;
+      border-radius: 6px;
+      padding: 16px;
+      margin: 20px 0;
+    }
+    .benefits-box ul {
+      margin: 12px 0 0 0;
+      padding-left: 20px;
+    }
+    .benefits-box li {
+      margin-bottom: 6px;
+    }
+    .billing-note {
+      background-color: #f8f9fa;
+      border-left: 3px solid #6c757d;
       padding: 12px 16px;
       margin: 16px 0;
       border-radius: 4px;
+      font-size: 14px;
+      color: #555;
     }
     .button {
       display: inline-block;
@@ -60,6 +87,17 @@
       margin-top: 16px;
       font-size: 16px;
     }
+    .button-secondary {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #f0e0c0;
+      color: #8B5E00 !important;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: 500;
+      margin: 8px 4px;
+      font-size: 14px;
+    }
     .footer {
       font-size: 14px;
       color: #666;
@@ -68,32 +106,93 @@
       border-top: 1px solid #eee;
       padding-top: 20px;
     }
+    .preferences-footer {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #f0e0c0;
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+    }
+    .preferences-footer a {
+      color: #d4a017;
+      text-decoration: none;
+    }
+    .preferences-footer a:hover {
+      text-decoration: underline;
+    }
+    .preferences-footer .separator {
+      color: #ccc;
+      margin: 0 6px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="logo">Qezzy Kenya</div>
-      <h1 style="color: #8B5E00; font-size: 22px;">Welcome Aboard, {{ first_name }}!</h1>
+      <h1 style="color: #8B5E00; font-size: 22px;">Welcome to {{ plan_name }}, {{ first_name }}! 🎉</h1>
     </div>
     
+    <div style="text-align: center;">
+      <span class="tier-badge">{{ plan_name }}</span>
+    </div>
     <div class="checkmark">✓</div>
 
     <div class="content">
-      <p><strong>Congratulations!</strong> Your account is now fully activated and ready to go.</p>
+      <p><strong>Congratulations!</strong> You've successfully upgraded to the <strong>{{ plan_name }}</strong> tier.</p>
       
-      <div class="highlight">
-        ✅ You’ve unlocked all earning features<br>
-        ✅ KES 300 activation fee has been credited to your main wallet<br>
-        ✅ You can now complete tasks and refer friends
+      <div class="benefits-box">
+        <p style="margin: 0 0 8px 0; font-weight: 600;">✨ What you unlock now:</p>
+        <ul>
+          {% for feature in features %}
+            <li>✅ {{ feature }}</li>
+          {% endfor %}
+          <li>✅ Access to all lower-tier surveys</li>
+          <li>✅ Priority support & faster review times</li>
+        </ul>
       </div>
 
-      <p>Start exploring available tasks, share your referral code, and watch your earnings grow!</p>
+      <div class="billing-note">
+        <strong>📅 Billing Details:</strong><br>
+        • Amount: KES {{ amount }}<br>
+        • Cycle: {{ duration_days }} days (auto-renews)<br>
+        • Next billing: {{ next_billing_date }}<br>
+        • <strong>2-day grace period</strong> included — no sudden lockouts
+      </div>
 
-      <p style="text-align: center;">
-        <a href="https://qezzykenya.company" class="button">Go to Dashboard</a>
+      <p style="margin-top: 24px;">Start earning more today:</p>
+      <ul style="padding-left: 20px; margin-bottom: 24px;">
+        <li>🔍 <strong>Browse higher-paying surveys</strong> in your dashboard</li>
+        <li>💰 <strong>Earn up to {{ max_reward }} KES per survey</strong></li>
+        <li>⚡ <strong>Withdraw anytime</strong> via M-Pesa (min. KES 100)</li>
+      </ul>
+
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="https://qezzykenya.company/surveys" class="button">Start Earning Now</a>
+        <br>
+        <a href="https://qezzykenya.company/wallet" class="button-secondary">View Wallet</a>
+        <a href="https://qezzykenya.company/subscriptions" class="button-secondary">Manage Subscription</a>
+      </div>
+
+      <p style="font-size: 14px; color: #666; margin-top: 16px;">
+        <strong>💡 Tip:</strong> You can cancel anytime. If you do, your access continues until the end of your paid period — no refunds, no penalties.
       </p>
     </div>
+
+    <!-- ✅ Email Preferences Footer -->
+    {% if preferences_url %}
+    <div class="preferences-footer">
+      <p style="margin: 0 0 8px 0;">
+        You're receiving this because you upgraded your Qezzy subscription.
+      </p>
+      <p style="margin: 0;">
+        <a href="{{ preferences_url }}">Manage email preferences</a>
+        <span class="separator">|</span>
+        <a href="{{ unsubscribe_url }}" style="color: #999;">Unsubscribe from upgrade updates</a>
+      </p>
+    </div>
+    {% endif %}
 
     <div class="footer">
       <p>© {% now "Y" %} Qezzy Kenya. All rights reserved.<br>

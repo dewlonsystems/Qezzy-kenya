@@ -103,13 +103,20 @@ def send_subscription_email(subscription: UserSubscription, email_type: str, sub
         return False
 
     # Build context
+    preferences_url = user.get_preferences_url() if hasattr(user, 'get_preferences_url') else None
     base_context = {
         'first_name': user.first_name.title() or 'User',
         'email': user.email,
         'plan_name': subscription.plan.get_name_display(),
+        'amount': str(subscription.plan.price_kes),
+        'duration_days': subscription.plan.duration_days,
+        'next_billing_date': subscription.end_date.strftime('%d %b %Y') if subscription.end_date else 'N/A',
         'end_date': subscription.end_date.strftime('%d %b %Y') if subscription.end_date else 'N/A',
         'grace_end_date': subscription.grace_end_date.strftime('%d %b %Y') if subscription.grace_end_date else None,
-        'preferences_url': user.get_preferences_url() if hasattr(user, 'get_preferences_url') else None,
+        'features': subscription.plan.features,
+        'max_reward': '500',
+        'preferences_url': preferences_url,
+        'unsubscribe_url': f"{preferences_url}?auto_unsubscribe=upgrade_updates" if preferences_url else None,
     }
     context.update(base_context)
 
