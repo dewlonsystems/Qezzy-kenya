@@ -1,658 +1,1120 @@
+/*
+  Qezzy Surveys — Landing Page (React)
+  ------------------------------------
+  Add the Google Fonts link to your index.html <head>, or your layout file:
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap"
+    rel="stylesheet"
+  />
+
+  Images expected in /public (or wherever your static assets live):
+    hero.jpg, about.jpg, surveys.jpg, community.jpg, research.jpg,
+    mpesa.jpg, testimonial-1.jpg, testimonial-2.jpg, testimonial-3.jpg,
+    member-1.jpg through member-5.jpg
+*/
+
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import {
+  Menu, X, ArrowRight, CheckCircle, Star, ChevronDown,
+  Wallet, PenLine, MousePointerClick, Banknote,
+  Shield, Clock, BarChart2, Smartphone, BadgeCheck,
+  Phone, Mail, MapPin, Globe, Zap,
+} from 'lucide-react';
+import { X as XIcon } from 'lucide-react';
 
-/* ─── SVG Icons ────────────────────────────────────────── */
-const ArrowRight = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12h14M12 5l7 7-7 7" />
-  </svg>
-);
-const Check = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-const MenuIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-    <line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="16" x2="15" y2="16" />
-  </svg>
-);
-const CloseIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+// Custom SVG components for social media icons
+const FacebookIcon = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
   </svg>
 );
 
-/* ─── Styles ────────────────────────────────────────────── */
-const Styles = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-
-    :root {
-      --cream:  #fdf8f3;
-      --warm:   #f5ede0;
-      --amber:  #d97706;
-      --amb-d:  #92400e;
-      --amb-l:  #fbbf24;
-      --ink:    #1c1209;
-      --muted:  #6b5b45;
-      --border: #e8d9c5;
-    }
-
-    body { background: var(--cream); color: var(--ink); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
-    a    { color: inherit; }
-
-    /* ══ NAV ══════════════════════════════════════════════ */
-    .nav {
-      position: fixed; inset: 0 0 auto 0; z-index: 200;
-      transition: background .3s, box-shadow .3s;
-    }
-    .nav.scrolled {
-      background: rgba(253,248,243,.96);
-      backdrop-filter: blur(14px);
-      box-shadow: 0 1px 0 var(--border);
-    }
-    .nav-bar {
-      max-width: 1160px; margin: 0 auto;
-      padding: 0 20px; height: 64px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .logo       { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-mark  { width: 36px; height: 36px; border-radius: 9px; background: var(--amber); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces',serif; font-weight: 900; color: #fff; font-size: 17px; flex-shrink: 0; }
-    .logo-name  { font-family: 'Fraunces',serif; font-weight: 700; font-size: 19px; color: var(--ink); }
-    .nav-links  { display: flex; align-items: center; gap: 32px; }
-    .nav-links a { font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: color .2s; }
-    .nav-links a:hover { color: var(--amber); }
-    .nav-cta    { display: inline-flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 8px; background: var(--amber); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; transition: background .2s, transform .2s; }
-    .nav-cta:hover { background: var(--amb-d); transform: translateY(-1px); }
-    .nav-ham    { display: none; background: none; border: none; cursor: pointer; color: var(--ink); padding: 4px; line-height: 0; }
-
-    .nav-drawer { display: none; flex-direction: column; background: var(--cream); border-top: 1px solid var(--border); padding: 16px 20px 24px; gap: 0; }
-    .nav-drawer.open { display: flex; }
-    .nav-drawer a { display: block; padding: 13px 0; font-size: 15px; font-weight: 500; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--border); transition: color .2s; }
-    .nav-drawer a:hover { color: var(--amber); }
-    .nav-drawer a:last-of-type { border-bottom: none; }
-    .drawer-cta { margin-top: 16px; display: block; text-align: center; padding: 13px; border-radius: 9px; background: var(--amber); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; }
-
-    @media (max-width: 720px) { .nav-links { display: none; } .nav-ham { display: block; } }
-
-    /* ══ BUTTONS ══════════════════════════════════════════ */
-    .btn-amber { display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; border-radius: 9px; background: var(--amber); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; transition: background .2s, transform .2s; border: none; cursor: pointer; }
-    .btn-amber:hover { background: var(--amb-d); transform: translateY(-1px); }
-    .btn-ghost { display: inline-flex; align-items: center; gap: 8px; padding: 13px 24px; border-radius: 9px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-size: 15px; font-weight: 500; text-decoration: none; transition: all .2s; cursor: pointer; }
-    .btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
-    .btn-white { display: inline-flex; align-items: center; gap: 8px; padding: 14px 30px; border-radius: 9px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none; transition: background .2s, transform .2s; }
-    .btn-white:hover { background: var(--warm); transform: translateY(-1px); }
-
-    /* ══ HERO ═════════════════════════════════════════════ */
-    .hero {
-      padding: 112px 20px 72px;
-      background:
-        radial-gradient(ellipse 70% 55% at 85% 25%, #fde68a40 0%, transparent 65%),
-        radial-gradient(ellipse 55% 65% at 5%  85%, #fed7aa30 0%, transparent 60%),
-        var(--cream);
-      position: relative; overflow: hidden;
-    }
-    .hero::after {
-      content: ''; position: absolute; top: -80px; right: -100px;
-      width: 480px; height: 480px; border-radius: 50%;
-      background: conic-gradient(from 180deg, #fbbf2420, #fb923c20, #fbbf2400);
-      animation: slowspin 24s linear infinite; pointer-events: none;
-    }
-    @keyframes slowspin { to { transform: rotate(360deg); } }
-    @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:.35} }
-
-    .hero-wrap { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 400px; gap: 72px; align-items: center; position: relative; z-index: 2; }
-
-    .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--amber); margin-bottom: 22px; }
-    .blink-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amb-l); animation: blink 2.2s ease-in-out infinite; }
-
-    .hero h1 { font-family: 'Fraunces',serif; font-size: clamp(40px,5.5vw,72px); font-weight: 900; line-height: 1.06; color: var(--ink); margin-bottom: 24px; }
-    .hero h1 em { font-style: italic; background: linear-gradient(135deg,var(--amber),#ea580c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
-    .hero-sub { font-size: 16px; line-height: 1.8; color: var(--muted); font-weight: 300; max-width: 480px; margin-bottom: 36px; }
-    .hero-btns { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .hero-trust { margin-top: 40px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-    .trust-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-    .ck { color: var(--amber); display: flex; }
-
-    /* hero panel */
-    .hero-panel { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 28px; box-shadow: 0 20px 55px -10px rgba(180,120,30,.16); }
-    .panel-tag  { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); background: #fef3c7; padding: 4px 10px; border-radius: 4px; margin-bottom: 18px; }
-    .p-big  { font-family: 'Fraunces',serif; font-size: 46px; font-weight: 900; line-height: 1; color: var(--ink); }
-    .p-unit { font-size: 13px; color: var(--muted); margin-top: 4px; margin-bottom: 4px; }
-    .p-hr   { height: 1px; background: var(--border); margin: 18px 0; }
-    .p-row  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .p-row:last-of-type { margin-bottom: 0; }
-    .p-lbl  { font-size: 13px; color: var(--muted); }
-    .p-val  { font-size: 13px; font-weight: 600; color: var(--ink); }
-    .badge  { display: inline-flex; align-items: center; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
-    .bg-g   { background: #d1fae5; color: #065f46; }
-    .bg-a   { background: #fef3c7; color: #92400e; }
-    .p-bar  { height: 5px; background: var(--warm); border-radius: 3px; overflow: hidden; margin-top: 6px; }
-    .p-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg,var(--amb-l),var(--amber)); }
-    .p-cta  { margin-top: 20px; display: block; width: 100%; text-align: center; padding: 13px; border-radius: 9px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; transition: background .2s; }
-    .p-cta:hover { background: #2d1a08; }
-
-    @media (max-width: 960px) {
-      .hero-wrap  { grid-template-columns: 1fr; gap: 44px; }
-      .hero h1    { font-size: clamp(36px,7.5vw,54px); }
-      .hero-panel { max-width: 420px; }
-    }
-    @media (max-width: 600px) {
-      .hero       { padding: 88px 18px 52px; }
-      .hero h1    { font-size: clamp(30px,9vw,42px); }
-      .hero-sub   { font-size: 15px; }
-      .hero-panel { display: none; }
-      .hero-btns  { flex-direction: column; }
-      .hero-btns a, .hero-btns button { width: 100%; justify-content: center; text-align: center; }
-      .hero-trust { gap: 10px; margin-top: 28px; }
-    }
-
-    /* ══ MARQUEE ══════════════════════════════════════════ */
-    .marquee     { background: var(--ink); padding: 13px 0; overflow: hidden; }
-    .marquee-row { display: flex; white-space: nowrap; animation: ticker 30s linear infinite; }
-    .marquee-row:hover { animation-play-state: paused; }
-    .m-item      { display: inline-flex; align-items: center; gap: 22px; padding: 0 36px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); }
-    .m-dot       { color: #3d2a0f; font-size: 16px; }
-    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-
-    /* ══ SECTIONS (shared) ════════════════════════════════ */
-    .sec    { padding: 88px 20px; }
-    .sec-in { max-width: 1100px; margin: 0 auto; }
-    .lbl    { display: block; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; }
-    .ttl    { font-family: 'Fraunces',serif; font-size: clamp(28px,3.8vw,46px); font-weight: 900; line-height: 1.1; color: var(--ink); margin-bottom: 18px; }
-    .ttl em { font-style: italic; color: var(--amber); }
-    .body   { font-size: 15px; line-height: 1.8; color: var(--muted); font-weight: 300; max-width: 520px; }
-
-    @media (max-width: 600px) { .sec { padding: 60px 18px; } }
-
-    /* ══ FEATURES ═════════════════════════════════════════ */
-    .bg-white { background: #fff; }
-    .feat-layout { display: grid; grid-template-columns: 300px 1fr; gap: 72px; align-items: start; }
-    .feat-head   { position: sticky; top: 88px; }
-    .feat-item   { display: flex; align-items: flex-start; gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--border); }
-    .feat-item:first-child { border-top: 1px solid var(--border); }
-    .feat-n      { font-family: 'Fraunces',serif; font-size: 12px; font-weight: 400; color: var(--amber); min-width: 22px; margin-top: 3px; flex-shrink: 0; }
-    .feat-item h3 { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 5px; }
-    .feat-item p  { font-size: 13px; line-height: 1.75; color: var(--muted); font-weight: 300; }
-    @media (max-width: 760px) { .feat-layout { grid-template-columns: 1fr; gap: 36px; } .feat-head { position: static; } }
-
-    /* ══ STEPS ════════════════════════════════════════════ */
-    .bg-warm   { background: var(--warm); }
-    .steps-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-top: 52px; }
-    .step-card { background: #fff; border-radius: 14px; padding: 28px 24px; border: 1px solid var(--border); position: relative; overflow: hidden; transition: box-shadow .3s, transform .3s; }
-    .step-card:hover { box-shadow: 0 14px 36px -8px rgba(180,100,20,.15); transform: translateY(-4px); }
-    .step-card::before { content: attr(data-n); position: absolute; top: -14px; right: 12px; font-family: 'Fraunces',serif; font-size: 80px; font-weight: 900; color: #fde68a; line-height: 1; pointer-events: none; transition: color .3s; }
-    .step-card:hover::before { color: #fbbf24; }
-    .step-lbl  { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; display: block; }
-    .step-card h3 { font-family: 'Fraunces',serif; font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
-    .step-card p  { font-size: 13px; line-height: 1.75; color: var(--muted); font-weight: 300; }
-    @media (max-width: 900px) { .steps-grid { grid-template-columns: repeat(2,1fr); } }
-    @media (max-width: 500px) { .steps-grid { grid-template-columns: 1fr; gap: 14px; } }
-
-    /* ══ ACTIVATION ═══════════════════════════════════════ */
-    .bg-ink { background: var(--ink); position: relative; overflow: hidden; }
-    .bg-ink::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 65% 80% at 8% 55%, #d9770620 0%, transparent 60%), radial-gradient(ellipse 55% 60% at 92% 20%, #ea580c18 0%, transparent 55%); pointer-events: none; }
-    .act-in { max-width: 720px; margin: 0 auto; text-align: center; position: relative; z-index: 2; }
-    .act-in .lbl { color: var(--amb-l); }
-    .act-in .ttl { color: #fff; }
-    .act-body { font-size: 15px; line-height: 1.85; color: #a78a6a; font-weight: 300; margin-bottom: 32px; }
-    .pills    { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin-bottom: 36px; }
-    .pill     { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 50px; border: 1px solid #3d2a0f; font-size: 12px; font-weight: 500; color: #c9a96e; }
-    .pill .ck { color: var(--amber); }
-
-    /* ══ TESTIMONIALS ═════════════════════════════════════ */
-    .bg-cream  { background: var(--cream); }
-    .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 52px; }
-    .testi-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px; transition: box-shadow .3s; }
-    .testi-card:hover { box-shadow: 0 10px 28px -6px rgba(180,100,20,.1); }
-    .stars    { display: flex; gap: 3px; margin-bottom: 16px; }
-    .star-chr { color: var(--amb-l); font-size: 15px; }
-    .testi-q  { font-family: 'Fraunces',serif; font-style: italic; font-size: 14px; line-height: 1.85; color: var(--ink); margin-bottom: 20px; }
-    .t-author { display: flex; align-items: center; gap: 11px; }
-    .avatar   { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,var(--amb-l),var(--amber)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
-    .t-name   { font-size: 13px; font-weight: 600; color: var(--ink); }
-    .t-loc    { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    @media (max-width: 760px) { .testi-grid { grid-template-columns: 1fr; } }
-
-    /* ══ REFERRAL ═════════════════════════════════════════ */
-    .ref-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
-    .chk-list   { list-style: none; margin: 24px 0 32px; display: flex; flex-direction: column; gap: 13px; }
-    .chk-list li { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; color: var(--muted); font-weight: 300; line-height: 1.6; }
-    .chk-icon   { width: 20px; height: 20px; border-radius: 50%; background: var(--amber); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
-    .ref-card   { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 32px; box-shadow: 0 18px 44px -10px rgba(180,100,20,.12); }
-    .r-lbl      { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-    .r-big      { font-family: 'Fraunces',serif; font-size: 44px; font-weight: 900; line-height: 1; color: var(--ink); }
-    .r-sub      { font-size: 12px; color: var(--muted); margin-top: 4px; margin-bottom: 24px; }
-    .r-hr       { height: 1px; background: var(--border); margin-bottom: 20px; }
-    .code-box   { background: var(--warm); border: 1px dashed var(--border); border-radius: 10px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .code-lbl   { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-    .code-val   { font-family: 'Fraunces',serif; font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: .08em; margin-top: 3px; }
-    .copy-btn   { flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--amber); background: none; border: 1px solid var(--amber); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all .2s; white-space: nowrap; }
-    .copy-btn:hover { background: var(--amber); color: #fff; }
-    @media (max-width: 760px) { .ref-layout { grid-template-columns: 1fr; gap: 36px; } }
-
-    /* ══ FAQ ══════════════════════════════════════════════ */
-    .faq-layout { display: grid; grid-template-columns: 260px 1fr; gap: 72px; align-items: start; }
-    .faq-head   { position: sticky; top: 88px; }
-    .faq-item   { border-bottom: 1px solid var(--border); }
-    .faq-item:first-child { border-top: 1px solid var(--border); }
-    .faq-btn    { width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 20px 0; display: flex; justify-content: space-between; align-items: center; gap: 14px; font-size: 14px; font-weight: 600; color: var(--ink); font-family: 'DM Sans',sans-serif; transition: color .2s; }
-    .faq-btn:hover { color: var(--amber); }
-    .faq-arr    { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .3s; color: var(--muted); }
-    .faq-item.open .faq-arr { background: var(--amber); border-color: var(--amber); color: #fff; transform: rotate(90deg); }
-    .faq-body   { font-size: 13px; line-height: 1.85; color: var(--muted); font-weight: 300; max-height: 0; overflow: hidden; transition: max-height .4s ease, padding-bottom .3s ease; }
-    .faq-item.open .faq-body { max-height: 220px; padding-bottom: 18px; }
-    @media (max-width: 760px) { .faq-layout { grid-template-columns: 1fr; gap: 32px; } .faq-head { position: static; } }
-
-    /* ══ FINAL CTA ════════════════════════════════════════ */
-    .bg-deep { background: linear-gradient(135deg,#1c1209 0%,#2c1808 55%,#1c1209 100%); position: relative; overflow: hidden; }
-    .bg-deep::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 110%, #d9770612 0%, transparent 60%); pointer-events: none; }
-    .cta-in      { max-width: 660px; margin: 0 auto; text-align: center; position: relative; z-index: 2; }
-    .cta-in .lbl { color: var(--amb-l); }
-    .cta-in .ttl { color: #fff; }
-    .cta-sub     { font-size: 15px; line-height: 1.85; color: #a78a6a; font-weight: 300; margin-bottom: 32px; }
-    .cta-note    { font-size: 11px; color: #5b4020; margin-top: 16px; }
-    .cta-note span { color: #7a5c3a; }
-
-    /* ══ FOOTER ═══════════════════════════════════════════ */
-    footer      { background: var(--ink); padding: 56px 20px 32px; }
-    .foot-grid  { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 44px; padding-bottom: 44px; border-bottom: 1px solid #2d1f0a; }
-    .foot-brand p { font-size: 13px; line-height: 1.8; color: #7a5c3a; font-weight: 300; margin-top: 13px; }
-    footer h5   { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6b4f30; margin-bottom: 14px; }
-    footer ul   { list-style: none; display: flex; flex-direction: column; gap: 9px; }
-    footer ul li a, footer ul li span { font-size: 13px; color: #7a5c3a; text-decoration: none; transition: color .2s; }
-    footer ul li a:hover { color: var(--amb-l); }
-    .foot-btm   { max-width: 1100px; margin: 24px auto 0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #4b3515; flex-wrap: wrap; gap: 6px; }
-    .foot-btm a { color: #7a5c3a; text-decoration: none; }
-    .foot-btm a:hover { color: var(--amb-l); }
-    @media (max-width: 760px) { .foot-grid { grid-template-columns: 1fr 1fr; gap: 28px; } }
-    @media (max-width: 480px) { .foot-grid { grid-template-columns: 1fr; } .foot-btm { flex-direction: column; text-align: center; } }
-  `}</style>
+const InstagramIcon = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.117.63c-.794.297-1.473.645-2.148 1.32-.675.675-1.023 1.354-1.32 2.148-.297.788-.498 1.658-.56 2.936C.015 8.333 0 8.74 0 12s.015 3.667.072 4.947c.062 1.278.263 2.148.56 2.936.297.794.645 1.473 1.32 2.148.675.675 1.354 1.023 2.148 1.32.788.297 1.658.498 2.936.56 1.28.058 1.687.072 4.947.072s3.667-.015 4.947-.072c1.278-.062 2.148-.263 2.936-.56.794-.297 1.473-.645 2.148-1.32.675-.675 1.023-1.354 1.32-2.148.297-.788.498-1.658.56-2.936.058-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.062-1.278-.263-2.148-.56-2.936-.297-.794-.645-1.473-1.32-2.148-.675-.675-1.354-1.023-2.148-1.32-.788-.297-1.658-.498-2.936-.56C15.667.015 15.26 0 12 0zm0 2.16c3.203 0 3.585.009 4.849.070 1.171.054 1.805.244 2.227.408.561.217.96.477 1.382.896.419.42.679.821.896 1.381.164.422.354 1.057.408 2.227.061 1.264.07 1.646.07 4.849s-.009 3.585-.07 4.849c-.054 1.171-.244 1.805-.408 2.227-.217.561-.477.96-.896 1.382-.42.419-.821.679-1.381.896-.422.164-1.057.354-2.227.408-1.264.061-1.646.07-4.849.07s-3.585-.009-4.849-.07c-1.171-.054-1.805-.244-2.227-.408-.561-.217-.96-.477-1.382-.896-.419-.42-.679-.821-.896-1.381-.164-.422-.354-1.057-.408-2.227-.061-1.264-.07-1.646-.07-4.849s.009-3.585.07-4.849c.054-1.171.244-1.805.408-2.227.217-.561.477-.96.896-1.382.42-.419.821-.679 1.381-.896.422-.164 1.057-.354 2.227-.408 1.264-.061 1.646-.07 4.849-.07zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 100-8 4 4 0 000 8zm4.965-10.322a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+  </svg>
 );
 
-/* ══════════════════════════════════════════════════════════
-   COMPONENT
-══════════════════════════════════════════════════════════ */
-export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [openFaq,  setOpenFaq]  = useState<number | null>(null);
-  const [copied,   setCopied]   = useState(false);
+const LinkedinIcon = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.475-2.236-1.986-2.236-1.081 0-1.722.722-2.004 1.418-.103.249-.129.597-.129.946v5.441h-3.554s.045-8.733 0-9.652h3.554v1.366c.43-.664 1.199-1.608 2.921-1.608 2.134 0 3.732 1.391 3.732 4.382v5.512zM5.337 9.432c-1.144 0-1.915-.758-1.915-1.707 0-.955.77-1.708 1.963-1.708 1.192 0 1.915.753 1.937 1.708 0 .949-.745 1.707-1.985 1.707zm1.946 11.02H3.391V9.956h3.892v10.496zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/>
+  </svg>
+);
+
+/* ─── Data ──────────────────────────────────────────────────────────────── */
+
+const stats = [
+  { value: '180,000+',  label: 'Surveys Completed' },
+  { value: 'KES 12M+',  label: 'Total Earnings Paid Out' },
+  { value: '47,000+',   label: 'Active Members' },
+  { value: '< 60 sec',  label: 'Avg M-Pesa Withdrawal Time' },
+];
+
+const steps = [
+  {
+    number: '01',
+    Icon: PenLine,
+    title: 'Create Your Free Account',
+    description:
+      'Sign up in under two minutes — no credit card required, no subscription. Fill in your profile details once, and we handle the matching from there.',
+  },
+  {
+    number: '02',
+    Icon: MousePointerClick,
+    title: 'Accept Surveys That Suit You',
+    description:
+      'Every invitation shows the estimated time and exact reward before you begin. You choose what to take on. There is no obligation to complete a survey you do not want to, and you can pause and return to most surveys within the session window.',
+  },
+  {
+    number: '03',
+    Icon: Banknote,
+    title: 'Withdraw Directly to M-Pesa',
+    description:
+      'Once your balance reaches KES 50, request a withdrawal. The money arrives in your M-Pesa in seconds — not hours, not the next business day. Any time of the day or night.',
+  },
+];
+
+const faqs = [
+  {
+    question: 'How quickly do M-Pesa withdrawals arrive?',
+    answer:
+      'In most cases, within 60 seconds. Withdrawals are processed automatically the moment you submit the request. There is no manual review step, no batch processing window, and no cut-off time. The minimum withdrawal amount is KES 50, and Qezzy charges no fee on your end.',
+  },
+  {
+    question: 'What kinds of surveys are available on Qezzy?',
+    answer:
+      'You will find a mix of market research studies, consumer feedback questionnaires, academic research surveys, brand health trackers, product concept tests, and social opinion polls. The types vary week to week based on active research campaigns. Most are commissioned by companies actively operating in East Africa.',
+  },
+  {
+    question: 'Is joining Qezzy Surveys completely free?',
+    answer:
+      'Yes — joining is free and will always be free. There are no premium tiers that unlock more surveys. Every member gets the same access. You earn money by completing surveys; you never pay to participate.',
+  },
+  {
+    question: 'How long does each survey take?',
+    answer:
+      'Surveys on Qezzy range from 3 minutes for short pulse studies to around 20 minutes for more in-depth research. The estimated time is always displayed on the invitation card before you begin.',
+  },
+  {
+    question: 'Who is eligible to join Qezzy Surveys?',
+    answer:
+      'Anyone aged 18 and above with an active M-Pesa registered phone number and internet access can sign up. Qezzy is currently live across Kenya with expansion across East Africa actively underway.',
+  },
+  {
+    question: 'What happens if I get screened out midway through a survey?',
+    answer:
+      'Some surveys are built for specific demographic groups set by the research client. If you do not qualify partway through, you still receive a consolation credit for the time you spent. Your time on Qezzy is never entirely wasted.',
+  },
+];
+
+const testimonials = [
+  {
+    name: 'Amina Wanjiru',
+    role: 'Secondary School Teacher, Nairobi',
+    image: '/testimonial-1.jpg',
+    text: 'I started using Qezzy during the school holiday with low expectations. Within two weeks I had earned enough to cover my bus fare for the full term. The M-Pesa withdrawal landed before I even put my phone down.',
+    stars: 5,
+  },
+  {
+    name: 'Brian Otieno',
+    role: 'University Student, Kisumu',
+    image: '/testimonial-2.jpg',
+    text: 'I was honestly skeptical. I had tried other platforms that made promises they never kept. My first withdrawal of KES 200 hit my M-Pesa in under a minute. Now I do a few surveys on the matatu every morning without thinking twice.',
+    stars: 5,
+  },
+  {
+    name: 'Grace Muthoni',
+    role: 'Small Business Owner, Thika',
+    image: '/testimonial-3.jpg',
+    text: 'What surprised me most is how relevant the surveys actually are. They ask about mobile banking services I use, food brands I buy, apps on my phone. It does not feel like wasted time. It feels like being part of something.',
+    stars: 5,
+  },
+];
+
+const trustItems = [
+  { Icon: Shield,      label: 'Data Privacy Protected' },
+  { Icon: BadgeCheck,  label: 'Verified Research Partners' },
+  { Icon: Zap,         label: 'Instant M-Pesa Payouts' },
+  { Icon: Globe,       label: 'Pan-East Africa Coverage' },
+];
+
+const navLinks = [
+  ['#how-it-works', 'How It Works'],
+  ['#features',     'Features'],
+  ['#mpesa',        'Withdraw'],
+  ['#testimonials', 'Stories'],
+  ['#faq',          'FAQ'],
+];
+
+const surveyCategories = [
+  'Consumer goods & FMCG research',
+  'Mobile banking & fintech opinions',
+  'Brand perception & awareness studies',
+  'Healthcare & public health surveys',
+  'Academic & institutional research',
+  'Social attitudes & policy polls',
+  'Product concept & pricing tests',
+  'Media & entertainment preferences',
+];
+
+const socialLinks = [
+  { Icon: FacebookIcon,  label: 'Facebook' },
+  { Icon: XIcon,         label: 'X' },
+  { Icon: InstagramIcon, label: 'Instagram' },
+  { Icon: LinkedinIcon,  label: 'LinkedIn' },
+];
+
+const platformLinks = [
+  ['How It Works',       '#how-it-works'],
+  ['Survey Categories',  '#features'],
+  ['M-Pesa Withdrawals', '#mpesa'],
+  ['Member Stories',     '#testimonials'],
+  ['FAQ',                '#faq'],
+];
+
+const companyLinks = [
+  ['About Qezzy',    '/about'],
+  ['For Researchers','/researchers'],
+  ['Blog',           '/blog'],
+  ['Careers',        '/careers'],
+  ['Press',          '/press'],
+];
+
+const legalLinks = [
+  ['Privacy Policy',  '/privacy'],
+  ['Terms of Service','/terms'],
+  ['Cookie Policy',   '/cookies'],
+];
+
+/* ─── Hover helpers ──────────────────────────────────────────────────────── */
+
+function hoverLink(primary = '#C27B3A', base = '#4a3828') {
+  return {
+    onMouseEnter: (e) => (e.currentTarget.style.color = primary),
+    onMouseLeave: (e) => (e.currentTarget.style.color = base),
+  };
+}
+
+function hoverOpacity() {
+  return {
+    onMouseEnter: (e) => (e.currentTarget.style.opacity = '0.88'),
+    onMouseLeave: (e) => (e.currentTarget.style.opacity = '1'),
+  };
+}
+
+/* ─── Component ─────────────────────────────────────────────────────────── */
+
+export default function QezzyLanding() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeFaq, setActiveFaq]           = useState(null);
+  const [scrolled, setScrolled]             = useState(false);
 
   useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 36);
-    window.addEventListener('scroll', h, { passive: true });
-    return () => window.removeEventListener('scroll', h);
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const copyCode = () => {
-    navigator.clipboard?.writeText('QEZZY2024');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2200);
-  };
-
-  const toggleFaq = (i: number) => setOpenFaq(prev => (prev === i ? null : i));
-
-  /* data */
-  const features = [
-    { title: 'Complete Tasks',         desc: 'A growing library of tasks built for the Kenyan market — flexible, straightforward, and rewarding on your schedule.' },
-    { title: 'Dual Wallet System',     desc: 'Task income and referral bonuses sit in separate wallets so you always know exactly where every shilling comes from.' },
-    { title: 'M-Pesa Withdrawals',     desc: 'Your money reaches you fast. Withdrawals go straight to M-Pesa or your bank with no extra steps.' },
-    { title: 'Referral Bonuses',       desc: 'Share your code. When a friend activates, a bonus drops into your referral wallet immediately — no cap, no fine print.' },
-    { title: 'Secure Authentication',  desc: 'Enterprise-grade Firebase security keeps your account and earnings protected around the clock.' },
-    { title: 'Automatic Processing',   desc: 'Mobile money withdrawals are handled automatically — no waiting for manual approvals, no guesswork.' },
-  ];
-
-  const steps = [
-    { n: '01', title: 'Create an Account',    desc: 'Sign up with your email or phone. It takes under two minutes and costs nothing.' },
-    { n: '02', title: 'Set Up Your Profile',  desc: 'Add your details and link your payment method so withdrawals are always ready.' },
-    { n: '03', title: 'Activate Your Access', desc: 'A small one-time fee unlocks all features. That exact amount is credited to your wallet.' },
-    { n: '04', title: 'Earn & Withdraw',      desc: 'Browse tasks, complete them at your pace, and withdraw whenever you like.' },
-  ];
-
-  const testimonials = [
-    { init: 'SN', name: 'Sarah Njeri',     loc: 'Nairobi',  q: 'I earn real money from home while caring for my kids. The M-Pesa withdrawals are so seamless — I was genuinely surprised by how smooth everything is.' },
-    { init: 'RK', name: 'Richard Kenagwa', loc: 'Kisii',    q: 'I was skeptical at first. Then my first withdrawal went through and I stopped doubting. The referral program has been very generous.' },
-    { init: 'GC', name: 'Grace Chebet',    loc: 'Eldoret',  q: 'As a student I needed something flexible. Qezzy fits perfectly around my lectures — the tasks are simple and the platform just works.' },
-  ];
-
-  const faqs: { q: string; a: string }[] = [
-    { q: 'How do I withdraw my earnings?',    a: 'Withdrawals go directly to M-Pesa or your bank. Mobile money is processed automatically; bank transfers clear within 24–48 hours.' },
-    { q: 'Is the activation fee refundable?', a: "It's a one-time payment that grants lifetime access. The amount isn't returned as cash, but it's credited to your main wallet and fully withdrawable." },
-    { q: 'When can I make a withdrawal?',     a: 'Main wallet withdrawals open on the 5th of each month. Your referral wallet can be withdrawn every 24 hours.' },
-    { q: 'Are there hidden monthly charges?', a: 'None at all. Activation is a one-time payment. After that the platform is yours to use with no recurring fees.' },
-  ];
-
-  const marqueeItems = ['Complete Tasks', 'Refer Friends', 'Withdraw via M-Pesa', 'No Monthly Fees', 'Instant Processing'];
+  function toggleFaq(i) {
+    setActiveFaq(activeFaq === i ? null : i);
+  }
 
   return (
     <>
-      <Helmet>
-        <title>Qezzy Kenya — Turn Spare Time Into Real Income</title>
-        <meta name="description" content="Join thousands of Kenyans earning money online. Complete simple tasks, refer friends, and withdraw instantly via M-Pesa." />
-        <link rel="canonical" href="https://qezzykenya.company/" />
-      </Helmet>
+      {/* Global styles */}
+      <style>{`
+        html { scroll-behavior: smooth; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; padding: 0; }
+        .stats-grid > *:not(:first-child) { border-left: 1px solid #ddd4c8; }
+        @media (max-width: 1023px) { .stats-grid > * { border-left: none !important; } }
+        .faq-list > * + * { border-top: 1px solid #ddd4c8; }
+      `}</style>
 
-      <Styles />
+      <div
+        className="min-h-screen overflow-x-hidden"
+        style={{ backgroundColor: '#F7F3EE', fontFamily: "'DM Sans', sans-serif", color: '#1a140f' }}
+      >
 
-      {/* NAV */}
-      <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
-        <div className="nav-bar">
-          <Link to="/" className="logo" aria-label="Qezzy Kenya home">
-            <div className="logo-mark">Q</div>
-            <span className="logo-name">Qezzy Kenya</span>
-          </Link>
-          <div className="nav-links">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#testimonials">Stories</a>
-            <Link to="/login" className="nav-cta">Get Started <ArrowRight /></Link>
-          </div>
-          <button className="nav-ham" onClick={() => setMenuOpen(v => !v)} aria-label="Toggle menu">
-            {menuOpen ? <CloseIcon /> : <MenuIcon />}
-          </button>
-        </div>
-        <div className={`nav-drawer${menuOpen ? ' open' : ''}`}>
-          <a href="#features"     onClick={() => setMenuOpen(false)}>Features</a>
-          <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How It Works</a>
-          <a href="#testimonials" onClick={() => setMenuOpen(false)}>Stories</a>
-          <Link to="/login" className="drawer-cta" onClick={() => setMenuOpen(false)}>Get Started</Link>
-        </div>
-      </nav>
+        {/* ═══════════════════════ NAVBAR ═══════════════════════ */}
+        <header
+          className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+          style={
+            scrolled
+              ? { backgroundColor: '#F7F3EE', boxShadow: '0 1px 0 rgba(44,28,14,0.1)' }
+              : { backgroundColor: 'transparent' }
+          }
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+            <div className="flex items-center justify-between h-16 md:h-20">
 
-      {/* HERO */}
-      <section className="hero">
-        <div className="hero-wrap">
-          <div>
-            <div className="hero-eyebrow">
-              <span className="blink-dot" />
-              Trusted across Kenya
-            </div>
-            <h1>
-              Your spare time<br />
-              deserves to be<br />
-              <em>paid for.</em>
-            </h1>
-            <p className="hero-sub">
-              Qezzy is the task platform built for Kenyans.
-              Complete tasks on your schedule, refer people you know,
-              and withdraw straight to M-Pesa — no complexity, no waiting.
-            </p>
-            <div className="hero-btns">
-              <Link to="/login" className="btn-amber">Start Earning <ArrowRight /></Link>
-              <a href="#how-it-works" className="btn-ghost">See how it works</a>
-            </div>
-            <div className="hero-trust">
-              <span className="trust-item"><span className="ck"><Check /></span>Free to join</span>
-              <span className="trust-item"><span className="ck"><Check /></span>M-Pesa withdrawals</span>
-              <span className="trust-item"><span className="ck"><Check /></span>No monthly fees</span>
-            </div>
-          </div>
+              {/* Logo */}
+              <a href="/" className="flex items-center gap-1.5 select-none">
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.45rem', fontWeight: 700, color: '#C27B3A', lineHeight: 1 }}>
+                  Qezzy
+                </span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#2B6C5A', paddingTop: 3 }}>
+                  Surveys
+                </span>
+              </a>
 
-          {/* dashboard panel — hidden on mobile */}
-          <div className="hero-panel">
-            <span className="panel-tag">Live Snapshot</span>
-            <div className="p-big">10K</div>
-            <div className="p-unit">active earners across Kenya</div>
-            <div className="p-hr" />
-            <div className="p-row">
-              <span className="p-lbl">Tasks completed</span>
-              <span className="p-val">50,000+</span>
-            </div>
-            <div className="p-bar"><div className="p-bar-fill" style={{ width: '76%' }} /></div>
-            <div className="p-row" style={{ marginTop: 14 }}>
-              <span className="p-lbl">Total paid out</span>
-              <span className="badge bg-g">↑ Growing</span>
-            </div>
-            <div className="p-row">
-              <span className="p-lbl">User rating</span>
-              <span className="badge bg-a">★ 4.9 / 5</span>
-            </div>
-            <div className="p-row">
-              <span className="p-lbl">Referral credit</span>
-              <span className="p-val">Per activation</span>
-            </div>
-            <Link to="/login" className="p-cta">Create free account →</Link>
-          </div>
-        </div>
-      </section>
-
-      {/* MARQUEE */}
-      <div className="marquee" aria-hidden="true">
-        <div className="marquee-row">
-          {[...Array(4)].map((_, i) =>
-            marqueeItems.map((item, j) => (
-              <span key={`${i}-${j}`} className="m-item">
-                {item}<span className="m-dot"> · </span>
-              </span>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* FEATURES */}
-      <section id="features" className="sec bg-white">
-        <div className="sec-in">
-          <div className="feat-layout">
-            <div className="feat-head">
-              <span className="lbl">What you get</span>
-              <h2 className="ttl">Built for <em>real</em><br />Kenyan earners</h2>
-              <p className="body">
-                Every feature on Qezzy exists to make earning simpler, safer,
-                and more rewarding — wherever you are in the country.
-              </p>
-            </div>
-            <div>
-              {features.map((f, i) => (
-                <div key={i} className="feat-item">
-                  <span className="feat-n">0{i + 1}</span>
-                  <div>
-                    <h3>{f.title}</h3>
-                    <p>{f.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="how-it-works" className="sec bg-warm">
-        <div className="sec-in">
-          <span className="lbl">Getting started</span>
-          <h2 className="ttl">Up and earning <em>in four steps</em></h2>
-          <div className="steps-grid">
-            {steps.map((s, i) => (
-              <div key={i} className="step-card" data-n={s.n}>
-                <span className="step-lbl">Step {s.n}</span>
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 44 }}>
-            <Link to="/login" className="btn-amber">Get started now <ArrowRight /></Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ACTIVATION */}
-      <section className="sec bg-ink">
-        <div className="act-in">
-          <span className="lbl">One-time activation</span>
-          <h2 className="ttl">Unlock everything.<br />Just once.</h2>
-          <p className="act-body">
-            A small one-time fee removes the barrier and opens every earning feature —
-            tasks, referrals, withdrawals. No subscription, no hidden renewal.
-            And the amount goes straight into your wallet.
-          </p>
-          <div className="pills">
-            {['Lifetime access', 'All features unlocked', 'Amount credited to wallet', 'Priority support'].map((p, i) => (
-              <span key={i} className="pill"><span className="ck"><Check /></span>{p}</span>
-            ))}
-          </div>
-          <Link to="/login" className="btn-white">Activate my account <ArrowRight /></Link>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section id="testimonials" className="sec bg-cream">
-        <div className="sec-in">
-          <span className="lbl">Real people, real results</span>
-          <h2 className="ttl">What our community says</h2>
-          <div className="testi-grid">
-            {testimonials.map((t, i) => (
-              <div key={i} className="testi-card">
-                <div className="stars">{[...Array(5)].map((_, j) => <span key={j} className="star-chr">★</span>)}</div>
-                <p className="testi-q">"{t.q}"</p>
-                <div className="t-author">
-                  <div className="avatar">{t.init}</div>
-                  <div>
-                    <div className="t-name">{t.name}</div>
-                    <div className="t-loc">{t.loc}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* REFERRAL */}
-      <section className="sec bg-warm">
-        <div className="sec-in">
-          <div className="ref-layout">
-            <div>
-              <span className="lbl">Referral program</span>
-              <h2 className="ttl">Every friend<br />you bring in <em>pays you.</em></h2>
-              <ul className="chk-list">
-                {[
-                  'No cap on the number of people you can refer',
-                  'Bonus credited the moment your friend activates',
-                  'Referral wallet withdrawable every 24 hours',
-                  'Track every referral in real time from your dashboard',
-                ].map((item, i) => (
-                  <li key={i}>
-                    <span className="chk-icon"><Check /></span>
-                    {item}
-                  </li>
+              {/* Desktop nav */}
+              <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+                {navLinks.map(([href, label]) => (
+                  <a
+                    key={href}
+                    href={href}
+                    className="text-sm font-medium transition-colors duration-200"
+                    style={{ color: '#4a3828' }}
+                    {...hoverLink('#C27B3A', '#4a3828')}
+                  >
+                    {label}
+                  </a>
                 ))}
-              </ul>
-              <Link to="/login" className="btn-amber">Start referring <ArrowRight /></Link>
+              </nav>
+
+              <div className="hidden md:flex items-center gap-3">
+                <a
+                  href="/login"
+                  className="text-sm font-medium px-5 py-2 rounded-full transition-all duration-200"
+                  style={{ color: '#2B6C5A', border: '1.5px solid #2B6C5A' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#2B6C5A'; e.currentTarget.style.color = '#F7F3EE'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#2B6C5A'; }}
+                >
+                  Log In
+                </a>
+                <a
+                  href="/signup"
+                  className="text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200"
+                  style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }}
+                  {...hoverOpacity()}
+                >
+                  Start Earning Free
+                </a>
+              </div>
+
+              {/* Hamburger */}
+              <button
+                className="md:hidden p-2 rounded-lg"
+                style={{ color: '#1a140f' }}
+                onClick={() => setMobileMenuOpen((v) => !v)}
+                aria-label="Toggle navigation menu"
+                aria-expanded={mobileMenuOpen}
+              >
+                {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
             </div>
-            <div className="ref-card">
-              <div className="r-lbl">Referral Bonus</div>
-              <div className="r-big">Per friend</div>
-              <div className="r-sub">credited on activation</div>
-              <div className="r-hr" />
-              <div className="code-box">
-                <div>
-                  <div className="code-lbl">Your referral code</div>
-                  <div className="code-val">QEZZY2024</div>
-                </div>
-                <button className="copy-btn" onClick={copyCode}>
-                  {copied ? '✓ Copied' : 'Copy'}
-                </button>
+          </div>
+
+          {/* Mobile drawer */}
+          {mobileMenuOpen && (
+            <div
+              className="md:hidden border-t px-5 py-5 flex flex-col gap-1"
+              style={{ backgroundColor: '#F7F3EE', borderColor: '#ddd4c8' }}
+            >
+              {navLinks.map(([href, label]) => (
+                <a
+                  key={href}
+                  href={href}
+                  className="text-sm font-medium py-3 border-b"
+                  style={{ color: '#1a140f', borderColor: '#ede7df' }}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {label}
+                </a>
+              ))}
+              <div className="flex flex-col gap-2 pt-4">
+                <a href="/login" className="text-sm font-medium text-center py-3 rounded-full" style={{ color: '#2B6C5A', border: '1.5px solid #2B6C5A' }}>
+                  Log In
+                </a>
+                <a href="/signup" className="text-sm font-semibold text-center py-3 rounded-full" style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }}>
+                  Start Earning Free
+                </a>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          )}
+        </header>
 
-      {/* FAQ */}
-      <section className="sec bg-white">
-        <div className="sec-in">
-          <div className="faq-layout">
-            <div className="faq-head">
-              <span className="lbl">FAQ</span>
-              <h2 className="ttl">Common questions</h2>
-              <p className="body" style={{ fontSize: 13, marginTop: 8 }}>
-                Not seeing your question?<br />
-                Email us at <strong>info@qezzykenya.company</strong>
-              </p>
+
+        {/* ═══════════════════════ HERO ═══════════════════════ */}
+        <section className="relative min-h-screen flex items-center" aria-label="Hero">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 w-full pt-20 pb-16 md:pt-0 md:pb-0">
+            <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center min-h-screen">
+
+              {/* Copy */}
+              <div className="max-w-lg lg:max-w-none">
+                <div
+                  className="inline-flex items-center gap-2 mb-7 px-4 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#2B6C5A18', color: '#2B6C5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#2B6C5A', display: 'inline-block', flexShrink: 0 }} />
+                  Live &amp; Paying in Kenya
+                </div>
+
+                <h1
+                  className="mb-6 leading-tight"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(2.2rem,5vw,3.75rem)', fontWeight: 700, color: '#1a140f', lineHeight: 1.1 }}
+                >
+                  Your Opinion Has<br />
+                  <em style={{ color: '#C27B3A', fontStyle: 'italic' }}>Always</em> Been<br />
+                  Worth Real Money
+                </h1>
+
+                <p className="mb-4 leading-relaxed" style={{ color: '#5a4d43', fontSize: '1.05rem', fontWeight: 300, maxWidth: 460 }}>
+                  Qezzy Surveys connects everyday Kenyans with businesses and researchers who need honest, ground-level feedback. You complete surveys on your phone at your own pace, earn real shillings with every submission, and withdraw directly to your M-Pesa — no applications, no waiting periods, no middlemen taking a cut.
+                </p>
+                <p className="mb-10 text-sm leading-relaxed" style={{ color: '#7a6a5e', maxWidth: 400 }}>
+                  The minimum withdrawal is just KES 50. Once you hit it, the money moves.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3 mb-12">
+                  <a
+                    href="/signup"
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold transition-all"
+                    style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }}
+                    {...hoverOpacity()}
+                  >
+                    Create Free Account <ArrowRight size={15} />
+                  </a>
+                  <a
+                    href="#how-it-works"
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full text-sm font-medium transition-all"
+                    style={{ color: '#2B6C5A', border: '1.5px solid #2B6C5A' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2B6C5A10')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    See How It Works
+                  </a>
+                </div>
+
+                {/* Social proof */}
+                <div className="flex items-center gap-5">
+                  <div className="flex" style={{ gap: '-10px' }}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="w-9 h-9 rounded-full overflow-hidden" style={{ border: '2px solid #F7F3EE', marginLeft: i > 1 ? -10 : 0 }}>
+                        <img src={`/member-${i}.jpg`} alt={`Qezzy member ${i}`} className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-0.5 mb-0.5">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star key={i} size={12} fill="#C27B3A" style={{ color: '#C27B3A' }} />
+                      ))}
+                    </div>
+                    <p className="text-xs" style={{ color: '#7a6a5e' }}>
+                      Trusted by <strong style={{ color: '#1a140f' }}>47,000+</strong> members across Kenya
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hero image */}
+              <div className="relative hidden lg:block">
+                <div className="relative overflow-hidden rounded-2xl" style={{ aspectRatio: '4/5', maxHeight: 620 }}>
+                  <img
+                    src="/hero.jpg"
+                    alt="Kenyan woman earning money by completing surveys on her smartphone"
+                    className="w-full h-full object-cover"
+                    fetchPriority="high"
+                  />
+                </div>
+
+                {/* Floating stat pill */}
+                <div
+                  className="absolute flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl"
+                  style={{ bottom: -16, left: -32, backgroundColor: '#F7F3EE', border: '1px solid #ede7df' }}
+                >
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#2B6C5A12' }}>
+                    <Wallet size={18} style={{ color: '#2B6C5A' }} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: '#1a140f' }}>KES 850 via M-Pesa</p>
+                    <p className="text-xs" style={{ color: '#7a6a5e' }}>Just withdrawn — 43 seconds ago</p>
+                  </div>
+                </div>
+
+                {/* Decorative circle */}
+                <div
+                  className="absolute rounded-full opacity-40"
+                  style={{ width: 96, height: 96, top: -24, right: -24, backgroundColor: '#C27B3A', zIndex: -1 }}
+                />
+              </div>
+
             </div>
-            <div>
-              {faqs.map((f, i) => (
-                <div key={i} className={`faq-item${openFaq === i ? ' open' : ''}`}>
-                  <button className="faq-btn" onClick={() => toggleFaq(i)}>
-                    {f.q}
-                    <span className="faq-arr"><ArrowRight /></span>
-                  </button>
-                  <div className="faq-body">{f.a}</div>
+          </div>
+        </section>
+
+
+        {/* ═══════════════════════ STATS ═══════════════════════ */}
+        <section className="py-10 border-y" style={{ borderColor: '#ddd4c8' }} aria-label="Platform statistics">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 stats-grid">
+              {stats.map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <p
+                    className="font-bold mb-1"
+                    style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.6rem,3vw,2.2rem)', color: '#C27B3A' }}
+                  >
+                    {stat.value}
+                  </p>
+                  <p className="text-xs font-medium uppercase tracking-widest" style={{ color: '#7a6a5e', letterSpacing: '0.1em' }}>
+                    {stat.label}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FINAL CTA */}
-      <section className="sec bg-deep">
-        <div className="cta-in">
-          <span className="lbl">Ready when you are</span>
-          <h2 className="ttl">Join thousands of Kenyans already <em>earning.</em></h2>
-          <p className="cta-sub">
-            Sign up for free, explore the platform, and activate when you're ready.
-            No pressure, no expiry — your account waits for you.
-          </p>
-          <Link to="/login" className="btn-white" style={{ fontSize: 15, padding: '15px 34px' }}>
-            Create free account <ArrowRight />
-          </Link>
-          <p className="cta-note">
-            <span>No credit card required</span>&ensp;·&ensp;
-            <span>Free to join</span>&ensp;·&ensp;
-            <span>Activate when ready</span>
-          </p>
-        </div>
-      </section>
 
-      {/* FOOTER */}
-      <footer>
-        <div className="foot-grid">
-          <div className="foot-brand">
-            <div className="logo">
-              <div className="logo-mark">Q</div>
-              <span className="logo-name">Qezzy Kenya</span>
+        {/* ═══════════════════════ ABOUT ═══════════════════════ */}
+        <section className="py-24 lg:py-32" aria-label="About Qezzy Surveys">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+              {/* Image */}
+              <div className="relative order-2 lg:order-1">
+                <div className="overflow-hidden rounded-2xl" style={{ aspectRatio: '3/4', maxHeight: 560 }}>
+                  <img
+                    src="/about.jpg"
+                    alt="Survey participant completing an online survey on a mobile phone in Nairobi"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <div
+                  className="absolute flex flex-col items-center justify-center text-center p-4 rounded-2xl"
+                  style={{ bottom: -32, right: -24, width: 160, height: 160, backgroundColor: '#2B6C5A', color: '#F7F3EE' }}
+                >
+                  <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '2rem', fontWeight: 700, lineHeight: 1 }}>3 min</p>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4, opacity: 0.85 }}>
+                    Shortest survey available
+                  </p>
+                </div>
+              </div>
+
+              {/* Text */}
+              <div className="order-1 lg:order-2 max-w-lg">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#C27B3A', letterSpacing: '0.15em' }}>
+                  What Qezzy Is
+                </p>
+                <h2
+                  className="mb-6"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3.5vw,2.8rem)', fontWeight: 700, lineHeight: 1.15, color: '#1a140f' }}
+                >
+                  A Platform Built on<br />Mutual Respect Between<br />Researchers and People
+                </h2>
+                <p className="mb-5 leading-relaxed" style={{ color: '#5a4d43', fontWeight: 300 }}>
+                  For too long, research companies have collected opinions from everyday people and paid nothing — or close to nothing — in return. Qezzy was built to fix that. We believe that if a business is going to use your feedback to inform a product launch, a pricing decision, or a marketing campaign worth millions, the least they can do is pay you fairly for it.
+                </p>
+                <p className="mb-5 leading-relaxed text-sm" style={{ color: '#7a6a5e' }}>
+                  Every survey on Qezzy is attached to a real research brief from a verified company or institution. We vet the campaigns before they go live, screen out low-effort questionnaires, and make sure the reward reflects the time being asked of you. You are not filling in forms for pennies. You are contributing to decisions that shape the market around you.
+                </p>
+                <p className="leading-relaxed text-sm" style={{ color: '#7a6a5e' }}>
+                  And when you are ready to access your earnings, there are no bank account requirements, no withdrawal windows, and no minimum tenure. Just your M-Pesa number and a button to press.
+                </p>
+
+                <div className="mt-10 flex flex-col gap-3">
+                  {[
+                    'No cost to join, ever',
+                    'Surveys matched to your actual profile',
+                    'M-Pesa withdrawals processed in real time',
+                    'Transparent reward shown before every survey',
+                  ].map((point) => (
+                    <div key={point} className="flex items-start gap-3">
+                      <CheckCircle size={17} style={{ color: '#2B6C5A', flexShrink: 0, marginTop: 2 }} />
+                      <span className="text-sm" style={{ color: '#3a2e26' }}>{point}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
-            <p>Kenya's task-earning platform. Complete tasks, earn money, and withdraw instantly via M-Pesa.</p>
           </div>
-          <div>
-            <h5>Navigate</h5>
-            <ul>
-              {['Home', 'Features', 'How It Works', 'Stories'].map(l => (
-                <li key={l}><a href="#features">{l}</a></li>
+        </section>
+
+
+        {/* ═══════════════════════ HOW IT WORKS ═══════════════════════ */}
+        <section
+          id="how-it-works"
+          className="py-24 lg:py-32 border-t"
+          style={{ borderColor: '#ddd4c8' }}
+          aria-label="How Qezzy Surveys works"
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+
+            <div className="max-w-xl mb-16">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#C27B3A', letterSpacing: '0.15em' }}>
+                The Process
+              </p>
+              <h2
+                style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3.5vw,2.8rem)', fontWeight: 700, lineHeight: 1.15, color: '#1a140f' }}
+              >
+                Three Steps Between You and Your First Payout
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-0 relative">
+              {/* Connector line */}
+              <div
+                className="hidden md:block absolute h-px"
+                style={{ top: 40, left: '16.5%', right: '16.5%', backgroundColor: '#ddd4c8' }}
+                aria-hidden="true"
+              />
+
+              {steps.map((step, i) => (
+                <div
+                  key={step.number}
+                  className={`relative flex flex-col ${i > 0 ? 'md:pl-10 lg:pl-14' : ''} ${i < steps.length - 1 ? 'pb-12 md:pb-0 border-b md:border-b-0' : ''} ${i > 0 ? 'pt-12 md:pt-0' : ''}`}
+                  style={i < steps.length - 1 ? { borderColor: '#ddd4c8' } : {}}
+                >
+                  <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center mb-8 relative z-10"
+                    style={{ backgroundColor: '#F7F3EE', border: '1.5px solid #ddd4c8' }}
+                  >
+                    <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.5rem', fontWeight: 700, color: '#C27B3A' }}>
+                      {step.number}
+                    </span>
+                  </div>
+                  <step.Icon size={22} style={{ color: '#2B6C5A', marginBottom: 14 }} />
+                  <h3
+                    className="mb-3"
+                    style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.25rem', fontWeight: 600, color: '#1a140f', lineHeight: 1.25 }}
+                  >
+                    {step.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: '#5a4d43', fontWeight: 300 }}>
+                    {step.description}
+                  </p>
+                </div>
               ))}
-            </ul>
+            </div>
+
+            <div className="mt-16 text-center">
+              <a
+                href="/signup"
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-semibold transition-all"
+                style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }}
+                {...hoverOpacity()}
+              >
+                Get Started — It's Free <ArrowRight size={15} />
+              </a>
+            </div>
           </div>
-          <div>
-            <h5>Legal</h5>
-            <ul>
-              <li><Link to="/terms">Terms of Service</Link></li>
-              <li><Link to="/privacy">Privacy Policy</Link></li>
-              <li><Link to="/cookies">Cookies Policy</Link></li>
-            </ul>
+        </section>
+
+
+        {/* ═══════════════════════ FEATURE: MATCHED SURVEYS ═══════════════════════ */}
+        <section
+          id="features"
+          className="py-24 lg:py-32 border-t"
+          style={{ borderColor: '#ddd4c8' }}
+          aria-label="Qezzy features"
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+              <div className="max-w-lg">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#C27B3A', letterSpacing: '0.15em' }}>
+                  Smart Matching
+                </p>
+                <h2
+                  className="mb-6"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3.5vw,2.6rem)', fontWeight: 700, lineHeight: 1.15, color: '#1a140f' }}
+                >
+                  Surveys That Actually Belong in Your Life
+                </h2>
+                <p className="mb-5 leading-relaxed" style={{ color: '#5a4d43', fontWeight: 300 }}>
+                  Most survey platforms send you questionnaires about products you have never used, services unavailable in your region, or topics so irrelevant they feel like a waste of effort. Qezzy works differently. When you complete your profile, our matching system uses that information to route you toward surveys where your input is genuinely wanted — and where you are far less likely to be screened out midway.
+                </p>
+                <p className="leading-relaxed text-sm" style={{ color: '#7a6a5e' }}>
+                  This is not just good for you. Research clients get cleaner data from participants who actually know their market. Better quality responses attract better campaigns. Better campaigns mean higher rewards across the platform. It is a system that works better for everyone when the matching is done well — and we have spent significant effort making sure it is.
+                </p>
+
+                <div className="mt-8 grid grid-cols-2 gap-4">
+                  {[
+                    { Icon: Clock,       label: 'Time shown upfront' },
+                    { Icon: Smartphone,  label: 'Mobile-first design' },
+                    { Icon: BarChart2,   label: 'Progress tracked' },
+                    { Icon: Globe,       label: 'Swahili & English support' },
+                  ].map(({ Icon, label }) => (
+                    <div key={label} className="flex items-center gap-2.5">
+                      <Icon size={16} style={{ color: '#2B6C5A', flexShrink: 0 }} />
+                      <span className="text-sm" style={{ color: '#3a2e26' }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl" style={{ aspectRatio: '4/3' }}>
+                <img
+                  src="/surveys.jpg"
+                  alt="Mobile interface of Qezzy Surveys showing matched survey opportunities"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+
+            </div>
           </div>
-          <div>
-            <h5>Contact</h5>
-            <ul>
-              <li><span>info@qezzykenya.company</span></li>
-              <li><span>+254 728 722 700</span></li>
-              <li><span>Nairobi, Kenya</span></li>
-            </ul>
+        </section>
+
+
+        {/* ═══════════════════════ FEATURE: RESEARCH IMPACT ═══════════════════════ */}
+        <section className="py-24 lg:py-32 border-t" style={{ borderColor: '#ddd4c8' }} aria-label="Research impact">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+              <div className="overflow-hidden rounded-2xl order-2 lg:order-1" style={{ aspectRatio: '4/3' }}>
+                <img
+                  src="/community.jpg"
+                  alt="Diverse community of survey participants contributing to market research across East Africa"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+
+              <div className="max-w-lg order-1 lg:order-2">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#C27B3A', letterSpacing: '0.15em' }}>
+                  Your Voice Matters
+                </p>
+                <h2
+                  className="mb-6"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3.5vw,2.6rem)', fontWeight: 700, lineHeight: 1.15, color: '#1a140f' }}
+                >
+                  The Businesses Listening to You Are the Ones Building Your World
+                </h2>
+                <p className="mb-5 leading-relaxed" style={{ color: '#5a4d43', fontWeight: 300 }}>
+                  Surveys on Qezzy are not academic exercises. The companies behind them are making real decisions — about which products reach the shelves near you, which services get better, and where investments go in the East African market. When you answer a question honestly, you are shaping something that will exist in the real world.
+                </p>
+                <p className="leading-relaxed text-sm" style={{ color: '#7a6a5e' }}>
+                  We partner exclusively with verified organisations. Before any survey goes live on Qezzy, we review the research brief, the institution behind it, and the intended use of the data. Anonymous responses are the default. You are never asked to compromise your privacy for a reward, and your data is never sold to parties outside the agreed research context.
+                </p>
+
+                <div className="mt-10 flex flex-col gap-3">
+                  {trustItems.map(({ Icon, label }) => (
+                    <div key={label} className="flex items-center gap-3">
+                      <Icon size={17} style={{ color: '#2B6C5A', flexShrink: 0 }} />
+                      <span className="text-sm" style={{ color: '#3a2e26' }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
-        <div className="foot-btm">
-          <span>© {new Date().getFullYear()} Qezzy Kenya. All rights reserved.</span>
-          <span>Powered by <a href="https://dewlons.com" target="_blank" rel="noopener noreferrer">Dewlon Systems</a></span>
-        </div>
-      </footer>
+        </section>
+
+
+        {/* ═══════════════════════ M-PESA ═══════════════════════ */}
+        <section
+          id="mpesa"
+          className="py-24 lg:py-32 border-t"
+          style={{ borderColor: '#ddd4c8' }}
+          aria-label="M-Pesa withdrawal"
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+            <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+
+              {/* Copy */}
+              <div className="max-w-lg">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#C27B3A', letterSpacing: '0.15em' }}>
+                  How You Get Paid
+                </p>
+                <h2
+                  className="mb-6"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3.5vw,2.8rem)', fontWeight: 700, lineHeight: 1.15, color: '#1a140f' }}
+                >
+                  Withdrawals to M-Pesa<br />That Actually Take<br />
+                  <em style={{ color: '#C27B3A', fontStyle: 'italic' }}>Seconds, Not Days</em>
+                </h2>
+                <p className="mb-5 leading-relaxed" style={{ color: '#5a4d43', fontWeight: 300 }}>
+                  We built our payout system around how Kenya actually works. You have an M-Pesa number. Your friends, your landlord, your supplier — everyone accepts M-Pesa. So that is where your Qezzy earnings go, directly, without routing through a bank account or waiting for a payout cycle to close.
+                </p>
+                <p className="mb-5 leading-relaxed text-sm" style={{ color: '#7a6a5e' }}>
+                  The minimum withdrawal is KES 50 — low enough that you are never holding earnings for longer than you want to. Once you request a withdrawal, the transaction is initiated immediately and you receive an M-Pesa confirmation SMS. Most withdrawals complete in under 60 seconds. There is no transaction fee charged by Qezzy on standard withdrawals.
+                </p>
+                <p className="leading-relaxed text-sm" style={{ color: '#7a6a5e' }}>
+                  Withdrawals are available 24 hours a day, seven days a week. You do not need to wait for business hours or a specific day of the month. When you need your money, it moves.
+                </p>
+
+                <div className="mt-10 flex flex-col gap-4">
+                  {[
+                    ['Minimum withdrawal: KES 50', 'Low threshold so you access earnings quickly'],
+                    ['No fee from Qezzy', 'Standard M-Pesa transaction costs may apply from Safaricom'],
+                    ['Available 24/7', 'No business-hour restrictions, no batch windows'],
+                  ].map(([title, desc]) => (
+                    <div key={title} className="flex gap-4 py-4 border-b" style={{ borderColor: '#ede7df' }}>
+                      <CheckCircle size={18} style={{ color: '#2B6C5A', flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <p className="text-sm font-semibold mb-0.5" style={{ color: '#1a140f' }}>{title}</p>
+                        <p className="text-xs" style={{ color: '#7a6a5e' }}>{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8">
+                  <a
+                    href="/signup"
+                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold transition-all"
+                    style={{ backgroundColor: '#2B6C5A', color: '#F7F3EE' }}
+                    {...hoverOpacity()}
+                  >
+                    Start Earning Today <ArrowRight size={15} />
+                  </a>
+                </div>
+              </div>
+
+              {/* Image */}
+              <div className="relative">
+                <div className="overflow-hidden rounded-2xl" style={{ aspectRatio: '3/4', maxHeight: 580 }}>
+                  <img
+                    src="/mpesa.jpg"
+                    alt="Person receiving M-Pesa payment from Qezzy Surveys withdrawal on their phone"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+
+                {/* Withdrawal confirmation card */}
+                <div
+                  className="absolute p-4 rounded-2xl shadow-xl"
+                  style={{ bottom: 32, right: 0, maxWidth: 240, backgroundColor: '#F7F3EE', border: '1px solid #ede7df' }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2B6C5A18' }}>
+                      <Wallet size={14} style={{ color: '#2B6C5A' }} />
+                    </div>
+                    <span className="text-xs font-semibold" style={{ color: '#2B6C5A' }}>Withdrawal Confirmed</span>
+                  </div>
+                  <p className="font-bold mb-0.5" style={{ fontSize: '1.2rem', color: '#1a140f' }}>KES 1,250</p>
+                  <p className="text-xs" style={{ color: '#7a6a5e' }}>Sent to 07XX XXX XXX &bull; 38 seconds</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+
+        {/* ═══════════════════════ TESTIMONIALS ═══════════════════════ */}
+        <section
+          id="testimonials"
+          className="py-24 lg:py-32 border-t"
+          style={{ borderColor: '#ddd4c8', backgroundColor: '#f0ece6' }}
+          aria-label="Member testimonials"
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16">
+              <div className="max-w-xl">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#C27B3A', letterSpacing: '0.15em' }}>
+                  Member Stories
+                </p>
+                <h2
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3.5vw,2.8rem)', fontWeight: 700, lineHeight: 1.15, color: '#1a140f' }}
+                >
+                  People Across Kenya Are Already Earning
+                </h2>
+              </div>
+              <a
+                href="/signup"
+                className="text-sm font-medium flex items-center gap-1.5 flex-shrink-0"
+                style={{ color: '#C27B3A' }}
+              >
+                Join them today <ArrowRight size={14} />
+              </a>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {testimonials.map((t, i) => (
+                <article key={t.name} className={`flex flex-col ${i === 1 ? 'md:mt-8' : ''}`}>
+                  <p
+                    className="mb-4 select-none"
+                    style={{ fontFamily: "'Playfair Display', serif", fontSize: '5rem', color: '#C27B3A', lineHeight: 0.8, opacity: 0.25 }}
+                    aria-hidden="true"
+                  >
+                    &ldquo;
+                  </p>
+                  <p className="text-sm leading-relaxed mb-6 flex-1" style={{ color: '#3a2e26', fontWeight: 300 }}>
+                    {t.text}
+                  </p>
+                  <div className="flex items-center gap-3 pt-5 border-t" style={{ borderColor: '#ddd4c8' }}>
+                    <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0" style={{ border: '2px solid #C27B3A30' }}>
+                      <img src={t.image} alt={t.name} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: '#1a140f' }}>{t.name}</p>
+                      <p className="text-xs" style={{ color: '#7a6a5e' }}>{t.role}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+          </div>
+        </section>
+
+
+        {/* ═══════════════════════ SURVEY TYPES ═══════════════════════ */}
+        <section className="py-24 lg:py-32 border-t" style={{ borderColor: '#ddd4c8' }} aria-label="Survey categories">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#C27B3A', letterSpacing: '0.15em' }}>
+                  What You Will Find
+                </p>
+                <h2
+                  className="mb-6"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3.5vw,2.6rem)', fontWeight: 700, lineHeight: 1.15, color: '#1a140f' }}
+                >
+                  Every Week Brings a Fresh Mix of Research to Contribute To
+                </h2>
+                <p className="leading-relaxed mb-10" style={{ color: '#5a4d43', fontWeight: 300 }}>
+                  The research landscape is never static. Qezzy receives new campaigns weekly from consumer goods companies, financial institutions, government research bodies, NGOs, telecom operators, and academic institutions. What that means for you is variety — and a steady stream of new opportunities to earn, regardless of your specific background or location within Kenya.
+                </p>
+
+                <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                  {surveyCategories.map((category) => (
+                    <div key={category} className="flex items-start gap-2.5 text-sm" style={{ color: '#3a2e26' }}>
+                      <span style={{ color: '#C27B3A', fontSize: '1.1rem', lineHeight: 1.3, flexShrink: 0 }}>&bull;</span>
+                      <span>{category}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl" style={{ aspectRatio: '4/3' }}>
+                <img
+                  src="/research.jpg"
+                  alt="Variety of online survey categories available on Qezzy Surveys platform"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+
+        {/* ═══════════════════════ FAQ ═══════════════════════ */}
+        <section
+          id="faq"
+          className="py-24 lg:py-32 border-t"
+          style={{ borderColor: '#ddd4c8' }}
+          aria-label="Frequently asked questions"
+        >
+          <div className="max-w-5xl mx-auto px-5 sm:px-8 lg:px-12">
+
+            <div className="max-w-xl mb-14">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#C27B3A', letterSpacing: '0.15em' }}>
+                Common Questions
+              </p>
+              <h2
+                style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3.5vw,2.8rem)', fontWeight: 700, lineHeight: 1.15, color: '#1a140f' }}
+              >
+                Everything You Want to Know Before You Start
+              </h2>
+            </div>
+
+            <div className="flex flex-col faq-list">
+              {faqs.map((faq, i) => (
+                <div key={i} className="py-5">
+                  <button
+                    className="w-full flex items-center justify-between gap-4 text-left"
+                    onClick={() => toggleFaq(i)}
+                    aria-expanded={activeFaq === i}
+                  >
+                    <span className="text-base font-medium" style={{ color: '#1a140f' }}>
+                      {faq.question}
+                    </span>
+                    <span
+                      className="flex-shrink-0 transition-transform duration-300"
+                      style={{ transform: activeFaq === i ? 'rotate(180deg)' : 'rotate(0deg)', color: '#C27B3A' }}
+                    >
+                      <ChevronDown size={18} />
+                    </span>
+                  </button>
+                  {activeFaq === i && (
+                    <p
+                      className="mt-4 text-sm leading-relaxed"
+                      style={{ color: '#5a4d43', fontWeight: 300, maxWidth: 680 }}
+                    >
+                      {faq.answer}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </section>
+
+
+        {/* ═══════════════════════ CTA BANNER ═══════════════════════ */}
+        <section
+          className="py-20 lg:py-28 border-t border-b"
+          style={{ borderColor: '#ddd4c8', backgroundColor: '#2B6C5A' }}
+          aria-label="Call to action"
+        >
+          <div className="max-w-4xl mx-auto px-5 sm:px-8 lg:px-12 text-center">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-5" style={{ color: '#a8cfc4', letterSpacing: '0.15em' }}>
+              Ready to Begin
+            </p>
+            <h2
+              className="mb-6"
+              style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(2rem,4.5vw,3.2rem)', fontWeight: 700, lineHeight: 1.12, color: '#F7F3EE' }}
+            >
+              You Have Had an Opinion This Whole Time.<br />
+              <em style={{ color: '#C27B3A' }}>Now It Can Pay Your Bills.</em>
+            </h2>
+            <p
+              className="mb-10 leading-relaxed"
+              style={{ color: '#b8d4cc', fontWeight: 300, fontSize: '1rem', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}
+            >
+              Creating an account takes two minutes. Your first survey invitation can arrive the same day. And your first M-Pesa withdrawal can land before tonight is over. There is no better moment to start than right now.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a
+                href="/signup"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-semibold transition-all"
+                style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }}
+                {...hoverOpacity()}
+              >
+                Create Your Free Account <ArrowRight size={15} />
+              </a>
+              <a
+                href="/how-it-works"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-medium transition-all"
+                style={{ color: '#F7F3EE', border: '1.5px solid rgba(247,243,238,0.35)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(247,243,238,0.7)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(247,243,238,0.35)')}
+              >
+                Learn More First
+              </a>
+            </div>
+            <p className="mt-6 text-xs" style={{ color: '#7aaa9d' }}>No credit card. No commitment. No hidden fees — ever.</p>
+          </div>
+        </section>
+
+
+        {/* ═══════════════════════ FOOTER ═══════════════════════ */}
+        <footer style={{ backgroundColor: '#1a140f', color: '#b8a99a' }} aria-label="Site footer">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+
+            {/* Top footer */}
+            <div className="py-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 border-b" style={{ borderColor: '#2e2420' }}>
+
+              {/* Brand */}
+              <div className="sm:col-span-2 lg:col-span-1">
+                <div className="flex items-center gap-1.5 mb-4">
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.4rem', fontWeight: 700, color: '#C27B3A' }}>Qezzy</span>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#2B6C5A', paddingTop: 3 }}>Surveys</span>
+                </div>
+                <p className="text-sm leading-relaxed mb-6" style={{ color: '#7a6a5e', maxWidth: 240 }}>
+                  Earn real money sharing your opinions. Withdraw instantly to M-Pesa. Free to join, always.
+                </p>
+                <div className="flex items-center gap-3">
+                  {socialLinks.map(({ Icon, label }) => (
+                    <a
+                      key={label}
+                      href="/"
+                      className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
+                      style={{ backgroundColor: '#2e2420', color: '#b8a99a' }}
+                      aria-label={label}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#C27B3A'; e.currentTarget.style.color = '#F7F3EE'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#2e2420'; e.currentTarget.style.color = '#b8a99a'; }}
+                    >
+                      <Icon size={15} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              {/* Platform */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-5" style={{ color: '#F7F3EE', letterSpacing: '0.12em' }}>
+                  Platform
+                </h3>
+                <ul className="flex flex-col gap-3">
+                  {platformLinks.map(([label, href]) => (
+                    <li key={label}>
+                      <a href={href} className="text-sm transition-colors" style={{ color: '#7a6a5e' }} {...hoverLink('#C27B3A', '#7a6a5e')}>
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Company */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-5" style={{ color: '#F7F3EE', letterSpacing: '0.12em' }}>
+                  Company
+                </h3>
+                <ul className="flex flex-col gap-3">
+                  {companyLinks.map(([label, href]) => (
+                    <li key={label}>
+                      <a href={href} className="text-sm transition-colors" style={{ color: '#7a6a5e' }} {...hoverLink('#C27B3A', '#7a6a5e')}>
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Contact */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-5" style={{ color: '#F7F3EE', letterSpacing: '0.12em' }}>
+                  Contact
+                </h3>
+                <ul className="flex flex-col gap-4">
+                  {[
+                    { Icon: Mail,    text: 'hello@qezzy.co.ke' },
+                    { Icon: Phone,   text: '+254 700 000 000' },
+                    { Icon: MapPin,  text: 'Nairobi, Kenya' },
+                  ].map(({ Icon, text }) => (
+                    <li key={text} className="flex items-start gap-3">
+                      <Icon size={14} style={{ color: '#C27B3A', flexShrink: 0, marginTop: 2 }} />
+                      <span className="text-sm" style={{ color: '#7a6a5e' }}>{text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+            </div>
+
+            {/* Bottom footer */}
+            <div className="py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-xs" style={{ color: '#4a3828' }}>
+                &copy; {new Date().getFullYear()} Qezzy Surveys. All rights reserved.
+              </p>
+              <div className="flex items-center gap-5">
+                {legalLinks.map(([label, href]) => (
+                  <a
+                    key={label}
+                    href={href}
+                    className="text-xs transition-colors"
+                    style={{ color: '#4a3828' }}
+                    {...hoverLink('#7a6a5e', '#4a3828')}
+                  >
+                    {label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </footer>
+
+      </div>
     </>
   );
 }
