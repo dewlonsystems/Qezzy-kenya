@@ -193,15 +193,15 @@ const legalLinks = [
 
 function hoverLink(primary = '#C27B3A', base = '#4a3828') {
   return {
-    onMouseEnter: (e) => (e.currentTarget.style.color = primary),
-    onMouseLeave: (e) => (e.currentTarget.style.color = base),
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.color = primary),
+    onMouseLeave: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.color = base),
   };
 }
 
 function hoverOpacity() {
   return {
-    onMouseEnter: (e) => (e.currentTarget.style.opacity = '0.88'),
-    onMouseLeave: (e) => (e.currentTarget.style.opacity = '1'),
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.opacity = '0.88'),
+    onMouseLeave: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.opacity = '1'),
   };
 }
 
@@ -218,7 +218,7 @@ export default function QezzyLanding() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  function toggleFaq(i) {
+  function toggleFaq(i: number) {
     setActiveFaq(activeFaq === i ? null : i);
   }
 
