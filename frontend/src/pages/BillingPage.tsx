@@ -3,35 +3,41 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/client';
 
-// Properly typed SVG Icon Components (same as your ActivationPage)
+// ─── Icon Components ───────────────────────────────────────────────────────────
+
 const ZapIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
   </svg>
 );
+
 const SmartphoneIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
     <line x1="12" y1="18" x2="12" y2="18" />
   </svg>
 );
+
 const ShieldIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
+
 const CheckCircleIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
     <polyline points="22 4 12 14.01 9 11.01" />
   </svg>
 );
+
 const ArrowRightIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <line x1="5" y1="12" x2="19" y2="12" />
     <polyline points="12 5 19 12 12 19" />
   </svg>
 );
+
 const DownloadIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -40,6 +46,9 @@ const DownloadIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) =>
   </svg>
 );
 
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+// FIX 4: 'success' is now a real state that gets set, not just implied by successCountdown
 type BillingState = 'intro' | 'processing' | 'success';
 
 interface PlanData {
@@ -51,12 +60,13 @@ interface PlanData {
   isTrial?: boolean;
 }
 
+// ─── Component ─────────────────────────────────────────────────────────────────
+
 const BillingPage = () => {
   const { currentUser, refreshUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get plan data from navigation state (fallback to URL params if needed)
   const planData = location.state as PlanData | null;
 
   const [state, setState] = useState<BillingState>('intro');
@@ -70,12 +80,12 @@ const BillingPage = () => {
   const pollCountRef = useRef(0);
   const pollIntervalRef = useRef<number | null>(null);
 
-  // Redirect if already has active subscription for this plan
+  // Redirect if the user already has this plan active (and we're not on the success screen)
   useEffect(() => {
-    if (currentUser?.subscription?.plan?.id === planData?.planId && successCountdown === null) {
+    if (currentUser?.subscription?.plan?.id === planData?.planId && state !== 'success') {
       navigate('/overview', { replace: true });
     }
-  }, [currentUser, planData, successCountdown, navigate]);
+  }, [currentUser, planData, state, navigate]);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -91,48 +101,59 @@ const BillingPage = () => {
       navigate('/overview', { replace: true });
       return;
     }
-    const timer = setTimeout(() => setSuccessCountdown(prev => (prev !== null ? prev - 1 : null)), 1000);
+    const timer = setTimeout(
+      () => setSuccessCountdown(prev => (prev !== null ? prev - 1 : null)),
+      1000,
+    );
     return () => clearTimeout(timer);
   }, [successCountdown, navigate]);
 
-  // Validate phone number (Kenyan Safaricom format)
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
   const validatePhoneNumber = (phone: string) => {
     const cleaned = phone.replace(/\D/g, '');
     return /^(07|01)\d{8}$/.test(cleaned) || /^254(7|1)\d{8}$/.test(cleaned);
   };
 
-  // Fetch subscription status for polling
-  const fetchSubscriptionStatus = async () => {
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    setIsPolling(false);
+    pollCountRef.current = 0;
+  };
+
+  const fetchPaymentStatus = async (txId: string) => {
     try {
-      const res = await api.get('/subscriptions/status/');
+      const res = await api.get(`/subscriptions/payment-status/${txId}/`);
       return res.data;
     } catch (err) {
-      console.error('Failed to fetch subscription status:', err);
+      console.error('Failed to fetch payment status:', err);
       return null;
     }
   };
 
-  // Start polling after STK push initiated
-  const startPolling = () => {
+  // ─── Polling ───────────────────────────────────────────────────────────────
+
+  const startPolling = (txId: string) => {
     if (isPolling) return;
     setIsPolling(true);
     pollCountRef.current = 0;
 
     const poll = async () => {
-      const status = await fetchSubscriptionStatus();
-      if (!status) {
-        setIsPolling(false);
+      const result = await fetchPaymentStatus(txId);
+
+      if (!result) {
+        stopPolling();
         setError('Unable to verify payment status. Please contact support.');
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         return;
       }
 
-      // Check if subscription is now active for the selected plan
-      if (status.has_active_subscription && status.plan?.id === planData?.planId) {
-        setIsPolling(false);
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-        
-        // Fetch receipt URL if available
+      if (result.status === 'completed') {
+        stopPolling();
+
+        // Attempt to fetch the receipt URL from history
         try {
           const historyRes = await api.get('/subscriptions/history/');
           const recentTx = historyRes.data.transactions?.[0];
@@ -140,28 +161,28 @@ const BillingPage = () => {
             setReceiptUrl(`/subscriptions/receipt/${recentTx.id}/`);
           }
         } catch (e) {
-          console.warn('Failed to fetch receipt:', e);
+          console.warn('Failed to fetch receipt info:', e);
         }
-        
+
         await refreshUser?.();
-        setTimeout(() => {
-          setSuccessCountdown(10);
-        }, 300);
+
+        // FIX 4: explicitly set state to 'success' so it's always correct
+        setState('success');
+        setTimeout(() => setSuccessCountdown(10), 300);
         return;
       }
 
-      if (status.status === 'failed' || status.status === 'cancelled') {
-        setIsPolling(false);
-        setError('Payment failed or was cancelled. Please try again.');
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (result.status === 'failed' || result.status === 'cancelled') {
+        stopPolling();
+        setError(result.reason || 'Payment failed or was cancelled. Please try again.');
         return;
       }
 
+      // FIX 3: match the backend's 5-minute STK window (300 × 1 s = 300 s)
       pollCountRef.current += 1;
-      if (pollCountRef.current >= 30) { // 30 * 3s = 90s timeout
-        setIsPolling(false);
+      if (pollCountRef.current >= 300) {
+        stopPolling();
         setError('Payment confirmation timed out. Check your M-Pesa statement and try again.');
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       }
     };
 
@@ -169,7 +190,8 @@ const BillingPage = () => {
     pollIntervalRef.current = setInterval(poll, 1000) as unknown as number;
   };
 
-  // Initiate subscription payment via STK Push
+  // ─── Handlers ──────────────────────────────────────────────────────────────
+
   const handleInitiatePayment = async () => {
     if (!planData) {
       setError('No plan selected. Please choose a subscription first.');
@@ -189,10 +211,16 @@ const BillingPage = () => {
         phone_number: phoneNumber,
         use_trial: planData.isTrial || false,
       });
-      
+
       console.log('STK Push initiated:', res.data);
+      const txId = res.data.transaction_id;
       setState('processing');
-      startPolling();
+
+      if (txId) {
+        startPolling(txId);
+      } else {
+        setError('Unable to verify payment transaction. Please try again.');
+      }
     } catch (err: any) {
       console.error('Subscription payment error:', err);
       setError(err.response?.data?.error || 'Failed to initiate payment. Please try again.');
@@ -201,18 +229,18 @@ const BillingPage = () => {
     }
   };
 
-  // Handle retry after failure
+  // FIX 2: clear the interval before resetting state so old pollers can't leak
   const handleRetry = () => {
+    stopPolling();
     setError('');
     setState('intro');
   };
 
-  // Handle cancel/go back
   const handleCancel = () => {
+    stopPolling();
     navigate('/subscriptions', { replace: true });
   };
 
-  // Download receipt
   const handleDownloadReceipt = async () => {
     if (!receiptUrl) return;
     try {
@@ -234,8 +262,9 @@ const BillingPage = () => {
     }
   };
 
-  // ========== RENDER SUCCESS SCREEN ==========
-  if (successCountdown !== null && planData) {
+  // ─── Render: Success ───────────────────────────────────────────────────────
+
+  if (state === 'success' && planData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
         <div className="w-full max-w-md text-center">
@@ -249,7 +278,7 @@ const BillingPage = () => {
           <p className="text-sm text-gray-500 mb-6">
             KES {planData.amount} • {planData.duration} days • Auto-renews
           </p>
-          
+
           {receiptUrl && (
             <button
               onClick={handleDownloadReceipt}
@@ -259,11 +288,13 @@ const BillingPage = () => {
               Download Receipt
             </button>
           )}
-          
-          <p className="text-sm text-gray-500 mb-8">
-            Redirecting to dashboard in {successCountdown} second{successCountdown !== 1 ? 's' : ''}...
-          </p>
-          
+
+          {successCountdown !== null && (
+            <p className="text-sm text-gray-500 mb-8">
+              Redirecting to dashboard in {successCountdown} second{successCountdown !== 1 ? 's' : ''}…
+            </p>
+          )}
+
           <button
             onClick={() => navigate('/overview')}
             className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
@@ -276,7 +307,8 @@ const BillingPage = () => {
     );
   }
 
-  // ========== RENDER PROCESSING STATE ==========
+  // ─── Render: Processing ────────────────────────────────────────────────────
+
   if (state === 'processing' && planData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
@@ -291,7 +323,7 @@ const BillingPage = () => {
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-              <span className="font-medium text-gray-700">Waiting for payment confirmation...</span>
+              <span className="font-medium text-gray-700">Waiting for payment confirmation…</span>
             </div>
             <div className="text-left space-y-3 text-sm text-gray-600">
               <div className="flex items-start gap-2">
@@ -309,13 +341,21 @@ const BillingPage = () => {
             </div>
           </div>
 
-          {error && <div className="text-red-600 text-sm mb-4 bg-red-50 p-3 rounded-lg">{error}</div>}
+          {error && (
+            <div className="text-red-600 text-sm mb-4 bg-red-50 p-3 rounded-lg">{error}</div>
+          )}
 
           <div className="flex gap-3">
-            <button onClick={handleCancel} className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors">
+            <button
+              onClick={handleCancel}
+              className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+            >
               Cancel
             </button>
-            <button onClick={handleRetry} className="flex-1 py-3 px-4 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 transition-colors">
+            <button
+              onClick={handleRetry}
+              className="flex-1 py-3 px-4 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 transition-colors"
+            >
               Retry
             </button>
           </div>
@@ -324,7 +364,8 @@ const BillingPage = () => {
     );
   }
 
-  // ========== RENDER INTRO/PAYMENT FORM ==========
+  // ─── Render: No Plan ───────────────────────────────────────────────────────
+
   if (!planData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
@@ -342,6 +383,8 @@ const BillingPage = () => {
     );
   }
 
+  // ─── Render: Intro / Payment Form ─────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {/* Header */}
@@ -358,7 +401,7 @@ const BillingPage = () => {
       <div className="px-4 -mt-8">
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-            
+
             {/* Plan Summary */}
             <div className="p-6 border-b border-gray-200 bg-amber-50">
               <div className="flex items-center justify-between mb-4">
@@ -377,7 +420,9 @@ const BillingPage = () => {
             {/* Features List */}
             {planData.features && planData.features.length > 0 && (
               <div className="p-6 border-b border-gray-200">
-                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">What's Included</p>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  What's Included
+                </p>
                 <ul className="space-y-2">
                   {planData.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
@@ -391,8 +436,10 @@ const BillingPage = () => {
 
             {/* Payment Form */}
             <div className="p-6">
-              {error && <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
-              
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label htmlFor="phone" className="text-sm font-medium text-gray-700 block mb-1">
@@ -413,7 +460,9 @@ const BillingPage = () => {
                     }`}
                   />
                   {phoneNumber && !validatePhoneNumber(phoneNumber) && (
-                    <p className="text-xs text-red-600 mt-1.5">Please enter a valid Safaricom number</p>
+                    <p className="text-xs text-red-600 mt-1.5">
+                      Please enter a valid Safaricom number
+                    </p>
                   )}
                 </div>
 
@@ -429,7 +478,7 @@ const BillingPage = () => {
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Processing...
+                      Processing…
                     </>
                   ) : (
                     <>
@@ -454,7 +503,9 @@ const BillingPage = () => {
           </div>
 
           <p className="text-center text-xs text-gray-500 mt-4 px-4">
-            By proceeding, you agree to our <a href="/terms" className="text-amber-600 hover:underline">Terms</a> and <a href="/privacy" className="text-amber-600 hover:underline">Privacy Policy</a>.
+            By proceeding, you agree to our{' '}
+            <a href="/terms" className="text-amber-600 hover:underline">Terms</a> and{' '}
+            <a href="/privacy" className="text-amber-600 hover:underline">Privacy Policy</a>.
           </p>
         </div>
       </div>
