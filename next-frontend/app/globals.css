@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Colors ───────────────────────────────────────────── */
+  --color-bg: #F7F3EE;
+  --color-bg-alt: #f0ece6;
+  --color-text: #1a140f;
+  --color-text-muted: #5a4d43;
+  --color-text-dim: #7a6a5e;
+  --color-text-dark: #3a2e26;
+  --color-text-footer: #b8a99a;
+  
+  --color-primary: #C27B3A;
+  --color-primary-soft: #C27B3A30;
+  --color-secondary: #2B6C5A;
+  --color-secondary-soft: #2B6C5A18;
+  --color-secondary-dim: #2B6C5A12;
+  
+  --color-border: #ddd4c8;
+  --color-border-soft: #ede7df;
+  --color-border-dark: #2e2420;
+  
+  /* ── Fonts ────────────────────────────────────────────── */
+  --font-heading: "Playfair Display", serif;
+  --font-body: "DM Sans", sans-serif;
+  
+  /* ── Shadows ──────────────────────────────────────────── */
+  --shadow-card: 0 1px 0 rgba(44,28,14,0.1);
+  --shadow-float: 0 10px 40px rgba(26,20,15,0.12);
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-text);
+    line-height: 1.15;
+  }
+  a { text-decoration: none; color: inherit; transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease; }
+  img { max-width: 100%; height: auto; display: block; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .stats-grid > *:not(:first-child) { border-left: 1px solid var(--color-border); }
+  @media (max-width: 1023px) { .stats-grid > * { border-left: none !important; } }
+  .faq-list > * + * { border-top: 1px solid var(--color-border); }
+  .hover-primary { transition: color 0.2s ease; }
+  .hover-primary:hover { color: var(--color-primary); }
+  .hover-fill { transition: background-color 0.2s ease, color 0.2s ease; }
+  .hover-fill:hover { background-color: var(--color-secondary); color: var(--color-bg); }
+  .hover-opacity { transition: opacity 0.2s ease; }
+  .hover-opacity:hover { opacity: 0.88; }
+  .border-1\.5 { border-width: 1.5px; }
+}
