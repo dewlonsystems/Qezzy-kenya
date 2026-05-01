@@ -150,6 +150,34 @@ class SurveyCategoryDetailView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class SurveySubmissionListView(APIView):
+    """
+    GET /api/surveys/submissions/
+    Return the current user's survey submissions for tab filtering and history.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        submissions = UserSurveySubmission.objects.filter(user=user).select_related('category')
+
+        submission_data = []
+        for submission in submissions:
+            submission_data.append({
+                'id': submission.id,
+                'category_id': submission.category.id,
+                'category_name': submission.category.name,
+                'status': submission.status,
+                'rejection_reason': submission.rejection_reason or None,
+                'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else None,
+                'reviewed_at': submission.reviewed_at.isoformat() if submission.reviewed_at else None,
+                'amount_kes': str(submission.category.amount_kes),
+                'tier_level': submission.category.tier_level,
+            })
+
+        return Response({'submissions': submission_data}, status=status.HTTP_200_OK)
+
+
 class SurveySubmissionView(APIView):
     """
     POST /api/surveys/submit/
