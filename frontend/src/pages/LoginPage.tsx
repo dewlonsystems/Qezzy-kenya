@@ -1,4 +1,3 @@
-// src/pages/LoginPage.tsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +7,7 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { useToast } from '../contexts/ToastContext'; // 👈 NEW
+import { useToast } from '../contexts/ToastContext';
 
 // Google Fonts: Inter
 const InterFontLink = () => (
@@ -18,10 +17,25 @@ const InterFontLink = () => (
   />
 );
 
+// ✅ NEW: Helper to fetch subscription status for overview page UI
+export const fetchUserSubscriptionStatus = async (token: string) => {
+  try {
+    const response = await fetch('/api/subscriptions/status/', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err) {
+    console.warn('Failed to fetch subscription status:', err);
+  }
+  return null; // Graceful fallback
+};
+
 const LoginPage = () => {
   const { currentUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { showToast } = useToast(); // 👈 NEW
+  const { showToast } = useToast();
 
   // Auth flow state
   const [authStep, setAuthStep] = useState<'user-type' | 'auth-method' | 'email-form'>('user-type');
@@ -33,23 +47,24 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState(''); // 👈 Renamed from `error` to avoid confusion
+  const [formError, setFormError] = useState('');
   const [passwordResetSent, setPasswordResetSent] = useState(false);
 
-  // 🔁 Redirect if already authenticated
+  // 🔁 Redirect if already authenticated — UPDATED FOR SUBSCRIPTION-FIRST FLOW
   useEffect(() => {
     if (currentUser) {
       if (!currentUser.is_onboarded) {
         navigate('/onboarding/profile');
-      } else if (!currentUser.is_active) {
-        navigate('/activation');
+      } else if (currentUser.is_closed) {  // ✅ Only block if account is explicitly closed
+        showToast('Your account has been closed. Please contact support@qezzykenya.company for assistance.', 'error');
       } else {
+        // ✅ All onboarded, non-closed users go to overview — subscription tier handled UI-side
         navigate('/overview');
       }
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, showToast]);
 
-  // 🔥 Unified new user check with account closed handling
+  // 🔥 Unified new user check with account closed handling + subscription context
   const checkNewUserAndRedirect = async (token: string) => {
     try {
       const response = await fetch('/api/users/me/', {
@@ -57,7 +72,12 @@ const LoginPage = () => {
       });
 
       if (response.ok) {
-        // Success: user exists and is active → let GlobalToastHandler show "Logged in"
+        // ✅ Success: fetch and store subscription status for overview page UI
+        const subStatus = await fetchUserSubscriptionStatus(token);
+        if (subStatus) {
+          localStorage.setItem('user_subscription_tier', JSON.stringify(subStatus));
+        }
+        // Let GlobalToastHandler show "Logged in"
         return;
       }
 
@@ -66,9 +86,8 @@ const LoginPage = () => {
         const data = await response.json();
         if (data?.error && data.error.includes('Account closed')) {
           showToast('Your account has been closed. Please contact support for assistance.', 'error');
-          // Clear token and sign out
           localStorage.removeItem('firebase_id_token');
-          await auth.signOut?.(); // Optional: ensure Firebase sign-out
+          await auth.signOut?.();
           return;
         }
       }
@@ -257,15 +276,15 @@ const LoginPage = () => {
             
             <p className="text-lg text-amber-100/90 mb-8 max-w-md">
               {isNewUser === null
-                ? 'Join thousands of Kenyans earning extra income by completing simple online tasks.'
+                ? 'Join thousands of Kenyans earning extra income by completing simple online surveys.'
                 : isNewUser
                 ? 'No experience needed. Earn instantly via M-Pesa.'
-                : 'Your tasks and earnings are waiting. Sign in to continue.'}
+                : 'Your surveys and earnings are waiting. Sign in to continue.'}
             </p>
 
             <div className="space-y-3">
               {[
-                'Earn KES 50–500 per task',
+                'Earn KES 50–500 per survey',
                 'Instant M-Pesa withdrawals',
                 'Work from anywhere, anytime',
               ].map((benefit, i) => (
@@ -350,7 +369,7 @@ const LoginPage = () => {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-gray-800 group-hover:text-amber-700">I have an account</h3>
-                        <p className="text-sm text-gray-600">Sign in to access your tasks and earnings</p>
+                        <p className="text-sm text-gray-600">Sign in to access your surveys and earnings</p>
                       </div>
                       <svg className="w-5 h-5 text-gray-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -477,7 +496,7 @@ const LoginPage = () => {
                   </p>
                 </div>
 
-                {/* 👇 Keep inline form validation errors (not toasts) */}
+                {/* Inline form validation errors */}
                 {formError && (
                   <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
                     {formError}

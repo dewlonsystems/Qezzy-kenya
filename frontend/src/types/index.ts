@@ -1,3 +1,26 @@
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  tier_level: number;
+  price_kes: string;
+  duration_days: number;
+  trial_days: number;
+  description?: string;
+  features?: string[];
+  is_free?: boolean;
+}
+
+export interface Subscription {
+  id: number;
+  plan: SubscriptionPlan;
+  status: 'active' | 'expired' | 'pending' | 'cancelled' | 'suspended';
+  start_date: string;
+  end_date: string;
+  grace_end_date?: string;
+  is_trial: boolean;
+  auto_renew: boolean;
+}
+
 export interface User {
   email: string;
   first_name: string;
@@ -17,6 +40,7 @@ export interface User {
   created_at: string;
   device_info: string;
   last_seen_ip: string | null;
+  subscription?: Subscription;
 }
 
 export interface OnboardingStatus {

@@ -1,9 +1,9 @@
-// src/layouts/DashboardLayout.tsx
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../api/client';
 
-// ====== TYPED SVG ICONS (without BellIcon) ======
+// ====== TYPED SVG ICONS ======
 const OverviewIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -13,7 +13,7 @@ const OverviewIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) =>
   </svg>
 );
 
-const JobsIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+const SurveysIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
     <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z" />
@@ -29,6 +29,14 @@ const WalletIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
     <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
     <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
     <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+  </svg>
+);
+
+const SubscriptionsIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
 
@@ -70,22 +78,64 @@ const MenuIcon = () => (
   </svg>
 );
 
+// Tier badge color mapping
+const getTierBadgeStyles = (tierLevel: number) => {
+  switch (tierLevel) {
+    case 4: return 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white'; // Elite
+    case 3: return 'bg-gradient-to-r from-purple-400 to-purple-600 text-white'; // Premium
+    case 2: return 'bg-gradient-to-r from-blue-400 to-blue-600 text-white'; // Standard
+    case 1: return 'bg-gradient-to-r from-amber-400 to-amber-600 text-white'; // Basic
+    default: return 'bg-gray-100 text-gray-700 border border-gray-200'; // Free
+  }
+};
+
+const getTierDisplayName = (tierName: string | null | undefined) => {
+  if (!tierName) return 'Free';
+  return tierName.charAt(0).toUpperCase() + tierName.slice(1);
+};
+
+interface SubscriptionStatus {
+  has_active_subscription: boolean;
+  current_tier: string | null;
+  tier_level: number;
+  status: 'active' | 'expired' | 'cancelled' | 'pending';
+  end_date: string | null;
+  grace_end_date: string | null;
+  is_trial: boolean;
+}
+
 const DashboardLayout = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(''); // ✅ Real search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // ✅ UPDATED: Navigation with "Surveys" + "Subscriptions"
   const navItems = [
     { name: 'Overview', path: '/overview', icon: OverviewIcon },
-    { name: 'Jobs', path: '/jobs', icon: JobsIcon },
+    { name: 'Surveys', path: '/surveys', icon: SurveysIcon }, // ← Renamed from Jobs
+    { name: 'Subscriptions', path: '/subscriptions', icon: SubscriptionsIcon }, // ← NEW
     { name: 'Wallet', path: '/wallet', icon: WalletIcon },
     { name: 'Profile', path: '/profile', icon: ProfileIcon },
     { name: 'Support', path: '/support', icon: SupportIcon },
   ];
+
+  // Fetch subscription status for topbar badge
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      try {
+        const res = await api.get('/api/subscriptions/status/');
+        setSubscriptionStatus(res.data);
+      } catch (err) {
+        console.warn('Failed to fetch subscription status:', err);
+      }
+    };
+    fetchSubscriptionStatus();
+  }, []);
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -103,11 +153,26 @@ const DashboardLayout = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 🔍 Handle search (you can enhance per page later)
+  // 🔍 Enhanced search: route to relevant page with query param
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Search query:', searchQuery); // ✅ Real action
-    // In real app, you'd pass this to child pages via context or params
+    if (!searchQuery.trim()) return;
+    
+    // Smart routing based on query content
+    const query = searchQuery.toLowerCase();
+    if (query.includes('survey') || query.includes('task')) {
+      navigate(`/surveys?q=${encodeURIComponent(searchQuery)}`);
+    } else if (query.includes('wallet') || query.includes('balance') || query.includes('withdraw')) {
+      navigate(`/wallet?q=${encodeURIComponent(searchQuery)}`);
+    } else if (query.includes('subscription') || query.includes('plan') || query.includes('upgrade')) {
+      navigate(`/subscriptions?q=${encodeURIComponent(searchQuery)}`);
+    } else if (query.includes('profile') || query.includes('account')) {
+      navigate(`/profile?q=${encodeURIComponent(searchQuery)}`);
+    } else {
+      // Default to surveys search
+      navigate(`/surveys?q=${encodeURIComponent(searchQuery)}`);
+    }
+    setSearchQuery('');
   };
 
   const handleLogout = async () => {
@@ -128,6 +193,11 @@ const DashboardLayout = () => {
 
   const goToSupport = () => {
     navigate('/support');
+    setDropdownOpen(false);
+  };
+
+  const goToSubscriptions = () => {
+    navigate('/subscriptions');
     setDropdownOpen(false);
   };
 
@@ -218,7 +288,7 @@ const DashboardLayout = () => {
                 <MenuIcon />
               </button>
 
-              {/* Search (now on mobile too, and functional) */}
+              {/* Search */}
               <form onSubmit={handleSearch} className="flex items-center relative">
                 <div className="absolute left-3 text-amber-400">
                   <SearchIcon className="w-4 h-4" />
@@ -227,24 +297,24 @@ const DashboardLayout = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
+                  placeholder="Search surveys, wallet, plans..."
                   className="w-40 sm:w-64 lg:w-80 pl-10 pr-4 py-2 bg-amber-50/50 border border-amber-200/50 rounded-xl text-amber-900 placeholder:text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-300 transition-all"
                 />
               </form>
             </div>
 
-            {/* Right: Status + User */}
+            {/* Right: Subscription Tier Badge + User */}
             <div className="flex items-center gap-3">
-              {/* ✅ Activation Status — now visible on ALL screens (removed `sm:hidden`) */}
-              {currentUser?.is_active ? (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-medium text-green-700">Active</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full" />
-                  <span className="text-xs font-medium text-amber-700">Inactive</span>
+              {/* ✅ NEW: Subscription Tier Badge (replaces legacy is_active) */}
+              {subscriptionStatus && (
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${getTierBadgeStyles(subscriptionStatus.tier_level)}`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    subscriptionStatus.tier_level >= 3 ? 'bg-white/80' : 'bg-current'
+                  }`} />
+                  <span>{getTierDisplayName(subscriptionStatus.current_tier)}</span>
+                  {subscriptionStatus.is_trial && (
+                    <span className="ml-1 text-[10px] bg-white/20 px-1.5 py-0.5 rounded">Trial</span>
+                  )}
                 </div>
               )}
 
@@ -262,7 +332,7 @@ const DashboardLayout = () => {
 
                 {/* Dropdown */}
                 {dropdownOpen && (
-                  <div className="absolute top-12 right-0 w-48 bg-white border border-amber-200 rounded-xl shadow-lg py-2 z-20">
+                  <div className="absolute top-12 right-0 w-52 bg-white border border-amber-200 rounded-xl shadow-lg py-2 z-20">
                     <button
                       onClick={goToProfile}
                       className="w-full text-left px-4 py-2.5 text-sm text-amber-800 hover:bg-amber-50 flex items-center gap-2 rounded-t-xl"
@@ -271,12 +341,20 @@ const DashboardLayout = () => {
                       Profile
                     </button>
                     <button
+                      onClick={goToSubscriptions}
+                      className="w-full text-left px-4 py-2.5 text-sm text-amber-800 hover:bg-amber-50 flex items-center gap-2"
+                    >
+                      <SubscriptionsIcon className="w-4 h-4" />
+                      Manage Subscription
+                    </button>
+                    <button
                       onClick={goToSupport}
                       className="w-full text-left px-4 py-2.5 text-sm text-amber-800 hover:bg-amber-50 flex items-center gap-2"
                     >
                       <SupportIcon className="w-4 h-4" />
                       Support
                     </button>
+                    <div className="my-1 border-t border-amber-100" />
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 rounded-b-xl"

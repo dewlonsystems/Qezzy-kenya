@@ -1,4 +1,3 @@
-// src/pages/OverviewPage.tsx
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +30,13 @@ const UsersIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const SparklesIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+  </svg>
+);
+
 const TrendUpIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
@@ -52,14 +58,6 @@ const CheckCircleIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>)
   </svg>
 );
 
-const AlertCircleIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12.01" y2="16" />
-  </svg>
-);
-
 const ArrowRightIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <line x1="5" y1="12" x2="19" y2="12" />
@@ -67,13 +65,34 @@ const ArrowRightIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) 
   </svg>
 );
 
-// ✅ NEW: ArrowDownIcon for consistency with WalletPage
 const ArrowDownIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <line x1="12" y1="5" x2="12" y2="19" />
     <polyline points="19 12 12 19 5 12" />
   </svg>
 );
+
+// ====== TYPES ======
+interface SubscriptionStatus {
+  has_active_subscription: boolean;
+  current_tier: string | null;
+  tier_level: number;
+  status: 'active' | 'expired' | 'cancelled' | 'pending';
+  start_date: string | null;
+  end_date: string | null;
+  grace_end_date: string | null;
+  is_trial: boolean;
+  auto_renew: boolean;
+  plan?: {
+    id: number;
+    name: string;
+    tier_level: number;
+    price_kes: string;
+    features: string[];
+  };
+  days_remaining?: number;
+  can_access_tier?: number;
+}
 
 // ====== GREETING HELPER ======
 const getGreeting = () => {
@@ -98,13 +117,11 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-KE', { month: 'short', day: 'numeric' });
 };
 
-// ✅ NEW: Format user's name to "John", not "JOHN" or "john"
 const formatName = (name: string | undefined): string => {
   if (!name) return '';
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 };
 
-// ✅ UPDATED: Full join date with ordinal day
 const formatJoinDate = (dateString: string | undefined): string => {
   if (!dateString) return '—';
   const date = new Date(dateString);
@@ -126,7 +143,7 @@ const formatJoinDate = (dateString: string | undefined): string => {
   return `${day}${getOrdinalSuffix(day)} ${month}, ${year}`;
 };
 
-// ✅ Helper to compute balance on a given date
+// Helper to compute balance on a given date
 const getBalanceOnDate = (
   transactions: any[],
   targetDate: Date
@@ -150,6 +167,7 @@ const OverviewPage = () => {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [mainTransactions, setMainTransactions] = useState<any[]>([]);
   const [referralWalletTransactions, setReferralWalletTransactions] = useState<any[]>([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Balance toggle for privacy
@@ -168,7 +186,6 @@ const OverviewPage = () => {
 
   const totalReferrals = useMemo(() => referralTransactions.length, [referralTransactions]);
 
-  // ✅ ACCURATE ACTIVE REFERRALS COUNT
   const activeReferrals = useMemo(() => {
     return referralTransactions.filter(tx =>
       tx.referred_user_is_active &&
@@ -177,7 +194,6 @@ const OverviewPage = () => {
     ).length;
   }, [referralTransactions]);
 
-  // ✅ FIXED: Sort by real timestamp, consistent styling
   const recentTransactions = useMemo(() => {
     const all: Array<{
       id: string;
@@ -231,7 +247,6 @@ const OverviewPage = () => {
       }));
   }, [mainTransactions, referralWalletTransactions, withdrawals]);
 
-  // ✅ REAL WALLET GROWTH CALCULATIONS
   const mainWalletGrowth = useMemo(() => {
     if (!mainTransactions.length || !wallets) return 0;
     
@@ -268,6 +283,8 @@ const OverviewPage = () => {
       return 'Task';
     };
 
+    // 🔹 FUTURE: Filter by subscription tier using can_access_tier
+    // For now, show all open jobs (backend will handle tier filtering via permissions)
     return jobs
       .filter(job => job.status === 'open')
       .slice(0, 3)
@@ -290,13 +307,15 @@ const OverviewPage = () => {
           withdrawalsRes,
           mainTxRes,
           refTxRes,
+          subRes,
         ] = await Promise.all([
           api.get('/wallets/overview/'),
-          api.get('/jobs/'),
-          api.get('/referrals/transactions/'), // ✅ Now includes user status flags
+          api.get('/jobs/'), // 🔹 Will become /api/surveys/categories/ after migration
+          api.get('/referrals/transactions/'),
           api.get('/withdrawals/history/'),
           api.get('/wallets/transactions/?wallet=main'),
           api.get('/wallets/transactions/?wallet=referral'),
+          api.get('/api/subscriptions/status/'), // ✅ NEW: Subscription status
         ]);
 
         setWallets(walletRes.data);
@@ -305,6 +324,7 @@ const OverviewPage = () => {
         setWithdrawals(withdrawalsRes.data.results || withdrawalsRes.data);
         setMainTransactions(mainTxRes.data.results || mainTxRes.data);
         setReferralWalletTransactions(refTxRes.data.results || refTxRes.data);
+        setSubscriptionStatus(subRes.data); // ✅ NEW
       } catch (error) {
         console.error('Failed to load overview:', error);
       } finally {
@@ -315,8 +335,9 @@ const OverviewPage = () => {
     fetchData();
   }, []);
 
-  const handleActivate = () => {
-    navigate('/activation');
+  // ✅ UPDATED: Navigate to subscriptions for upgrades
+  const handleUpgrade = () => {
+    navigate('/subscriptions');
   };
 
   // ====== LOADING ======
@@ -337,6 +358,54 @@ const OverviewPage = () => {
             Here's what's happening with your account today.
           </p>
         </div>
+
+        {/* ✅ NEW: Subscription Status Banner */}
+        {subscriptionStatus && (
+          <div className={`mb-6 p-4 rounded-xl border ${
+            subscriptionStatus.status === 'expired' 
+              ? 'bg-red-50 border-red-200' 
+              : subscriptionStatus.grace_end_date && new Date(subscriptionStatus.grace_end_date) > new Date()
+              ? 'bg-amber-50 border-amber-200'
+              : 'bg-green-50 border-green-200'
+          }`}>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${
+                  subscriptionStatus.tier_level >= 3 ? 'bg-purple-100 text-purple-600' :
+                  subscriptionStatus.tier_level >= 2 ? 'bg-blue-100 text-blue-600' :
+                  subscriptionStatus.tier_level >= 1 ? 'bg-amber-100 text-amber-600' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  <SparklesIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium capitalize">
+                    {subscriptionStatus.plan?.name || 'Free'} Tier
+                    {subscriptionStatus.is_trial && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Trial</span>}
+                  </p>
+                  {subscriptionStatus.end_date && (
+                    <p className="text-sm text-gray-600">
+                      {subscriptionStatus.status === 'expired' 
+                        ? 'Expired' 
+                        : subscriptionStatus.grace_end_date && new Date(subscriptionStatus.grace_end_date) > new Date()
+                        ? `Grace period ends ${new Date(subscriptionStatus.grace_end_date).toLocaleDateString('en-KE')}`
+                        : `Renews ${new Date(subscriptionStatus.end_date).toLocaleDateString('en-KE')}`
+                      }
+                    </p>
+                  )}
+                </div>
+              </div>
+              {subscriptionStatus.tier_level === 0 && (
+                <button
+                  onClick={handleUpgrade}
+                  className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                >
+                  Upgrade Now <ArrowRightIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -601,25 +670,25 @@ const OverviewPage = () => {
           </div>
         </div>
 
-        {/* Activation Banner */}
-        {!currentUser?.is_active && (
+        {/* ✅ UPDATED: Subscription Upgrade Banner (replaces legacy activation) */}
+        {subscriptionStatus?.has_active_subscription && subscriptionStatus.tier_level === 0 && (
           <div className="mt-8 p-6 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl text-white relative overflow-hidden animate-fade-in-up">
-            <div className="absolute inset-0 bg-[url('image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxjaXJjbGUgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjExKSIgY3g9IjIwIiBjeT0iMjAiIHI9IjIiLz48L2c+PC9zdmc+')] opacity-30"></div>
+            <div className="absolute inset-0 bg-[url('image/svg+xml,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Ccircle%20fill%3D%22rgba(255,255,255,0.11)%22%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%222%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')] opacity-30"></div>
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-white/20 rounded-xl">
-                  <AlertCircleIcon className="w-5 h-5" />
+                  <SparklesIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">Activate Your Account</h3>
-                  <p className="text-amber-100">Pay KES 300 once to unlock unlimited earning potential</p>
+                  <h3 className="text-lg font-bold">Unlock Higher-Paying Surveys</h3>
+                  <p className="text-amber-100">Upgrade to Basic (Ksh 149/mo) to access 3x more earning opportunities</p>
                 </div>
               </div>
               <button
-                onClick={handleActivate}
+                onClick={handleUpgrade}
                 className="px-6 py-3 bg-white text-amber-600 font-bold rounded-xl hover:bg-amber-50 transition-colors shadow-lg"
               >
-                Activate Now
+                View Plans
               </button>
             </div>
           </div>

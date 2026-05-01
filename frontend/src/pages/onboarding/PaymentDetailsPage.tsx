@@ -192,7 +192,7 @@ const PaymentDetailsPage = () => {
       }
 
       await api.post('/onboarding/payment/', payload);
-      navigate('/activation');
+      navigate('/overview');
     } catch (err: any) {
       console.error('Payment details error:', err);
       setGeneralError(err.response?.data?.error || 'Failed to save payment details. Please try again.');
