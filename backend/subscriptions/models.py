@@ -27,6 +27,8 @@ class SubscriptionPlan(models.Model):
         validators=[MinValueValidator(Decimal('0.00'))]
     )
     duration_days = models.PositiveIntegerField(default=30)
+    # trial_days is kept for DB compatibility but is no longer used in business logic.
+    # All paid plans use duration_days. Free tier serves as the trial alternative.
     trial_days = models.PositiveIntegerField(default=0)
     tier_level = models.PositiveSmallIntegerField(unique=True)  # 0=Free, 1=Basic, ..., 4=Elite
     description = models.TextField(blank=True)
@@ -286,9 +288,14 @@ class SubscriptionEmailLog(models.Model):
     Prevents duplicate sends and aids debugging.
     """
     EMAIL_TYPE_CHOICES = [
+        # --- Lifecycle notices ---
+        ('activation_notice', 'Subscription Activated'),       # FIX: was missing, caused signal crash
+        ('cancelled_notice', 'Subscription Cancelled'),
+        # --- Expiry flow ---
         ('expiry_reminder_3day', '3-Day Expiry Reminder'),
         ('grace_period_warning', 'Grace Period Warning'),
         ('expired_notice', 'Expired Notice'),
+        # --- Other ---
         ('trial_ending', 'Trial Ending Soon'),
         ('upgrade_offer', 'Upgrade Opportunity'),
     ]
