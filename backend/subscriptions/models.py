@@ -1,21 +1,16 @@
-import secrets
-import string
-from datetime import timedelta
-from decimal import Decimal
-
+from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator
-from django.db import models, transaction
 from django.utils import timezone
-
-
-GRACE_PERIOD_DAYS = 2  # Single source of truth for grace period length
+from decimal import Decimal
+import secrets
+import string
 
 
 class SubscriptionPlan(models.Model):
     """
-    Defines the 5-tier subscription hierarchy: Free → Basic → Standard → Premium → Elite.
-    Tier level determines access: higher tiers unlock all lower-tier content.
+    Defines the 5-tier subscription hierarchy: Free, Basic, Standard, Premium, Elite.
+    Tier level determines access: higher tiers unlock lower-tier content.
     """
     TIER_CHOICES = [
         ('free', 'Free'),
@@ -68,14 +63,8 @@ class SubscriptionPlan(models.Model):
 
 class UserSubscription(models.Model):
     """
-    Tracks a user's subscription instance.
+    Tracks a user's active subscription instance.
     One user can have many historical subscriptions, but only ONE active at a time.
-
-    State machine:
-        pending  ──(payment confirmed)──► active ──(expired)──► expired
-                 ──(payment failed)────► cancelled
-        active   ──(cancel)────────────► cancelled
-        active   ──(admin revoke)──────► cancelled (immediate)
     """
     STATUS_CHOICES = [
         ('active', 'Active'),
@@ -98,10 +87,7 @@ class UserSubscription(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    grace_end_date = models.DateTimeField(
-        null=True, blank=True,
-        help_text=f"end_date + {GRACE_PERIOD_DAYS} days. Access continues in grace period."
-    )
+    grace_end_date = models.DateTimeField(null=True, blank=True)  # end_date + 2 days
     is_trial = models.BooleanField(default=False)
     auto_renew = models.BooleanField(default=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
@@ -124,7 +110,7 @@ class UserSubscription(models.Model):
             models.Index(fields=['grace_end_date']),
         ]
         constraints = [
-            # Enforce at the DB level: only one active subscription per user at a time.
+            # Ensure only one active subscription per user at a time
             models.UniqueConstraint(
                 fields=['user'],
                 condition=models.Q(status='active'),
@@ -136,63 +122,43 @@ class UserSubscription(models.Model):
         verbose_name_plural = "User Subscriptions"
 
     def __str__(self):
-        return f"{self.user.email} — {self.plan.get_name_display()} ({self.status})"
+        return f"{self.user.email} - {self.plan.get_name_display()} ({self.status})"
 
     def save(self, *args, **kwargs):
-        """
-        Always recalculate grace_end_date from end_date on every save.
-        This ensures grace_end_date stays in sync when end_date is extended.
-        NOTE: The pre_save signal also does this, so this is a belt-and-suspenders
-        safeguard for direct model saves (e.g. shell, management commands).
-        """
-        if self.end_date:
-            self.grace_end_date = self.end_date + timedelta(days=GRACE_PERIOD_DAYS)
+        """Auto-set grace_end_date when end_date is set or updated."""
+        if self.end_date and not self.grace_end_date:
+            from datetime import timedelta
+            self.grace_end_date = self.end_date + timedelta(days=2)
         super().save(*args, **kwargs)
 
-    # ------------------------------------------------------------------
-    # Access-control helpers
-    # ------------------------------------------------------------------
-
-    def is_within_access_window(self) -> bool:
+    def is_active_with_grace(self):
         """
-        True if subscription is active OR within the grace period.
-        Use this for all access-control decisions, NOT just status=='active'.
+        Check if subscription is active OR within 2-day grace period.
+        Used for access control decisions.
         """
         now = timezone.now()
-        if self.status not in ('active', 'cancelled'):
-            return False
-        # cancelled subscriptions still grant access until end_date/grace
-        cutoff = self.grace_end_date or self.end_date
-        return cutoff >= now
+        if self.status == 'active' and self.end_date >= now:
+            return True
+        if self.status == 'active' and self.grace_end_date and self.grace_end_date >= now:
+            return True
+        return False
 
     def can_access_tier(self, target_tier_level: int) -> bool:
         """
-        True if this subscription grants access to content at the given tier level.
-        Elite (4) can access tiers 0–4; Basic (1) can only access 0–1.
+        Check if this subscription grants access to a given tier level.
+        Higher tier_level = more access (Elite=4 can access all below).
         """
-        if not self.is_within_access_window():
+        if not self.is_active_with_grace():
             return False
         return self.plan.tier_level >= target_tier_level
-
-    @property
-    def days_remaining(self) -> int:
-        """Days remaining before end_date. 0 if already past."""
-        now = timezone.now()
-        if not self.end_date or self.end_date <= now:
-            return 0
-        return (self.end_date - now).days
-
-    # ------------------------------------------------------------------
-    # Lifecycle actions
-    # ------------------------------------------------------------------
 
     def cancel(self, immediate: bool = False):
         """
         Cancel subscription.
-        - immediate=False (default): access continues until end_date/grace.
-        - immediate=True: access revoked right now.
-        Always call this instead of setting status directly.
+        If immediate=False (default), access continues until end_date.
+        If immediate=True, access is revoked now.
         """
+        from django.db import transaction
         with transaction.atomic():
             self.status = 'cancelled'
             self.cancelled_at = timezone.now()
@@ -202,42 +168,21 @@ class UserSubscription(models.Model):
                 self.grace_end_date = None
             self.save()
 
-    def activate(self):
-        """
-        Mark subscription as active. Called after payment confirmation.
-        Automatically recalculates grace_end_date via save().
-        """
-        with transaction.atomic():
-            self.status = 'active'
-            self.save()
-
     def extend(self, days: int):
-        """
-        Extend subscription end_date by N days (admin action).
-        Grace period is automatically recalculated by save().
-        """
+        """Extend subscription end_date by given days (admin action)."""
+        from datetime import timedelta
+        from django.db import transaction
         with transaction.atomic():
             self.end_date = self.end_date + timedelta(days=days)
-            # Explicitly clear grace_end_date so save() recalculates it.
-            self.grace_end_date = None
-            self.save()
-
-    def mark_expired(self):
-        """Transition active subscription to expired. Called by Celery expiry task."""
-        with transaction.atomic():
-            self.status = 'expired'
+            if self.grace_end_date:
+                self.grace_end_date = self.end_date + timedelta(days=2)
             self.save()
 
 
 class SubscriptionTransaction(models.Model):
     """
-    Records every M-Pesa STK Push attempt for subscription payments.
-
-    Design notes:
-    - checkout_request_id is unique to prevent duplicate processing.
-    - Temporary IDs (prefixed TEMP-) are assigned at creation and replaced
-      with the real Daraja CheckoutRequestID once the STK push succeeds.
-    - Idempotent: the callback handler checks status before processing.
+    Records every M-Pesa transaction for subscription payments.
+    Idempotent design: checkout_request_id is unique to prevent duplicates.
     """
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -263,11 +208,9 @@ class SubscriptionTransaction(models.Model):
     )
     currency = models.CharField(max_length=3, default='KES')
     mpesa_receipt_number = models.CharField(max_length=50, blank=True)
-    # Unique: prevents duplicate processing of the same STK Push.
-    # TEMP-<uuid> is used until the real Daraja ID is confirmed.
     checkout_request_id = models.CharField(max_length=100, unique=True)
     merchant_request_id = models.CharField(max_length=100, blank=True)
-    phone_number = models.CharField(max_length=15)  # Normalized 254XXXXXXXXX format
+    phone_number = models.CharField(max_length=15)  # Normalized 254... format
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     transaction_date = models.DateTimeField(null=True, blank=True)
     error_message = models.TextField(blank=True, help_text="Daraja error description if failed")
@@ -286,25 +229,19 @@ class SubscriptionTransaction(models.Model):
         verbose_name_plural = "Subscription Transactions"
 
     def __str__(self):
-        return f"{self.user.email} — {self.amount} {self.currency} ({self.status})"
+        return f"{self.user.email} - {self.amount} {self.currency} ({self.status})"
 
-    @staticmethod
-    def generate_temp_checkout_id() -> str:
-        """
-        Generate a guaranteed-unique temporary checkout ID used before
-        the STK Push is initiated. Replaced with the real Daraja ID on success.
-        """
-        import uuid
-        return f"TEMP-{uuid.uuid4().hex}"
-
-    def is_temp_checkout_id(self) -> bool:
-        return self.checkout_request_id.startswith('TEMP-')
+    def is_duplicate(self, checkout_request_id: str) -> bool:
+        """Check if a transaction with this checkout_request_id already exists."""
+        return SubscriptionTransaction.objects.filter(
+            checkout_request_id=checkout_request_id
+        ).exclude(id=self.id).exists()
 
 
 class SubscriptionReceipt(models.Model):
     """
     Auto-generated receipt for completed subscription transactions.
-    PDF stored in file storage; download count tracked for audit.
+    PDF is stored securely; download count is tracked.
     """
     transaction = models.OneToOneField(
         SubscriptionTransaction,
@@ -314,7 +251,7 @@ class SubscriptionReceipt(models.Model):
     receipt_number = models.CharField(max_length=50, unique=True, editable=False)
     pdf_file = models.FileField(
         upload_to='receipts/subscriptions/%Y/%m/',
-        help_text="PDF receipt file"
+        help_text="Password-protected PDF receipt"
     )
     generated_at = models.DateTimeField(auto_now_add=True)
     downloaded_count = models.PositiveIntegerField(default=0)
@@ -327,17 +264,16 @@ class SubscriptionReceipt(models.Model):
         return f"Receipt {self.receipt_number} for {self.transaction.user.email}"
 
     def save(self, *args, **kwargs):
+        """Auto-generate receipt number if not set."""
         if not self.receipt_number:
             prefix = 'RCP'
             timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
-            random_suffix = ''.join(
-                secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6)
-            )
+            random_suffix = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
             self.receipt_number = f"{prefix}-{timestamp}-{random_suffix}"
         super().save(*args, **kwargs)
 
     def increment_download(self):
-        """Thread-safe increment using DB-level F() expression."""
+        """Thread-safe increment of download count."""
         from django.db.models import F
         SubscriptionReceipt.objects.filter(id=self.id).update(
             downloaded_count=F('downloaded_count') + 1
@@ -346,25 +282,14 @@ class SubscriptionReceipt(models.Model):
 
 class SubscriptionEmailLog(models.Model):
     """
-    Tracks all subscription-related emails sent to users.
-    Used to prevent duplicate sends and provide an audit trail.
-
-    Deduplication is enforced at the application layer (see already_sent()),
-    not at the DB constraint layer, because DB constraints cannot use dynamic
-    datetime expressions.
+    Tracks all subscription-related emails (expiry reminders, grace warnings).
+    Prevents duplicate sends and aids debugging.
     """
-    # Keep this exhaustive — every email_type used anywhere must be listed here.
     EMAIL_TYPE_CHOICES = [
-        # Transactional
-        ('activation_notice', 'Subscription Activated'),
-        ('cancelled_notice', 'Subscription Cancelled'),
-        ('expired_notice', 'Subscription Expired'),
-        # Reminders (sent by Celery)
-        ('expiry_reminder_7day', '7-Day Expiry Reminder'),
         ('expiry_reminder_3day', '3-Day Expiry Reminder'),
         ('grace_period_warning', 'Grace Period Warning'),
+        ('expired_notice', 'Expired Notice'),
         ('trial_ending', 'Trial Ending Soon'),
-        # Upsell
         ('upgrade_offer', 'Upgrade Opportunity'),
     ]
 
@@ -384,27 +309,16 @@ class SubscriptionEmailLog(models.Model):
             models.Index(fields=['subscription', 'email_type']),
             models.Index(fields=['sent_at']),
         ]
-        # No DB-level dedup constraint here because constraints can't use
-        # dynamic timezone.now() values. Use already_sent() instead.
+        constraints = [
+            # Prevent duplicate sends of same email type within 1 hour
+            models.UniqueConstraint(
+                fields=['subscription', 'email_type'],
+                condition=models.Q(sent_at__gte=timezone.now() - timezone.timedelta(hours=1)),
+                name='no_duplicate_email_within_hour'
+            )
+        ]
         verbose_name = "Subscription Email Log"
         verbose_name_plural = "Subscription Email Logs"
 
     def __str__(self):
-        return f"{self.get_email_type_display()} → {self.subscription.user.email}"
-
-    @classmethod
-    def already_sent(cls, subscription, email_type: str, within_hours: int = 24) -> bool:
-        """
-        Check if this email type was already sent for this subscription
-        within the given window. Use before every send to prevent duplicates.
-
-        Usage:
-            if not SubscriptionEmailLog.already_sent(sub, 'expiry_reminder_3day'):
-                send_subscription_email(...)
-        """
-        cutoff = timezone.now() - timedelta(hours=within_hours)
-        return cls.objects.filter(
-            subscription=subscription,
-            email_type=email_type,
-            sent_at__gte=cutoff,
-        ).exists()
+        return f"{self.get_email_type_display()} for {self.subscription.user.email}"
