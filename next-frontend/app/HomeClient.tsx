@@ -284,7 +284,7 @@ export default function HomeClient() {
 
             <div className="hidden md:flex items-center gap-3">
               <a
-                href="/login"
+                href="https://accounts.qezzykenya.company/login"
                 className="text-sm font-medium px-5 py-2 rounded-full"
                 style={{
                   color: scrolled ? '#2B6C5A' : 'rgba(247,243,238,0.9)',
@@ -304,7 +304,7 @@ export default function HomeClient() {
                 Log In
               </a>
               <a
-                href="/signup"
+                href="https://accounts.qezzykenya.company/login"
                 className="text-sm font-semibold px-5 py-2.5 rounded-full"
                 style={{ backgroundColor: '#C27B3A', color: '#F7F3EE', boxShadow: '0 2px 12px rgba(194,123,58,0.35)' }}
                 {...hoverOpacity()}
@@ -335,8 +335,8 @@ export default function HomeClient() {
               </a>
             ))}
             <div className="flex flex-col gap-2 pt-4">
-              <a href="/login" className="text-sm font-medium text-center py-3 rounded-full border-1.5 border-secondary text-secondary">Log In</a>
-              <a href="/signup" className="text-sm font-semibold text-center py-3 rounded-full bg-primary text-bg" style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }}>Start Earning Free</a>
+              <a href="https://accounts.qezzykenya.company/login" className="text-sm font-medium text-center py-3 rounded-full border-1.5 border-secondary text-secondary">Log In</a>
+              <a href="https://accounts.qezzykenya.company/login" className="text-sm font-semibold text-center py-3 rounded-full bg-primary text-bg" style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }}>Start Earning Free</a>
             </div>
           </div>
         )}
@@ -469,7 +469,7 @@ export default function HomeClient() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 mb-10">
             <a
-              href="/signup"
+              href="https://accounts.qezzykenya.company/login"
               className="inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold"
               style={{
                 backgroundColor: '#C27B3A',
@@ -682,7 +682,7 @@ export default function HomeClient() {
           </div>
 
           <div className="mt-16 text-center">
-            <a href="/signup" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-semibold bg-primary text-bg hover-opacity" style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }} {...hoverOpacity()}>
+            <a href="https://accounts.qezzykenya.company/login" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-semibold bg-primary text-bg hover-opacity" style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }} {...hoverOpacity()}>
               Get Started — It's Free <ArrowRight size={15} />
             </a>
           </div>
@@ -794,7 +794,7 @@ export default function HomeClient() {
               </div>
 
               <div className="mt-8">
-                <a href="/signup" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold bg-secondary text-bg hover-opacity" style={{ backgroundColor: '#2B6C5A', color: '#F7F3EE' }} {...hoverOpacity()}>
+                <a href="https://accounts.qezzykenya.company/login" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold bg-secondary text-bg hover-opacity" style={{ backgroundColor: '#2B6C5A', color: '#F7F3EE' }} {...hoverOpacity()}>
                   Start Earning Today <ArrowRight size={15} />
                 </a>
               </div>
@@ -834,7 +834,7 @@ export default function HomeClient() {
                 People Across Kenya Are Already Earning
               </h2>
             </div>
-            <a href="/signup" className="text-sm font-medium flex items-center gap-1.5 flex-shrink-0 text-primary">
+            <a href="https://accounts.qezzykenya.company/login" className="text-sm font-medium flex items-center gap-1.5 flex-shrink-0 text-primary">
               Join them today <ArrowRight size={14} />
             </a>
           </div>
@@ -934,10 +934,10 @@ export default function HomeClient() {
             Creating an account takes two minutes. Your first survey invitation can arrive the same day. And your first M-Pesa withdrawal can land before tonight is over. There is no better moment to start than right now.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/signup" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-semibold bg-primary text-bg hover-opacity" style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }} {...hoverOpacity()}>
+            <a href="https://accounts.qezzykenya.company/login" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-semibold bg-primary text-bg hover-opacity" style={{ backgroundColor: '#C27B3A', color: '#F7F3EE' }} {...hoverOpacity()}>
               Create Your Free Account <ArrowRight size={15} />
             </a>
-            <a href="/how-it-works" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-medium text-bg border-1.5 border-[rgba(247,243,238,0.35)] hover:border-[rgba(247,243,238,0.7)]">
+            <a href="#how-it-works" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-medium text-bg border-1.5 border-[rgba(247,243,238,0.35)] hover:border-[rgba(247,243,238,0.7)]">
               Learn More First
             </a>
           </div>
