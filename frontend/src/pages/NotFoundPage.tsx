@@ -51,7 +51,7 @@ const NotFound = () => {
 
       {/* Header */}
       <header className="relative z-10 p-6">
-        <a href="/" className="inline-flex items-center gap-3">
+        <a href="/login" className="inline-flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-200">
             <span className="text-white font-bold text-lg">Q</span>
           </div>
@@ -101,7 +101,7 @@ const NotFound = () => {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up animation-delay-600">
             <a 
-              href="/" 
+              href="/login" 
               className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-amber-200 hover:-translate-y-1 transition-all duration-300"
             >
               <HomeIcon />
