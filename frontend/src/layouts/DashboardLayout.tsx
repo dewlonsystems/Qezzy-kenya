@@ -128,7 +128,7 @@ const DashboardLayout = () => {
   useEffect(() => {
     const fetchSubscriptionStatus = async () => {
       try {
-        const res = await api.get('/api/subscriptions/status/');
+        const res = await api.get('/subscriptions/status/');
         setSubscriptionStatus(res.data);
       } catch (err) {
         console.warn('Failed to fetch subscription status:', err);

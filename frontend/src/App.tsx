@@ -22,6 +22,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import CookiesPage from './pages/CookiesPage';
 import NotFound from './pages/NotFoundPage';
 import AboutPage from './pages/AboutPage';
+import SubscriptionsPage from './pages/SubscriptionsPage';
 // 🆕 Email Preferences (token-based, no login required)
 import EmailPreferencesPage from './pages/EmailPreferencesPage';
 // ✅ UPDATED: SurveysProtectedRoute (renamed from JobsProtectedRoute)
@@ -59,8 +60,6 @@ function AppContent() {
         <Route path="/about" element={<AboutPage />} />
         {/* 🆕 Email Preferences (token-based, no login required) */}
         <Route path="/email-preferences/:token" element={<EmailPreferencesPage />} />
-        {/* ✅ NEW: Subscription plan selection (public, but requires auth to subscribe) */}
-        <Route path="/subscriptions" element={<BillingPage />} />
 
         {/* ===== ONBOARDING ROUTES ===== */}
         <Route element={<OnboardingProtectedRoute />}>
@@ -77,8 +76,7 @@ function AppContent() {
             <Route path="/withdraw" element={<WithdrawalPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/support" element={<SupportPage />} />
-            {/* ✅ NEW: Subscription management in dashboard */}
-            <Route path="/subscriptions" element={<BillingPage />} />
+            <Route path="/subscriptions" element={<SubscriptionsPage />} />
           </Route>
         </Route>
 

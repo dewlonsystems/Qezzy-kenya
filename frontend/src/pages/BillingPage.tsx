@@ -104,7 +104,7 @@ const BillingPage = () => {
   // Fetch subscription status for polling
   const fetchSubscriptionStatus = async () => {
     try {
-      const res = await api.get('/api/subscriptions/status/');
+      const res = await api.get('/subscriptions/status/');
       return res.data;
     } catch (err) {
       console.error('Failed to fetch subscription status:', err);
@@ -134,10 +134,10 @@ const BillingPage = () => {
         
         // Fetch receipt URL if available
         try {
-          const historyRes = await api.get('/api/subscriptions/history/');
+          const historyRes = await api.get('/subscriptions/history/');
           const recentTx = historyRes.data.transactions?.[0];
           if (recentTx?.receipt_available) {
-            setReceiptUrl(`/api/subscriptions/receipt/${recentTx.id}/`);
+            setReceiptUrl(`/subscriptions/receipt/${recentTx.id}/`);
           }
         } catch (e) {
           console.warn('Failed to fetch receipt:', e);
@@ -166,7 +166,7 @@ const BillingPage = () => {
     };
 
     poll();
-    pollIntervalRef.current = setInterval(poll, 3000) as unknown as number;
+    pollIntervalRef.current = setInterval(poll, 1000) as unknown as number;
   };
 
   // Initiate subscription payment via STK Push
@@ -184,7 +184,7 @@ const BillingPage = () => {
     setError('');
 
     try {
-      const res = await api.post('/api/subscriptions/subscribe/', {
+      const res = await api.post('/subscriptions/subscribe/', {
         plan_id: planData.planId,
         phone_number: phoneNumber,
         use_trial: planData.isTrial || false,

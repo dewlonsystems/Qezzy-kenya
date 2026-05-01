@@ -74,7 +74,7 @@ const SurveysProtectedRoute = ({ requiredTierLevel = 0 }: SurveysProtectedRouteP
         // 2. Fetch user + subscription status in parallel
         const [userRes, subRes] = await Promise.all([
           api.get('/users/me/'),
-          api.get('/api/subscriptions/status/'),
+          api.get('/subscriptions/status/'),
         ]);
 
         const user = userRes.data;

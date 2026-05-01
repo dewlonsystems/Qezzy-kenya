@@ -20,7 +20,7 @@ const InterFontLink = () => (
 // ✅ NEW: Helper to fetch subscription status for overview page UI
 export const fetchUserSubscriptionStatus = async (token: string) => {
   try {
-    const response = await fetch('/api/subscriptions/status/', {
+    const response = await fetch('/subscriptions/status/', {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (response.ok) {

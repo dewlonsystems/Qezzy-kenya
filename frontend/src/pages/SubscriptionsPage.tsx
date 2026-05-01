@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../api/client';
 
-// Lucide-style SVG Icons
+// Icons
 const CheckCircleIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -36,6 +36,13 @@ const ClockIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const XIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 
@@ -80,13 +87,12 @@ const SubscriptionsPage = () => {
   const [error, setError] = useState('');
   const [activatingFreePlan, setActivatingFreePlan] = useState<number | null>(null);
 
-  // Fetch plans and current subscription status
   useEffect(() => {
     const loadData = async () => {
       try {
         const [plansRes, statusRes] = await Promise.all([
-          api.get('/api/subscriptions/plans/'),
-          api.get('/api/subscriptions/status/'),
+          api.get('/subscriptions/plans/'),
+          api.get('/subscriptions/status/'),
         ]);
         setPlans(plansRes.data.plans || []);
         setSubscriptionStatus(statusRes.data);
@@ -105,14 +111,13 @@ const SubscriptionsPage = () => {
   const handleActivateFreePlan = async (planId: number) => {
     setActivatingFreePlan(planId);
     try {
-      await api.post('/api/subscriptions/subscribe/', {
+      await api.post('/subscriptions/subscribe/', {
         plan_id: planId,
         phone_number: currentUser?.phone_number || '',
         use_trial: false,
       });
       showToast('Free plan activated successfully!', 'success');
-      // Refresh status and redirect
-      const statusRes = await api.get('/api/subscriptions/status/');
+      const statusRes = await api.get('/subscriptions/status/');
       setSubscriptionStatus(statusRes.data);
       navigate('/overview');
     } catch (err: any) {
@@ -123,7 +128,7 @@ const SubscriptionsPage = () => {
     }
   };
 
-  // Handle paid plan subscription → navigate to billing
+  // Handle paid plan → navigate to billing/payment
   const handleSubscribe = (plan: Plan) => {
     if (!currentUser?.phone_number) {
       showToast('Please complete your profile with a phone number first', 'error');
@@ -142,15 +147,10 @@ const SubscriptionsPage = () => {
     });
   };
 
-  // Helper: Is this plan the user's current active subscription?
+  // Is this the user's current active plan?
   const isCurrentPlan = (plan: Plan) =>
     subscriptionStatus?.has_active_subscription &&
     subscriptionStatus.plan?.id === plan.id;
-
-  // Helper: Is this plan above user's current tier? (for UI hint)
-  const isAboveCurrentTier = (plan: Plan) =>
-    subscriptionStatus?.has_active_subscription &&
-    plan.tier_level > (subscriptionStatus.tier_level || 0);
 
   // Loading skeleton
   if (loading) {
@@ -163,7 +163,7 @@ const SubscriptionsPage = () => {
             <div className="h-4 bg-gray-200 rounded w-96 mx-auto animate-pulse" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm animate-pulse">
                 <div className="h-6 bg-gray-200 rounded w-32 mb-4" />
                 <div className="h-10 bg-gray-200 rounded w-24 mb-4" />
@@ -230,9 +230,7 @@ const SubscriptionsPage = () => {
                 {subscriptionStatus.end_date && (
                   <p className="text-sm text-green-700">
                     Renews on {new Date(subscriptionStatus.end_date).toLocaleDateString('en-KE', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
+                      day: 'numeric', month: 'short', year: 'numeric',
                     })}
                   </p>
                 )}
@@ -251,7 +249,6 @@ const SubscriptionsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {plans.map((plan) => {
             const current = isCurrentPlan(plan);
-            const aboveTier = isAboveCurrentTier(plan);
             const hasTrial = plan.trial_days > 0;
 
             return (
@@ -260,8 +257,6 @@ const SubscriptionsPage = () => {
                 className={`relative bg-white rounded-2xl border-2 p-6 shadow-sm transition-all ${
                   current
                     ? 'border-amber-500 ring-2 ring-amber-200'
-                    : aboveTier
-                    ? 'border-gray-200 opacity-75 hover:opacity-100'
                     : 'border-gray-200 hover:border-amber-300 hover:shadow-md'
                 }`}
               >
@@ -344,27 +339,19 @@ const SubscriptionsPage = () => {
                         Activating...
                       </>
                     ) : (
-                      <>
-                        Activate Free
-                        <ArrowRightIcon className="w-5 h-5" />
-                      </>
+                      <>Activate Free <ArrowRightIcon className="w-5 h-5" /></>
                     )}
                   </button>
-                ) : aboveTier ? (
-                  <button
-                    disabled
-                    className="w-full py-3 px-4 bg-gray-100 text-gray-400 font-semibold rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
-                    title={`Upgrade to ${subscriptionStatus?.plan?.name || 'a lower tier'} first`}
-                  >
-                    <ShieldIcon className="w-5 h-5" />
-                    Upgrade to Unlock
-                  </button>
                 ) : (
+                  // ✅ All paid plans are always clickable — no tier gating on the UI
                   <button
                     onClick={() => handleSubscribe(plan)}
                     className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
                   >
-                    Subscribe
+                    {subscriptionStatus && subscriptionStatus.tier_level > 0
+                      ? 'Change Plan'
+                      : 'Upgrade to Unlock'
+                    }
                     <ArrowRightIcon className="w-5 h-5" />
                   </button>
                 )}
@@ -379,7 +366,7 @@ const SubscriptionsPage = () => {
           })}
         </div>
 
-        {/* FAQ / Help Section */}
+        {/* FAQ Section */}
         <div className="mt-16 text-center">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Questions?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
@@ -401,13 +388,5 @@ const SubscriptionsPage = () => {
     </div>
   );
 };
-
-// Fallback XIcon for error state
-const XIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
 
 export default SubscriptionsPage;

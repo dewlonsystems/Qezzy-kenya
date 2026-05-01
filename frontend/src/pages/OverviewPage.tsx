@@ -2,8 +2,39 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import type { WalletOverview, Job } from '../types';
+import type { WalletOverview } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
+
+// ====== TYPES ======
+interface Survey {
+  id: number;
+  title: string;
+  status: 'open' | 'closed' | 'completed';
+  category: string | { name: string } | null;
+  deadline_hours?: number;
+  created_at: string;
+}
+
+interface SubscriptionStatus {
+  has_active_subscription: boolean;
+  current_tier: string | null;
+  tier_level: number;
+  status: 'active' | 'expired' | 'cancelled' | 'pending';
+  start_date: string | null;
+  end_date: string | null;
+  grace_end_date: string | null;
+  is_trial: boolean;
+  auto_renew: boolean;
+  plan?: {
+    id: number;
+    name: string;
+    tier_level: number;
+    price_kes: string;
+    features: string[];
+  };
+  days_remaining?: number;
+  can_access_tier?: number;
+}
 
 // ====== TYPED SVG ICONS ======
 const WalletIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
@@ -72,28 +103,6 @@ const ArrowDownIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) =
   </svg>
 );
 
-// ====== TYPES ======
-interface SubscriptionStatus {
-  has_active_subscription: boolean;
-  current_tier: string | null;
-  tier_level: number;
-  status: 'active' | 'expired' | 'cancelled' | 'pending';
-  start_date: string | null;
-  end_date: string | null;
-  grace_end_date: string | null;
-  is_trial: boolean;
-  auto_renew: boolean;
-  plan?: {
-    id: number;
-    name: string;
-    tier_level: number;
-    price_kes: string;
-    features: string[];
-  };
-  days_remaining?: number;
-  can_access_tier?: number;
-}
-
 // ====== GREETING HELPER ======
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -125,7 +134,7 @@ const formatName = (name: string | undefined): string => {
 const formatJoinDate = (dateString: string | undefined): string => {
   if (!dateString) return '—';
   const date = new Date(dateString);
-  
+
   const day = date.getDate();
   const month = date.toLocaleDateString('en-US', { month: 'long' });
   const year = date.getFullYear();
@@ -144,10 +153,7 @@ const formatJoinDate = (dateString: string | undefined): string => {
 };
 
 // Helper to compute balance on a given date
-const getBalanceOnDate = (
-  transactions: any[],
-  targetDate: Date
-): number => {
+const getBalanceOnDate = (transactions: any[], targetDate: Date): number => {
   const completedTx = transactions
     .filter((tx: any) => tx.status === 'completed')
     .filter((tx: any) => new Date(tx.created_at) <= targetDate)
@@ -162,7 +168,7 @@ const OverviewPage = () => {
   const navigate = useNavigate();
 
   const [wallets, setWallets] = useState<WalletOverview | null>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
   const [referralTransactions, setReferralTransactions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [mainTransactions, setMainTransactions] = useState<any[]>([]);
@@ -175,14 +181,14 @@ const OverviewPage = () => {
   const [showReferralBalance, setShowReferralBalance] = useState(false);
 
   // Derived data
-  const jobsCompletedThisMonth = useMemo(() => {
+  const surveysCompletedThisMonth = useMemo(() => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    return jobs.filter(job =>
-      job.status === 'completed' &&
-      new Date(job.created_at) >= startOfMonth
+    return surveys.filter(survey =>
+      survey.status === 'completed' &&
+      new Date(survey.created_at) >= startOfMonth
     ).length;
-  }, [jobs]);
+  }, [surveys]);
 
   const totalReferrals = useMemo(() => referralTransactions.length, [referralTransactions]);
 
@@ -207,7 +213,7 @@ const OverviewPage = () => {
     mainTransactions.slice(0, 3).forEach(tx => {
       all.push({
         id: `main-${tx.id}`,
-        type: 'Task Earning',
+        type: 'Survey Earning',
         amount: tx.amount,
         isCredit: true,
         created_at: tx.created_at,
@@ -233,7 +239,7 @@ const OverviewPage = () => {
         amount: wd.amount,
         isCredit: false,
         created_at: wd.created_at,
-        status: wd.status
+        status: wd.status,
       });
     });
 
@@ -249,7 +255,7 @@ const OverviewPage = () => {
 
   const mainWalletGrowth = useMemo(() => {
     if (!mainTransactions.length || !wallets) return 0;
-    
+
     const now = new Date();
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -263,7 +269,7 @@ const OverviewPage = () => {
 
   const referralWalletGrowth = useMemo(() => {
     if (!referralWalletTransactions.length || !wallets) return 0;
-    
+
     const now = new Date();
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -275,26 +281,24 @@ const OverviewPage = () => {
     return Math.round(((currentBalance - pastBalance) / pastBalance) * 100);
   }, [referralWalletTransactions, wallets]);
 
-  const availableTasks = useMemo(() => {
-    const getCategoryName = (category: any): string => {
-      if (!category) return 'Task';
+  const availableSurveys = useMemo(() => {
+    const getCategoryName = (category: Survey['category']): string => {
+      if (!category) return 'Survey';
       if (typeof category === 'string') return category;
       if (typeof category === 'object' && category.name) return category.name;
-      return 'Task';
+      return 'Survey';
     };
 
-    // 🔹 FUTURE: Filter by subscription tier using can_access_tier
-    // For now, show all open jobs (backend will handle tier filtering via permissions)
-    return jobs
-      .filter(job => job.status === 'open')
+    return surveys
+      .filter(survey => survey.status === 'open')
       .slice(0, 3)
-      .map(job => ({
-        id: job.id,
-        title: job.title,
-        category: getCategoryName(job.category),
-        deadline: job.deadline_hours ? `${job.deadline_hours} hours` : '3 days',
+      .map(survey => ({
+        id: survey.id,
+        title: survey.title,
+        category: getCategoryName(survey.category),
+        deadline: survey.deadline_hours ? `${survey.deadline_hours} hours` : '3 days',
       }));
-  }, [jobs]);
+  }, [surveys]);
 
   // Fetch data
   useEffect(() => {
@@ -302,7 +306,7 @@ const OverviewPage = () => {
       try {
         const [
           walletRes,
-          jobsRes,
+          surveysRes,
           referralRes,
           withdrawalsRes,
           mainTxRes,
@@ -310,21 +314,21 @@ const OverviewPage = () => {
           subRes,
         ] = await Promise.all([
           api.get('/wallets/overview/'),
-          api.get('/jobs/'), // 🔹 Will become /api/surveys/categories/ after migration
+          api.get('/surveys/categories/'),
           api.get('/referrals/transactions/'),
           api.get('/withdrawals/history/'),
           api.get('/wallets/transactions/?wallet=main'),
           api.get('/wallets/transactions/?wallet=referral'),
-          api.get('/api/subscriptions/status/'), // ✅ NEW: Subscription status
+          api.get('/subscriptions/status/'),
         ]);
 
         setWallets(walletRes.data);
-        setJobs(jobsRes.data);
+        setSurveys(Array.isArray(surveysRes.data) ? surveysRes.data : (surveysRes.data.results || []));
         setReferralTransactions(referralRes.data.results || referralRes.data);
         setWithdrawals(withdrawalsRes.data.results || withdrawalsRes.data);
         setMainTransactions(mainTxRes.data.results || mainTxRes.data);
         setReferralWalletTransactions(refTxRes.data.results || refTxRes.data);
-        setSubscriptionStatus(subRes.data); // ✅ NEW
+        setSubscriptionStatus(subRes.data);
       } catch (error) {
         console.error('Failed to load overview:', error);
       } finally {
@@ -335,7 +339,6 @@ const OverviewPage = () => {
     fetchData();
   }, []);
 
-  // ✅ UPDATED: Navigate to subscriptions for upgrades
   const handleUpgrade = () => {
     navigate('/subscriptions');
   };
@@ -359,11 +362,11 @@ const OverviewPage = () => {
           </p>
         </div>
 
-        {/* ✅ NEW: Subscription Status Banner */}
+        {/* Subscription Status Banner */}
         {subscriptionStatus && (
           <div className={`mb-6 p-4 rounded-xl border ${
-            subscriptionStatus.status === 'expired' 
-              ? 'bg-red-50 border-red-200' 
+            subscriptionStatus.status === 'expired'
+              ? 'bg-red-50 border-red-200'
               : subscriptionStatus.grace_end_date && new Date(subscriptionStatus.grace_end_date) > new Date()
               ? 'bg-amber-50 border-amber-200'
               : 'bg-green-50 border-green-200'
@@ -381,12 +384,14 @@ const OverviewPage = () => {
                 <div>
                   <p className="font-medium capitalize">
                     {subscriptionStatus.plan?.name || 'Free'} Tier
-                    {subscriptionStatus.is_trial && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Trial</span>}
+                    {subscriptionStatus.is_trial && (
+                      <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Trial</span>
+                    )}
                   </p>
                   {subscriptionStatus.end_date && (
                     <p className="text-sm text-gray-600">
-                      {subscriptionStatus.status === 'expired' 
-                        ? 'Expired' 
+                      {subscriptionStatus.status === 'expired'
+                        ? 'Expired'
                         : subscriptionStatus.grace_end_date && new Date(subscriptionStatus.grace_end_date) > new Date()
                         ? `Grace period ends ${new Date(subscriptionStatus.grace_end_date).toLocaleDateString('en-KE')}`
                         : `Renews ${new Date(subscriptionStatus.end_date).toLocaleDateString('en-KE')}`
@@ -415,10 +420,7 @@ const OverviewPage = () => {
             className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer relative"
           >
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMainBalance(!showMainBalance);
-              }}
+              onClick={(e) => { e.stopPropagation(); setShowMainBalance(!showMainBalance); }}
               className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
               aria-label={showMainBalance ? 'Hide balance' : 'Show balance'}
             >
@@ -430,9 +432,7 @@ const OverviewPage = () => {
               </div>
               {mainWalletGrowth !== 0 && (
                 <span className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg ${
-                  mainWalletGrowth > 0 
-                    ? 'text-emerald-600 bg-emerald-50' 
-                    : 'text-red-600 bg-red-50'
+                  mainWalletGrowth > 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
                 }`}>
                   <TrendUpIcon className={`w-5 h-5 ${mainWalletGrowth < 0 ? 'rotate-180' : ''}`} />
                   {mainWalletGrowth > 0 ? '+' : ''}{mainWalletGrowth}%
@@ -452,10 +452,7 @@ const OverviewPage = () => {
             className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer relative"
           >
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowReferralBalance(!showReferralBalance);
-              }}
+              onClick={(e) => { e.stopPropagation(); setShowReferralBalance(!showReferralBalance); }}
               className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
               aria-label={showReferralBalance ? 'Hide balance' : 'Show balance'}
             >
@@ -467,9 +464,7 @@ const OverviewPage = () => {
               </div>
               {referralWalletGrowth !== 0 && (
                 <span className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg ${
-                  referralWalletGrowth > 0 
-                    ? 'text-emerald-600 bg-emerald-50' 
-                    : 'text-red-600 bg-red-50'
+                  referralWalletGrowth > 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
                 }`}>
                   <TrendUpIcon className={`w-5 h-5 ${referralWalletGrowth < 0 ? 'rotate-180' : ''}`} />
                   {referralWalletGrowth > 0 ? '+' : ''}{referralWalletGrowth}%
@@ -483,9 +478,9 @@ const OverviewPage = () => {
             <p className="text-xs text-landing-muted mt-1">From referral bonuses</p>
           </div>
 
-          {/* Tasks Completed */}
+          {/* Surveys Completed */}
           <div
-            onClick={() => navigate('/jobs?status=completed')}
+            onClick={() => navigate('/surveys?status=completed')}
             className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer"
           >
             <div className="flex items-start justify-between mb-4">
@@ -494,12 +489,12 @@ const OverviewPage = () => {
               </div>
               <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
                 <TrendUpIcon className="w-5 h-5" />
-                {jobsCompletedThisMonth} this month
+                {surveysCompletedThisMonth} this month
               </span>
             </div>
-            <h3 className="text-2xl font-bold text-landing-heading mb-1">{jobsCompletedThisMonth}</h3>
-            <p className="text-sm text-landing-muted">Tasks Completed</p>
-            <p className="text-xs text-landing-muted mt-1">Total completed tasks</p>
+            <h3 className="text-2xl font-bold text-landing-heading mb-1">{surveysCompletedThisMonth}</h3>
+            <p className="text-sm text-landing-muted">Surveys Completed</p>
+            <p className="text-xs text-landing-muted mt-1">Total completed surveys</p>
           </div>
 
           {/* Referrals */}
@@ -527,8 +522,8 @@ const OverviewPage = () => {
           <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden animate-fade-in-up animation-delay-400">
             <div className="p-6 border-b border-amber-100 flex items-center justify-between">
               <h2 className="text-lg font-bold text-landing-heading">Recent Transactions</h2>
-              <button 
-                onClick={() => navigate('/wallet')} 
+              <button
+                onClick={() => navigate('/wallet')}
                 className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer"
               >
                 View All <ArrowRightIcon className="w-4 h-4" />
@@ -546,13 +541,12 @@ const OverviewPage = () => {
                     bgColor = 'bg-orange-100';
                     textColor = 'text-orange-600';
                   } else {
-                    // Task Earning
+                    // Survey Earning
                     icon = <ArrowDownIcon className="w-5 h-5" />;
                     bgColor = 'bg-emerald-100';
                     textColor = 'text-emerald-600';
                   }
 
-                  // Override icon based on status
                   if (tx.status === 'completed') {
                     icon = <CheckCircleIcon className="w-5 h-5" />;
                   } else if (tx.status === 'pending') {
@@ -576,11 +570,9 @@ const OverviewPage = () => {
                             {tx.formattedAmount}
                           </p>
                           <span className={`text-xs px-2 py-1 rounded-full ${
-                            tx.status === 'completed'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : tx.status === 'failed'
-                              ? 'bg-red-100 text-red-700'
-                              : 'bg-amber-100 text-amber-700'
+                            tx.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                            tx.status === 'failed' ? 'bg-red-100 text-red-700' :
+                            'bg-amber-100 text-amber-700'
                           }`}>
                             {tx.status}
                           </span>
@@ -597,36 +589,40 @@ const OverviewPage = () => {
             </div>
           </div>
 
-          {/* Available Tasks */}
+          {/* Available Surveys */}
           <div className="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden animate-fade-in-up animation-delay-600">
             <div className="p-6 border-b border-amber-100 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-landing-heading">Available Tasks</h2>
-              <button 
-                onClick={() => navigate('/jobs')} 
+              <h2 className="text-lg font-bold text-landing-heading">Available Surveys</h2>
+              <button
+                onClick={() => navigate('/surveys')}
                 className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer"
               >
                 View All <ArrowRightIcon className="w-4 h-4" />
               </button>
             </div>
             <div className="p-4 space-y-4">
-              {availableTasks.length > 0 ? (
-                availableTasks.map((task) => (
-                  <div key={task.id} onClick={() => navigate('/jobs')} className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-md transition-all duration-300 cursor-pointer">
+              {availableSurveys.length > 0 ? (
+                availableSurveys.map((survey) => (
+                  <div
+                    key={survey.id}
+                    onClick={() => navigate('/surveys')}
+                    className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-md transition-all duration-300 cursor-pointer"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium px-2 py-1 bg-amber-200 text-amber-800 rounded-lg">
-                        {task.category}
+                        {survey.category}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-landing-heading mb-2">{task.title}</h3>
+                    <h3 className="font-semibold text-landing-heading mb-2">{survey.title}</h3>
                     <div className="flex items-center gap-2 text-sm text-landing-muted">
                       <ClockIcon className="w-5 h-5" />
-                      <span>Expires in {task.deadline}</span>
+                      <span>Expires in {survey.deadline}</span>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8 text-landing-muted">
-                  No tasks available right now.
+                  No surveys available right now.
                 </div>
               )}
             </div>
@@ -636,18 +632,18 @@ const OverviewPage = () => {
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in-up animation-delay-800">
           <div
-            onClick={() => navigate('/jobs')} 
+            onClick={() => navigate('/surveys')}
             className="group p-6 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl text-white hover:shadow-xl hover:shadow-amber-200 transition-all duration-300 cursor-pointer"
           >
             <TaskIcon className="w-6 h-6" />
-            <h3 className="text-lg font-bold mt-4 mb-2">Find Tasks</h3>
-            <p className="text-amber-100 text-sm">Browse available tasks and start earning</p>
+            <h3 className="text-lg font-bold mt-4 mb-2">Find Surveys</h3>
+            <p className="text-amber-100 text-sm">Browse available surveys and start earning</p>
             <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
               Explore <ArrowRightIcon className="w-4 h-4" />
             </div>
           </div>
-          <div 
-            onClick={() => navigate('/wallet')} 
+          <div
+            onClick={() => navigate('/wallet')}
             className="group p-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl text-white hover:shadow-xl hover:shadow-emerald-200 transition-all duration-300 cursor-pointer"
           >
             <WalletIcon className="w-6 h-6" />
@@ -657,8 +653,8 @@ const OverviewPage = () => {
               Withdraw <ArrowRightIcon className="w-4 h-4" />
             </div>
           </div>
-          <div 
-            onClick={() => navigate('/profile')} 
+          <div
+            onClick={() => navigate('/profile')}
             className="group p-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl text-white hover:shadow-xl hover:shadow-blue-200 transition-all duration-300 cursor-pointer"
           >
             <UsersIcon className="w-6 h-6" />
@@ -670,10 +666,9 @@ const OverviewPage = () => {
           </div>
         </div>
 
-        {/* ✅ UPDATED: Subscription Upgrade Banner (replaces legacy activation) */}
+        {/* Subscription Upgrade Banner */}
         {subscriptionStatus?.has_active_subscription && subscriptionStatus.tier_level === 0 && (
           <div className="mt-8 p-6 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl text-white relative overflow-hidden animate-fade-in-up">
-            <div className="absolute inset-0 bg-[url('image/svg+xml,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Ccircle%20fill%3D%22rgba(255,255,255,0.11)%22%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%222%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')] opacity-30"></div>
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-white/20 rounded-xl">
@@ -694,7 +689,7 @@ const OverviewPage = () => {
           </div>
         )}
 
-        {/* ✅ FULL JOIN DATE */}
+        {/* Member Since */}
         <div className="mt-12 text-center text-landing-muted text-sm">
           Member since {formatJoinDate(currentUser?.created_at)}
         </div>

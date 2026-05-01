@@ -791,9 +791,9 @@ const SurveysPage = () => {
     const fetchData = async () => {
       try {
         const [categoriesRes, submissionsRes, subStatusRes] = await Promise.all([
-          api.get('/api/surveys/categories/'),
-          api.get('/api/surveys/submissions/'), // Endpoint to fetch user's submissions
-          api.get('/api/subscriptions/status/'),
+          api.get('/surveys/categories/'),
+          api.get('/surveys/submissions/'), // Endpoint to fetch user's submissions
+          api.get('/subscriptions/status/'),
         ]);
         
         setCategories(categoriesRes.data.categories || categoriesRes.data);
@@ -828,7 +828,7 @@ const SurveysPage = () => {
   // Open survey detail (fetch questions)
   const openSurveyDetail = async (category: SurveyCategory) => {
     try {
-      const res = await api.get(`/api/surveys/categories/${category.id}/`);
+      const res = await api.get(`/surveys/categories/${category.id}/`);
       const detailedCategory: SurveyCategory = {
         ...category,
         questions: res.data.questions,
@@ -844,12 +844,12 @@ const SurveysPage = () => {
   const handleSubmit = async (answers: Record<string, any>) => {
     if (!selectedCategory) return;
     try {
-      await api.post('/api/surveys/submit/', {
+      await api.post('/surveys/submit/', {
         category_id: selectedCategory.id,
         answers,
       });
       // Refresh submissions list
-      const res = await api.get('/api/surveys/submissions/');
+      const res = await api.get('/surveys/submissions/');
       setSubmissions(res.data.submissions || res.data);
       setSelectedCategory(null);
     } catch (err) {
