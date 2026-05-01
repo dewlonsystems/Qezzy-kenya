@@ -13,6 +13,7 @@ urlpatterns = [
     path('history/', views.SubscriptionHistoryView.as_view(), name='subscription-history'),
     path('upgrade/', views.UpgradeSubscriptionView.as_view(), name='upgrade-subscription'),
     path('cancel/', views.CancelSubscriptionView.as_view(), name='cancel-subscription'),
+    path('payment-status/<str:transaction_id>/', views.PaymentStatusView.as_view(), name='payment-status'),
     path('receipt/<int:transaction_id>/', views.ReceiptDownloadView.as_view(), name='receipt-download'),
 
     # Authenticated Staff: Admin manual actions

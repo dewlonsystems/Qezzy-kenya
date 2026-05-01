@@ -154,19 +154,43 @@ class InitiateSubscriptionPaymentView(APIView):
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # --- Idempotency: reuse an existing pending transaction only if the STK
-        #     Push was already sent (checkout_request_id is a real Daraja ID).
-        #     If it's still the temp placeholder the previous attempt never got a
-        #     response — let the user trigger a fresh push instead of blocking them
-        #     with an empty checkout_request_id they can't do anything with. ---
+        # --- Stale pending cleanup ---
+        # Daraja STK Push expires after 5 minutes. Any pending transaction older
+        # than that will never get a callback - auto-cancel it so it doesn't
+        # permanently block the user from trying again.
+        stk_window = timezone.now() - timedelta(minutes=5)
+        stale_qs = SubscriptionTransaction.objects.filter(
+            user=user,
+            status='pending',
+            subscription__plan=plan,
+            created_at__lt=stk_window,
+        ).select_related('subscription')
+
+        for stale_tx in stale_qs:
+            stale_tx.status = 'failed'
+            stale_tx.error_message = 'STK Push window expired (5 min). Auto-cancelled.'
+            stale_tx.save(update_fields=['status', 'error_message', 'updated_at'])
+            if stale_tx.subscription.status == 'pending':
+                stale_tx.subscription.status = 'cancelled'
+                stale_tx.subscription.cancelled_at = timezone.now()
+                stale_tx.subscription.save(update_fields=['status', 'cancelled_at', 'updated_at'])
+            logger.info(f'Auto-expired stale pending transaction {stale_tx.id} for user {user.email}')
+
+        # --- Idempotency ---
+        # Only reuse a pending transaction if the STK Push was sent within the
+        # active 5-minute Daraja window AND the real CheckoutRequestID is stored
+        # (not the PINIT- placeholder which means the push never fired).
         existing_pending = SubscriptionTransaction.objects.filter(
             user=user,
             status='pending',
             subscription__plan=plan,
             subscription__status='pending',
-        ).exclude(checkout_request_id__startswith='PINIT-').order_by('-created_at').first()
+            created_at__gte=stk_window,
+        ).exclude(
+            checkout_request_id__startswith='PINIT-'
+        ).order_by('-created_at').first()
 
-        if existing_pending and existing_pending.checkout_request_id:
+        if existing_pending:
             return Response({
                 'message': 'A payment for this plan is already in progress. '
                            'Complete the STK Push prompt on your phone.',
@@ -862,3 +886,118 @@ class AdminSubscriptionActionView(APIView):
 
             else:
                 return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
+            
+
+
+class PaymentStatusView(APIView):
+    """
+    GET /api/subscriptions/payment-status/<transaction_id>/
+
+    Frontend polls this after initiating an STK Push to find out whether
+    the payment completed, is still pending, or failed.
+
+    Returns a self-contained response the frontend can act on directly:
+      - status: 'pending' | 'completed' | 'failed'
+      - If completed: full subscription details so the frontend doesn't
+        need a second call to /status/.
+      - If pending + STK expired (> 5 min): auto-marks as failed so the
+        user gets a clear error instead of polling forever.
+
+    Poll interval recommendation: every 3 seconds, stop after 'completed'
+    or 'failed', timeout client-side at ~3 minutes.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, transaction_id):
+        user = request.user
+
+        try:
+            tx = SubscriptionTransaction.objects.select_related(
+                'subscription', 'subscription__plan'
+            ).get(id=transaction_id, user=user)
+        except SubscriptionTransaction.DoesNotExist:
+            raise NotFound('Payment transaction not found.')
+
+        logger.info(
+            f"PaymentStatusView: Found transaction {transaction_id} for user {user.email}. "
+            f"Status: {tx.status}, Created: {tx.created_at}"
+        )
+
+        # ------------------------------------------------------------------
+        # Auto-expire: if still pending and the 5-minute STK window has
+        # passed, Daraja will never call back. Mark it failed now so the
+        # frontend stops polling and shows the user a clear error.
+        # ------------------------------------------------------------------
+        if tx.status == 'pending':
+            stk_expired = (timezone.now() - tx.created_at).total_seconds() > 300  # 5 min
+            if stk_expired:
+                with transaction.atomic():
+                    tx.status = 'failed'
+                    tx.error_message = 'STK Push timed out. No payment received within 5 minutes.'
+                    tx.save(update_fields=['status', 'error_message', 'updated_at'])
+
+                    sub = tx.subscription
+                    if sub.status == 'pending':
+                        sub.status = 'cancelled'
+                        sub.cancelled_at = timezone.now()
+                        sub.save(update_fields=['status', 'cancelled_at', 'updated_at'])
+
+                logger.info(
+                    f"PaymentStatusView auto-expired transaction {tx.id} "
+                    f"for user {user.email} (STK window exceeded)"
+                )
+
+                return Response({
+                    'transaction_id': tx.id,
+                    'status': 'failed',
+                    'reason': 'Payment was not completed within 5 minutes. Please try again.',
+                    'subscription': None,
+                }, status=status.HTTP_200_OK)
+
+        # ------------------------------------------------------------------
+        # Pending — still within the 5-minute window
+        # ------------------------------------------------------------------
+        if tx.status == 'pending':
+            elapsed = int((timezone.now() - tx.created_at).total_seconds())
+            return Response({
+                'transaction_id': tx.id,
+                'status': 'pending',
+                'elapsed_seconds': elapsed,
+                'expires_in_seconds': max(300 - elapsed, 0),
+                'message': 'Waiting for M-Pesa payment confirmation.',
+                'subscription': None,
+            }, status=status.HTTP_200_OK)
+
+        # ------------------------------------------------------------------
+        # Completed — payment confirmed by Daraja callback
+        # ------------------------------------------------------------------
+        if tx.status == 'completed':
+            sub = tx.subscription
+            now = timezone.now()
+            return Response({
+                'transaction_id': tx.id,
+                'status': 'completed',
+                'mpesa_receipt': tx.mpesa_receipt_number or None,
+                'amount': str(tx.amount),
+                'transaction_date': tx.transaction_date.isoformat() if tx.transaction_date else None,
+                'subscription': {
+                    'id': sub.id,
+                    'plan_name': sub.plan.get_name_display(),
+                    'tier_level': sub.plan.tier_level,
+                    'status': sub.status,
+                    'start_date': sub.start_date.isoformat(),
+                    'end_date': sub.end_date.isoformat(),
+                    'days_remaining': max((sub.end_date - now).days, 0),
+                    'features': sub.plan.features,
+                },
+            }, status=status.HTTP_200_OK)
+
+        # ------------------------------------------------------------------
+        # Failed — either Daraja reported failure or we auto-expired it
+        # ------------------------------------------------------------------
+        return Response({
+            'transaction_id': tx.id,
+            'status': 'failed',
+            'reason': tx.error_message or 'Payment failed. Please try again.',
+            'subscription': None,
+        }, status=status.HTTP_200_OK)
