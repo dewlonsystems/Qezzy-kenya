@@ -191,11 +191,11 @@ const PaymentDetailsPage = () => {
         };
       }
 
-      await api.post('/onboarding/payment/', payload);
+      await api.post('/onboarding/payout-details/', payload);
       navigate('/overview');
     } catch (err: any) {
-      console.error('Payment details error:', err);
-      setGeneralError(err.response?.data?.error || 'Failed to save payment details. Please try again.');
+      console.error('Payout details error:', err);
+      setGeneralError(err.response?.data?.error || 'Failed to save payout details. Please try again.');
     } finally {
       setLoading(false);
     }
