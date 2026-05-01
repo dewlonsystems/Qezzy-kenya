@@ -166,23 +166,15 @@ const platformLinks = [
   ['FAQ', '#faq'],
 ];
 
-const companyLinks = [
-  ['About Qezzy', '/about'],
-  ['For Researchers', '/researchers'],
-  ['Blog', '/blog'],
-  ['Careers', '/careers'],
-  ['Press', '/press'],
-];
-
 const legalLinks = [
-  ['Privacy Policy', '/privacy'],
-  ['Terms of Service', '/terms'],
-  ['Cookie Policy', '/cookies'],
+  ['Privacy Policy', 'https://accounts.qezzykenya.company/privacy'],
+  ['Terms of Service', 'https://accounts.qezzykenya.company/terms'],
+  ['Cookie Policy', 'https://accounts.qezzykenya.company/cookies'],
 ];
 
 const contactItems = [
-  { Icon: Mail, text: 'hello@qezzy.co.ke' },
-  { Icon: Phone, text: '+254 700 000 000' },
+  { Icon: Mail, text: 'info@qezzykenya.company' },
+  { Icon: Phone, text: '+254728722746' },
   { Icon: MapPin, text: 'Nairobi, Kenya' },
 ];
 
@@ -975,20 +967,6 @@ export default function HomeClient() {
               <h3 className="text-xs font-semibold uppercase tracking-widest mb-5 text-bg">Platform</h3>
               <ul className="flex flex-col gap-3">
                 {platformLinks.map(([label, href]) => (
-                  <li key={label}>
-                    <a href={href} className="text-sm text-text-dim hover-primary" style={{ color: '#7a6a5e' }} {...hoverLink('#C27B3A', '#7a6a5e')}>
-                      {label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Company */}
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest mb-5 text-bg">Company</h3>
-              <ul className="flex flex-col gap-3">
-                {companyLinks.map(([label, href]) => (
                   <li key={label}>
                     <a href={href} className="text-sm text-text-dim hover-primary" style={{ color: '#7a6a5e' }} {...hoverLink('#C27B3A', '#7a6a5e')}>
                       {label}
