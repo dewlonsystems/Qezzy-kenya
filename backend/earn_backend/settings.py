@@ -127,6 +127,7 @@ else:
     CORS_ALLOWED_ORIGINS = [
         "https://accounts.qezzykenya.company",
         "https://qezzy-surveys.vercel.app",
+        "http://localhost:5173"
     ]
     CORS_ALLOW_CREDENTIALS = True
 
