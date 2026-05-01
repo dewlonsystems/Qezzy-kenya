@@ -125,7 +125,7 @@ if DEBUG:
     CORS_ALLOW_CREDENTIALS = True
 else:
     CORS_ALLOWED_ORIGINS = [
-        "https://qezzykenya.company",
+        "https://accounts.qezzykenya.company",
         "https://qezzy-surveys.vercel.app",
     ]
     CORS_ALLOW_CREDENTIALS = True
@@ -153,7 +153,7 @@ def setup_search_path(sender, connection, **kwargs):
 PAYMENTS_ENABLED = True
 UA_PARSER_CACHE = True
 
-FRONTEND_URL = "https://qezzykenya.company"
+FRONTEND_URL = "https://accounts.qezzykenya.company"
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST')
 EMAIL_PORT = config('EMAIL_PORT', cast=int)
