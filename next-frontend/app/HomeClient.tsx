@@ -389,27 +389,6 @@ export default function HomeClient() {
             paddingTop: '6rem',
           }}
         >
-          {/* Live badge */}
-          <div
-            className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full text-xs font-semibold tracking-[0.14em] uppercase"
-            style={{
-              background: 'rgba(43,108,90,0.22)',
-              border: '1px solid rgba(93,188,159,0.45)',
-              color: '#7dd4bd',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-            }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0"
-              style={{
-                backgroundColor: '#5dbc9f',
-                boxShadow: '0 0 0 3px rgba(93,188,159,0.25)',
-              }}
-            />
-            Live &amp; Paying in Kenya
-          </div>
-
           {/* Headline */}
           <h1
             className="font-heading font-bold mb-5"
