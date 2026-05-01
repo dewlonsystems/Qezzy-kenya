@@ -153,7 +153,10 @@ const BillingPage = () => {
       if (result.status === 'completed') {
         stopPolling();
 
-        // Attempt to fetch the receipt URL from history
+        // ✅ Set success BEFORE refreshUser so the useEffect guard is in place
+        setState('success');
+        setSuccessCountdown(5);
+
         try {
           const historyRes = await api.get('/subscriptions/history/');
           const recentTx = historyRes.data.transactions?.[0];
@@ -164,11 +167,8 @@ const BillingPage = () => {
           console.warn('Failed to fetch receipt info:', e);
         }
 
+        // Now safe — useEffect sees state === 'success' and won't auto-navigate
         await refreshUser?.();
-
-        // FIX 4: explicitly set state to 'success' so it's always correct
-        setState('success');
-        setTimeout(() => setSuccessCountdown(10), 300);
         return;
       }
 

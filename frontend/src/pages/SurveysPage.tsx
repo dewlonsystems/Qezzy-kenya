@@ -759,7 +759,7 @@ const SurveysPage = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'active' | 'pending_review' | 'approved' | 'rejected'>('active');
+  const [activeTab, setActiveTab] = useState<'not_started' | 'active' | 'pending_review' | 'approved' | 'rejected'>('not_started');
   const [selectedCategory, setSelectedCategory] = useState<SurveyCategory | null>(null);
   const [categories, setCategories] = useState<SurveyCategory[]>([]);
   const [submissions, setSubmissions] = useState<UserSurveySubmission[]>([]);
