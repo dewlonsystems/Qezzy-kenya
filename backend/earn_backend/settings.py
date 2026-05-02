@@ -12,7 +12,7 @@ if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = [
-        '13.60.202.95',
+        '13.60.215.72',
         'qezzy-kenya.duckdns.org',
         'api.qezzykenya.company',
         'localhost',
