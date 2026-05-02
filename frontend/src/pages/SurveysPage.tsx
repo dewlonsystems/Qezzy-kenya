@@ -275,7 +275,7 @@ const SurveyCard = ({
 }) => {
   const cfg = getCategoryCfg(item.name);
   const CategoryIcon = cfg.icon;
-  const displayStatus: TabStatus = (item.status === 'not_started' || item.status === 'active') ? 'available' : 'rejected';
+  const displayStatus: TabStatus = item.status === 'not_started' ? 'available' : 'rejected';
   const statusCfg = statusDisplayConfig[displayStatus];
   const StatusIcon = statusCfg.icon;
   const isAccessible = userTierLevel >= item.tier_level;
@@ -764,7 +764,7 @@ const StatsBar = ({
 }) => {
   // Available = not_started or active categories the user's tier can access
   const availableCount = categories.filter(
-    c => (c.status === 'not_started' || c.status === 'active') && userTierLevel >= c.tier_level
+    c => c.status === 'not_started' && userTierLevel >= c.tier_level
   ).length;
   const pendingCount  = submissions.filter(s => s.status === 'pending_review').length;
   const approvedCount = submissions.filter(s => s.status === 'approved').length;
@@ -898,7 +898,7 @@ const SurveysPage = () => {
   // These are always recalculated from the full datasets so every tab badge
   // shows the correct number immediately on page load, not just the active tab.
   const tabCounts: Record<TabStatus, number> = {
-    available:      categories.filter(c => c.status === 'not_started' || c.status === 'active').length,
+    available:      categories.filter(c => c.status === 'not_started').length,
     rejected:       categories.filter(c => c.status === 'rejected').length,
     pending_review: submissions.filter(s => s.status === 'pending_review').length,
     approved:       submissions.filter(s => s.status === 'approved').length,
@@ -909,7 +909,7 @@ const SurveysPage = () => {
   const showSubmissionGrid = activeTab === 'pending_review' || activeTab === 'approved';
 
   const categoryTabItems  = categories.filter(c =>
-    activeTab === 'available' ? (c.status === 'not_started' || c.status === 'active') : c.status === 'rejected'
+    activeTab === 'available' ? c.status === 'not_started' : c.status === 'rejected'
   );
   const submissionTabItems = submissions.filter(s => s.status === activeTab);
 

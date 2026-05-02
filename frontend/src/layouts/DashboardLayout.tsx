@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../api/client';
 
 // ====== TYPED SVG ICONS ======
 const OverviewIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
@@ -79,21 +78,6 @@ const MenuIcon = () => (
 );
 
 // Tier badge color mapping
-const getTierBadgeStyles = (tierLevel: number) => {
-  switch (tierLevel) {
-    case 4: return 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white'; // Elite
-    case 3: return 'bg-gradient-to-r from-purple-400 to-purple-600 text-white'; // Premium
-    case 2: return 'bg-gradient-to-r from-blue-400 to-blue-600 text-white'; // Standard
-    case 1: return 'bg-gradient-to-r from-amber-400 to-amber-600 text-white'; // Basic
-    default: return 'bg-gray-100 text-gray-700 border border-gray-200'; // Free
-  }
-};
-
-const getTierDisplayName = (tierName: string | null | undefined) => {
-  if (!tierName) return 'Free';
-  return tierName.charAt(0).toUpperCase() + tierName.slice(1);
-};
-
 const DashboardLayout = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
