@@ -103,6 +103,20 @@ const ArrowDownIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) =
   </svg>
 );
 
+const EyeIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const LockIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
 // ====== GREETING HELPER ======
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -134,22 +148,9 @@ const formatName = (name: string | undefined): string => {
 const formatJoinDate = (dateString: string | undefined): string => {
   if (!dateString) return '—';
   const date = new Date(dateString);
-
-  const day = date.getDate();
   const month = date.toLocaleDateString('en-US', { month: 'long' });
   const year = date.getFullYear();
-
-  const getOrdinalSuffix = (num: number): string => {
-    if (num > 3 && num < 21) return 'th';
-    switch (num % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  };
-
-  return `${day}${getOrdinalSuffix(day)} ${month}, ${year}`;
+  return `${month} ${year}`;
 };
 
 // Helper to compute balance on a given date
@@ -245,7 +246,7 @@ const OverviewPage = () => {
 
     return all
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 5)
+      .slice(0, 6)
       .map(tx => ({
         ...tx,
         formattedAmount: `${tx.isCredit ? '+' : '-'}${formatKES(tx.amount)}`,
@@ -255,11 +256,9 @@ const OverviewPage = () => {
 
   const mainWalletGrowth = useMemo(() => {
     if (!mainTransactions.length || !wallets) return 0;
-
     const now = new Date();
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
-
     const currentBalance = wallets.main_wallet_balance || 0;
     const pastBalance = getBalanceOnDate(mainTransactions, weekAgo);
 
@@ -269,11 +268,9 @@ const OverviewPage = () => {
 
   const referralWalletGrowth = useMemo(() => {
     if (!referralWalletTransactions.length || !wallets) return 0;
-
     const now = new Date();
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
-
     const currentBalance = wallets.referral_wallet_balance || 0;
     const pastBalance = getBalanceOnDate(referralWalletTransactions, weekAgo);
 
@@ -291,12 +288,12 @@ const OverviewPage = () => {
 
     return surveys
       .filter(survey => survey.status === 'open')
-      .slice(0, 3)
+      .slice(0, 4)
       .map(survey => ({
         id: survey.id,
         title: survey.title,
         category: getCategoryName(survey.category),
-        deadline: survey.deadline_hours ? `${survey.deadline_hours} hours` : '3 days',
+        deadline: survey.deadline_hours ? `${survey.deadline_hours}h` : '3d',
       }));
   }, [surveys]);
 
@@ -343,356 +340,284 @@ const OverviewPage = () => {
     navigate('/subscriptions');
   };
 
-  // ====== LOADING ======
+  // ====== RENDER ======
   if (loading) {
     return <LoadingSpinner message="Loading your dashboard..." />;
   }
 
-  // ====== RENDER ======
   return (
-    <div className="min-h-screen bg-landing-cream font-inter p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Welcome Section */}
-        <div className="mb-8 animate-fade-in-up">
-          <h1 className="text-3xl font-bold text-landing-heading mb-2">
-            {getGreeting()}, {formatName(currentUser?.first_name) || 'User'}!
-          </h1>
-          <p className="text-landing-muted">
-            Here's what's happening with your account today.
-          </p>
-        </div>
-
-        {/* Subscription Status Banner */}
-        {subscriptionStatus && (
-          <div className={`mb-6 p-4 rounded-xl border ${
-            subscriptionStatus.status === 'expired'
-              ? 'bg-red-50 border-red-200'
-              : subscriptionStatus.grace_end_date && new Date(subscriptionStatus.grace_end_date) > new Date()
-              ? 'bg-amber-50 border-amber-200'
-              : 'bg-green-50 border-green-200'
-          }`}>
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${
-                  subscriptionStatus.tier_level >= 3 ? 'bg-purple-100 text-purple-600' :
-                  subscriptionStatus.tier_level >= 2 ? 'bg-blue-100 text-blue-600' :
-                  subscriptionStatus.tier_level >= 1 ? 'bg-amber-100 text-amber-600' :
-                  'bg-gray-100 text-gray-600'
-                }`}>
-                  <SparklesIcon className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-medium capitalize">
+    <div className="min-h-screen bg-landing-cream font-inter py-8 px-4 sm:px-8">
+      <div className="max-w-7xl mx-auto space-y-12">
+        
+        {/* HEADER SECTION */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-in-up">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">
+              <span>Member since {formatJoinDate(currentUser?.created_at)}</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-landing-heading tracking-tight">
+              {getGreeting()}, {formatName(currentUser?.first_name) || 'User'}.
+            </h1>
+          </div>
+          
+          {/* Subscription Status (Sleek Flat Badge) */}
+          {subscriptionStatus && (
+            <div className={`px-5 py-3 rounded-2xl border flex items-center gap-3 ${
+              subscriptionStatus.status === 'expired' ? 'bg-red-50 border-red-200 text-red-800'
+              : subscriptionStatus.grace_end_date && new Date(subscriptionStatus.grace_end_date) > new Date() ? 'bg-amber-50 border-amber-200 text-amber-800'
+              : 'bg-white border-gray-200 text-gray-800'
+            }`}>
+               <SparklesIcon className={`w-5 h-5 ${subscriptionStatus.tier_level > 0 ? 'text-amber-500' : 'text-gray-400'}`} />
+               <div>
+                  <p className="text-sm font-bold capitalize">
                     {subscriptionStatus.plan?.name || 'Free'} Tier
-                    {subscriptionStatus.is_trial && (
-                      <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Trial</span>
-                    )}
+                    {subscriptionStatus.is_trial && <span className="ml-2 text-[10px] uppercase tracking-wider bg-green-500 text-white px-2 py-0.5 rounded-full">Trial</span>}
                   </p>
-                  {subscriptionStatus.end_date && (
-                    <p className="text-sm text-gray-600">
-                      {subscriptionStatus.status === 'expired'
-                        ? 'Expired'
-                        : subscriptionStatus.grace_end_date && new Date(subscriptionStatus.grace_end_date) > new Date()
-                        ? `Grace period ends ${new Date(subscriptionStatus.grace_end_date).toLocaleDateString('en-KE')}`
-                        : `Renews ${new Date(subscriptionStatus.end_date).toLocaleDateString('en-KE')}`
-                      }
-                    </p>
+                  {subscriptionStatus.tier_level === 0 && (
+                    <button onClick={handleUpgrade} className="text-xs font-semibold text-amber-600 hover:text-amber-800 transition-colors">
+                      Upgrade to unlock more
+                    </button>
                   )}
+               </div>
+            </div>
+          )}
+        </div>
+
+        {/* UNIFIED FINANCIAL HUB (The Vault) */}
+        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden animate-fade-in-up">
+          <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
+            
+            {/* Main Wallet */}
+            <div className="p-8 md:p-12 relative group">
+              <button 
+                onClick={() => setShowMainBalance(!showMainBalance)}
+                className="absolute top-8 right-8 p-2 rounded-full bg-gray-50 hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+              >
+                {showMainBalance ? <EyeIcon className="w-5 h-5" /> : <LockIcon className="w-5 h-5" />}
+              </button>
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2.5 bg-amber-500 text-white rounded-xl">
+                  <WalletIcon className="w-5 h-5" />
                 </div>
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Main Wallet</h2>
               </div>
-              {subscriptionStatus.tier_level === 0 && (
-                <button
-                  onClick={handleUpgrade}
-                  className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1"
+              
+              <div className="mb-4">
+                <h3 className="text-5xl md:text-6xl font-black text-landing-heading tracking-tighter">
+                  {showMainBalance ? formatKES(wallets?.main_wallet_balance || 0) : '••••••'}
+                </h3>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                {mainWalletGrowth !== 0 && (
+                  <span className={`inline-flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-full ${
+                    mainWalletGrowth > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                  }`}>
+                    <TrendUpIcon className={`w-4 h-4 ${mainWalletGrowth < 0 ? 'rotate-180' : ''}`} />
+                    {mainWalletGrowth > 0 ? '+' : ''}{mainWalletGrowth}% vs last week
+                  </span>
+                )}
+                <button 
+                  onClick={() => navigate('/wallet')} 
+                  className="text-sm font-semibold text-amber-600 hover:text-amber-800 flex items-center gap-1 transition-colors"
                 >
-                  Upgrade Now <ArrowRightIcon className="w-4 h-4" />
+                  Manage Wallet <ArrowRightIcon className="w-4 h-4" />
                 </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-          {/* Main Wallet Card */}
-          <div
-            onClick={() => navigate('/wallet')}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer relative"
-          >
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowMainBalance(!showMainBalance); }}
-              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-              aria-label={showMainBalance ? 'Hide balance' : 'Show balance'}
-            >
-              <span className="text-lg">{showMainBalance ? '👁️' : '🔒'}</span>
-            </button>
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white">
-                <WalletIcon className="w-6 h-6" />
               </div>
-              {mainWalletGrowth !== 0 && (
-                <span className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg ${
-                  mainWalletGrowth > 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
-                }`}>
-                  <TrendUpIcon className={`w-5 h-5 ${mainWalletGrowth < 0 ? 'rotate-180' : ''}`} />
-                  {mainWalletGrowth > 0 ? '+' : ''}{mainWalletGrowth}%
-                </span>
-              )}
             </div>
-            <h3 className="text-2xl font-bold text-landing-heading mb-1">
-              {showMainBalance ? formatKES(wallets?.main_wallet_balance || 0) : '••••••'}
-            </h3>
-            <p className="text-sm text-landing-muted">Main Wallet</p>
-            <p className="text-xs text-landing-muted mt-1">Available for withdrawal</p>
-          </div>
 
-          {/* Referral Wallet Card */}
-          <div
-            onClick={() => navigate('/wallet?tab=referral')}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer relative"
-          >
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowReferralBalance(!showReferralBalance); }}
-              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-              aria-label={showReferralBalance ? 'Hide balance' : 'Show balance'}
-            >
-              <span className="text-lg">{showReferralBalance ? '👁️' : '🔒'}</span>
-            </button>
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 text-white">
-                <UsersIcon className="w-6 h-6" />
+            {/* Referral Wallet */}
+            <div className="p-8 md:p-12 relative group bg-gray-50/50">
+              <button 
+                onClick={() => setShowReferralBalance(!showReferralBalance)}
+                className="absolute top-8 right-8 p-2 rounded-full bg-white hover:bg-gray-100 border border-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+              >
+                {showReferralBalance ? <EyeIcon className="w-5 h-5" /> : <LockIcon className="w-5 h-5" />}
+              </button>
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2.5 bg-blue-500 text-white rounded-xl">
+                  <UsersIcon className="w-5 h-5" />
+                </div>
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Referral Earnings</h2>
               </div>
-              {referralWalletGrowth !== 0 && (
-                <span className={`flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg ${
-                  referralWalletGrowth > 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
-                }`}>
-                  <TrendUpIcon className={`w-5 h-5 ${referralWalletGrowth < 0 ? 'rotate-180' : ''}`} />
-                  {referralWalletGrowth > 0 ? '+' : ''}{referralWalletGrowth}%
-                </span>
-              )}
+              
+              <div className="mb-4">
+                <h3 className="text-5xl md:text-6xl font-black text-landing-heading tracking-tighter">
+                  {showReferralBalance ? formatKES(wallets?.referral_wallet_balance || 0) : '••••••'}
+                </h3>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                 {referralWalletGrowth !== 0 && (
+                  <span className={`inline-flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-full ${
+                    referralWalletGrowth > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                  }`}>
+                    <TrendUpIcon className={`w-4 h-4 ${referralWalletGrowth < 0 ? 'rotate-180' : ''}`} />
+                    {referralWalletGrowth > 0 ? '+' : ''}{referralWalletGrowth}% vs last week
+                  </span>
+                )}
+                <button 
+                  onClick={() => navigate('/wallet?tab=referral')} 
+                  className="text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
+                >
+                  View Referrals <ArrowRightIcon className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <h3 className="text-2xl font-bold text-landing-heading mb-1">
-              {showReferralBalance ? formatKES(wallets?.referral_wallet_balance || 0) : '••••••'}
-            </h3>
-            <p className="text-sm text-landing-muted">Referral Wallet</p>
-            <p className="text-xs text-landing-muted mt-1">From referral bonuses</p>
-          </div>
 
-          {/* Surveys Completed */}
-          <div
-            onClick={() => navigate('/surveys?status=completed')}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white">
-                <TaskIcon className="w-6 h-6" />
-              </div>
-              <span className="flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                <TrendUpIcon className="w-5 h-5" />
-                {surveysCompletedThisMonth} this month
-              </span>
-            </div>
-            <h3 className="text-2xl font-bold text-landing-heading mb-1">{surveysCompletedThisMonth}</h3>
-            <p className="text-sm text-landing-muted">Surveys Completed</p>
-            <p className="text-xs text-landing-muted mt-1">Total completed surveys</p>
-          </div>
-
-          {/* Referrals */}
-          <div
-            onClick={() => navigate('/wallet?tab=referral')}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:shadow-amber-100 transition-all duration-300 animate-fade-in-up cursor-pointer"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                <UsersIcon className="w-6 h-6" />
-              </div>
-              <span className="flex items-center gap-1 text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                {activeReferrals} active
-              </span>
-            </div>
-            <h3 className="text-2xl font-bold text-landing-heading mb-1">{totalReferrals}</h3>
-            <p className="text-sm text-landing-muted">Referrals</p>
-            <p className="text-xs text-landing-muted mt-1">Active referrals</p>
           </div>
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Recent Transactions */}
-          <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden animate-fade-in-up animation-delay-400">
-            <div className="p-6 border-b border-amber-100 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-landing-heading">Recent Transactions</h2>
-              <button
-                onClick={() => navigate('/wallet')}
-                className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer"
-              >
-                View All <ArrowRightIcon className="w-4 h-4" />
+        {/* FLAT ACTION BAR */}
+        <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up animation-delay-400">
+          <button 
+            onClick={() => navigate('/surveys')}
+            className="flex-1 bg-amber-500 hover:bg-amber-600 text-white p-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-colors shadow-sm"
+          >
+            <TaskIcon className="w-5 h-5" /> Find New Surveys
+          </button>
+          <button 
+            onClick={() => navigate('/wallet')}
+            className="flex-1 bg-gray-900 hover:bg-black text-white p-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-colors shadow-sm"
+          >
+            <WalletIcon className="w-5 h-5" /> Withdraw Funds
+          </button>
+          <button 
+            onClick={() => navigate('/profile')}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white p-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-colors shadow-sm"
+          >
+            <UsersIcon className="w-5 h-5" /> Invite & Earn KES 50
+          </button>
+        </div>
+
+        {/* SPLIT LAYOUT: TRANSACTIONS & PERFORMANCE/SURVEYS */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 animate-fade-in-up animation-delay-600">
+          
+          {/* Left Column: Ledger (Transactions) */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-landing-heading">Recent Ledger</h2>
+              <button onClick={() => navigate('/wallet')} className="text-sm font-bold text-gray-500 hover:text-black transition-colors">
+                View All History
               </button>
             </div>
-            <div className="divide-y divide-amber-50">
+            
+            <div className="bg-white rounded-3xl p-2 border border-gray-100 shadow-sm">
               {recentTransactions.length > 0 ? (
-                recentTransactions.map((tx) => {
-                  let icon, bgColor, textColor;
-                  if (tx.type === 'Withdrawal') {
-                    bgColor = 'bg-amber-100';
-                    textColor = 'text-amber-600';
-                  } else if (tx.type === 'Referral Bonus') {
-                    icon = <UsersIcon className="w-5 h-5" />;
-                    bgColor = 'bg-orange-100';
-                    textColor = 'text-orange-600';
-                  } else {
-                    // Survey Earning
-                    icon = <ArrowDownIcon className="w-5 h-5" />;
-                    bgColor = 'bg-emerald-100';
-                    textColor = 'text-emerald-600';
-                  }
-
-                  if (tx.status === 'completed') {
-                    icon = <CheckCircleIcon className="w-5 h-5" />;
-                  } else if (tx.status === 'pending') {
-                    icon = <ClockIcon className="w-5 h-5" />;
-                  }
-
-                  return (
-                    <div key={tx.id} className="p-4 hover:bg-amber-50/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`p-2 rounded-xl ${bgColor} ${textColor}`}>
-                            {icon}
-                          </div>
-                          <div>
-                            <p className="font-medium text-landing-heading">{tx.type}</p>
-                            <p className="text-sm text-landing-muted">{tx.formattedDate}</p>
-                          </div>
+                <div className="flex flex-col">
+                  {recentTransactions.map((tx, index) => (
+                    <div key={tx.id} className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl hover:bg-gray-50 transition-colors ${index !== recentTransactions.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-full ${
+                          tx.type === 'Withdrawal' ? 'bg-gray-100 text-gray-600' : 
+                          tx.type === 'Referral Bonus' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                        }`}>
+                          {tx.type === 'Withdrawal' ? <ArrowRightIcon className="w-4 h-4" /> : 
+                           tx.type === 'Referral Bonus' ? <UsersIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
                         </div>
-                        <div className="text-right">
-                          <p className={`font-bold ${tx.isCredit ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {tx.formattedAmount}
-                          </p>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            tx.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                            tx.status === 'failed' ? 'bg-red-100 text-red-700' :
-                            'bg-amber-100 text-amber-700'
-                          }`}>
-                            {tx.status}
-                          </span>
+                        <div>
+                          <p className="font-bold text-gray-900">{tx.type}</p>
+                          <p className="text-xs font-medium text-gray-400 mt-0.5">{tx.formattedDate}</p>
                         </div>
                       </div>
+                      <div className="text-right">
+                        <p className={`font-black text-lg ${tx.isCredit ? 'text-gray-900' : 'text-gray-500'}`}>
+                          {tx.formattedAmount}
+                        </p>
+                        <span className={`inline-block mt-1 text-[10px] font-bold uppercase tracking-wider ${
+                          tx.status === 'completed' ? 'text-emerald-500' :
+                          tx.status === 'failed' ? 'text-red-500' : 'text-amber-500'
+                        }`}>
+                          {tx.status}
+                        </span>
+                      </div>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="p-4 text-center text-landing-muted">
-                  No transactions yet.
+                  ))}
                 </div>
+              ) : (
+                <div className="p-12 text-center text-gray-400 font-medium">No ledger entries yet.</div>
               )}
             </div>
           </div>
 
-          {/* Available Surveys */}
-          <div className="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden animate-fade-in-up animation-delay-600">
-            <div className="p-6 border-b border-amber-100 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-landing-heading">Available Surveys</h2>
-              <button
-                onClick={() => navigate('/surveys')}
-                className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer"
-              >
-                View All <ArrowRightIcon className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              {availableSurveys.length > 0 ? (
-                availableSurveys.map((survey) => (
-                  <div
-                    key={survey.id}
-                    onClick={() => navigate('/surveys')}
-                    className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-md transition-all duration-300 cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium px-2 py-1 bg-amber-200 text-amber-800 rounded-lg">
-                        {survey.category}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-landing-heading mb-2">{survey.title}</h3>
-                    <div className="flex items-center gap-2 text-sm text-landing-muted">
-                      <ClockIcon className="w-5 h-5" />
-                      <span>Expires in {survey.deadline}</span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-landing-muted">
-                  No surveys available right now.
+          {/* Right Column: Performance & Active Surveys */}
+          <div className="lg:col-span-5 space-y-12">
+            
+            {/* Quick Performance Stats */}
+            <div>
+              <h2 className="text-xl font-bold text-landing-heading mb-6">Performance</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div onClick={() => navigate('/surveys?status=completed')} className="bg-emerald-500 rounded-3xl p-6 text-white cursor-pointer hover:bg-emerald-600 transition-colors">
+                  <TaskIcon className="w-6 h-6 text-emerald-200 mb-4" />
+                  <div className="text-4xl font-black mb-1">{surveysCompletedThisMonth}</div>
+                  <div className="text-emerald-100 text-sm font-medium">Surveys this month</div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in-up animation-delay-800">
-          <div
-            onClick={() => navigate('/surveys')}
-            className="group p-6 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl text-white hover:shadow-xl hover:shadow-amber-200 transition-all duration-300 cursor-pointer"
-          >
-            <TaskIcon className="w-6 h-6" />
-            <h3 className="text-lg font-bold mt-4 mb-2">Find Surveys</h3>
-            <p className="text-amber-100 text-sm">Browse available surveys and start earning</p>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
-              Explore <ArrowRightIcon className="w-4 h-4" />
-            </div>
-          </div>
-          <div
-            onClick={() => navigate('/wallet')}
-            className="group p-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl text-white hover:shadow-xl hover:shadow-emerald-200 transition-all duration-300 cursor-pointer"
-          >
-            <WalletIcon className="w-6 h-6" />
-            <h3 className="text-lg font-bold mt-4 mb-2">Withdraw Funds</h3>
-            <p className="text-emerald-100 text-sm">Transfer your earnings to M-Pesa or bank</p>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
-              Withdraw <ArrowRightIcon className="w-4 h-4" />
-            </div>
-          </div>
-          <div
-            onClick={() => navigate('/profile')}
-            className="group p-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl text-white hover:shadow-xl hover:shadow-blue-200 transition-all duration-300 cursor-pointer"
-          >
-            <UsersIcon className="w-6 h-6" />
-            <h3 className="text-lg font-bold mt-4 mb-2">Invite Friends</h3>
-            <p className="text-blue-100 text-sm">Earn KES 50 for every activated referral</p>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
-              Share <ArrowRightIcon className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-
-        {/* Subscription Upgrade Banner */}
-        {subscriptionStatus?.has_active_subscription && subscriptionStatus.tier_level === 0 && (
-          <div className="mt-8 p-6 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl text-white relative overflow-hidden animate-fade-in-up">
-            <div className="relative flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white/20 rounded-xl">
-                  <SparklesIcon className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Unlock Higher-Paying Surveys</h3>
-                  <p className="text-amber-100">Upgrade to Basic (Ksh 149/mo) to access 3x more earning opportunities</p>
+                <div onClick={() => navigate('/wallet?tab=referral')} className="bg-white border border-gray-200 rounded-3xl p-6 text-gray-900 cursor-pointer hover:border-blue-500 transition-colors">
+                  <UsersIcon className="w-6 h-6 text-blue-500 mb-4" />
+                  <div className="text-4xl font-black mb-1">{activeReferrals} <span className="text-lg text-gray-400 font-medium">/ {totalReferrals}</span></div>
+                  <div className="text-gray-500 text-sm font-medium">Active Referrals</div>
                 </div>
               </div>
-              <button
-                onClick={handleUpgrade}
-                className="px-6 py-3 bg-white text-amber-600 font-bold rounded-xl hover:bg-amber-50 transition-colors shadow-lg"
-              >
-                View Plans
-              </button>
             </div>
+
+            {/* Available Surveys List */}
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-landing-heading">Up Next</h2>
+                <button onClick={() => navigate('/surveys')} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-black">
+                  <ArrowRightIcon className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {availableSurveys.length > 0 ? (
+                  availableSurveys.map((survey) => (
+                    <div 
+                      key={survey.id} 
+                      onClick={() => navigate('/surveys')}
+                      className="group flex items-center justify-between p-5 bg-white border border-gray-100 rounded-2xl hover:border-amber-500 hover:shadow-sm cursor-pointer transition-all"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{survey.category}</span>
+                        </div>
+                        <h3 className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors">{survey.title}</h3>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded-md">{survey.deadline} left</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 border-2 border-dashed border-gray-200 rounded-3xl text-center">
+                    <p className="text-gray-400 font-medium mb-2">You're all caught up!</p>
+                    <button onClick={() => navigate('/surveys')} className="text-amber-600 font-bold text-sm">Check for new surveys</button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* UPGRADE PROMO (Flat, bold style) */}
+        {subscriptionStatus?.has_active_subscription && subscriptionStatus.tier_level === 0 && (
+          <div className="mt-12 bg-amber-500 rounded-[2rem] p-8 md:p-10 text-white flex flex-col md:flex-row items-center justify-between gap-6 animate-fade-in-up">
+            <div className="flex items-start gap-5">
+              <div className="p-3 bg-amber-400 rounded-2xl hidden sm:block">
+                <SparklesIcon className="w-8 h-8 text-amber-900" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black mb-2 text-amber-950">Unlock 3x Higher Payments</h3>
+                <p className="text-amber-100 font-medium max-w-xl">Upgrade your account to Basic (KES 149/mo) and get access to exclusive, premium-tier surveys directly in your dashboard.</p>
+              </div>
+            </div>
+            <button onClick={handleUpgrade} className="w-full md:w-auto px-8 py-4 bg-amber-950 hover:bg-black text-amber-500 font-black rounded-xl transition-colors whitespace-nowrap">
+              View Premium Plans
+            </button>
           </div>
         )}
 
-        {/* Member Since */}
-        <div className="mt-12 text-center text-landing-muted text-sm">
-          Member since {formatJoinDate(currentUser?.created_at)}
-        </div>
       </div>
     </div>
   );

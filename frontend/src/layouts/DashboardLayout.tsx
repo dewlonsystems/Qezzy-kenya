@@ -94,16 +94,6 @@ const getTierDisplayName = (tierName: string | null | undefined) => {
   return tierName.charAt(0).toUpperCase() + tierName.slice(1);
 };
 
-interface SubscriptionStatus {
-  has_active_subscription: boolean;
-  current_tier: string | null;
-  tier_level: number;
-  status: 'active' | 'expired' | 'cancelled' | 'pending';
-  end_date: string | null;
-  grace_end_date: string | null;
-  is_trial: boolean;
-}
-
 const DashboardLayout = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -111,7 +101,6 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // ✅ UPDATED: Navigation with "Surveys" + "Subscriptions"
@@ -123,19 +112,6 @@ const DashboardLayout = () => {
     { name: 'Profile', path: '/profile', icon: ProfileIcon },
     { name: 'Support', path: '/support', icon: SupportIcon },
   ];
-
-  // Fetch subscription status for topbar badge
-  useEffect(() => {
-    const fetchSubscriptionStatus = async () => {
-      try {
-        const res = await api.get('/subscriptions/status/');
-        setSubscriptionStatus(res.data);
-      } catch (err) {
-        console.warn('Failed to fetch subscription status:', err);
-      }
-    };
-    fetchSubscriptionStatus();
-  }, []);
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -303,22 +279,8 @@ const DashboardLayout = () => {
               </form>
             </div>
 
-            {/* Right: Subscription Tier Badge + User */}
+            {/* Right: User Profile */}
             <div className="flex items-center gap-3">
-              {/* ✅ NEW: Subscription Tier Badge (replaces legacy is_active) */}
-              {subscriptionStatus && (
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${getTierBadgeStyles(subscriptionStatus.tier_level)}`}>
-                  <div className={`w-2 h-2 rounded-full ${
-                    subscriptionStatus.tier_level >= 3 ? 'bg-white/80' : 'bg-current'
-                  }`} />
-                  <span>{getTierDisplayName(subscriptionStatus.current_tier)}</span>
-                  {subscriptionStatus.is_trial && (
-                    <span className="ml-1 text-[10px] bg-white/20 px-1.5 py-0.5 rounded">Trial</span>
-                  )}
-                </div>
-              )}
-
-              {/* User Profile */}
               <div className="flex items-center gap-3 pl-3 border-l border-amber-200" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
